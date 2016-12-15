@@ -324,6 +324,7 @@ def main():
     # webhook's startup code.
     wh_updates_queue = Queue()
     wh_key_cache = {}
+    app.set_wh_updates_queue(wh_updates_queue)
 
     if len(args.wh_types) == 0:
         log.info('Webhook disabled.')
