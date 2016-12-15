@@ -271,6 +271,7 @@ def main():
     # webhook's startup code.
     wh_updates_queue = Queue()
     wh_key_cache = {}
+    app.set_wh_updates_queue(wh_updates_queue)
 
     # Thread to process webhook updates.
     for i in range(args.wh_threads):

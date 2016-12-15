@@ -64,6 +64,7 @@ class Pogom(Flask):
         self.route("/submit_token", methods=['POST'])(self.submit_token)
         self.route("/get_stats", methods=['GET'])(self.get_account_stats)
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
+        self.route("/geofency_wh", methods=['POST'])(self.post_geofency_wh)
 
     def render_robots_txt(self):
         return render_template('robots.txt')
@@ -129,6 +130,9 @@ class Pogom(Flask):
 
     def set_current_location(self, location):
         self.current_location = location
+
+    def set_wh_updates_queue(self, wh_updates_queue):
+        self.wh_updates_queue = wh_updates_queue
 
     def get_search_control(self):
         return jsonify({'status': not self.search_control.is_set()})
@@ -570,6 +574,35 @@ class Pogom(Flask):
         else:
             d['login'] = 'failed'
         return jsonify(d)
+
+
+    def post_geofency_wh(self):
+        args = get_args()
+        entry = request.form.get('entry')
+
+        # trigger only when entering locations
+        if entry == '1':
+            lat = request.form.get('latitude', type=float)
+            lon = request.form.get('longitude', type=float)
+            if not (lat and lon):
+                warning = 'Invalid location: {}, {}'.format(lat, lon)
+                log.warning(warning)
+                return warning, 400
+            else:
+                result = "Success."
+                if not args.fixed_location:
+                    self.location_queue.put((lat, lon, 0))
+                    self.set_current_location((lat, lon, 0))
+                    log.info('Changing map location to  %s,%s', lat, lon)
+                    result += " Changed map location."
+
+                # Geofency specific things
+                name = request.form.get('name')
+                self.wh_updates_queue.put(('location', {'latitude': lat, 'longitude': lon}))
+                log.info('Sent location "%s" to webhooks', name)
+                result += " Sent location to webhooks."
+
+                return result
 
 
 class CustomJSONEncoder(JSONEncoder):
