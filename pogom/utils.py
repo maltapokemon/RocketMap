@@ -26,6 +26,24 @@ def parse_unicode(bytestring):
     return decoded_string
 
 
+def read_pokemon_ids_from_file(f):
+    pokemon_ids = set()
+    for name in f:
+        name = name.strip()
+        # Lines starting with # or - mean: skip this Pokemon
+        if name[0] in ('#', '-'):
+            continue
+        try:
+            # Pokemon can be given as Pokedex ID
+            pid = int(name)
+        except ValueError:
+            # Perform the usual name -> ID lookup
+            pid = get_pokemon_id(unicode(name, 'utf-8'))
+        if pid and not pid == -1:
+            pokemon_ids.add(pid)
+    return sorted(pokemon_ids)
+
+
 def memoize(function):
     memo = {}
 
@@ -153,7 +171,7 @@ def get_args():
                         type=float, default=1)
     parser.add_argument('-encwf', '--enc-whitelist-file',
                         default='', help='File containing a list of '
-                        'Pokemon IDs to encounter for'
+                        'Pokemon IDs or names to encounter for'
                         ' IV/CP scanning.')
     parser.add_argument('-nostore', '--no-api-store',
                         help=("Don't store the API objects used by the high"
@@ -439,6 +457,8 @@ def get_args():
                                  'specify file to log to.'),
                            nargs='?', const='nofile', default=False,
                            metavar='filename.log')
+    parser.add_argument('-pgsu', '--pgscout-url', default=None,
+                        help='URL to query PGScout for Pokemon IV/CP.')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -667,7 +687,7 @@ def get_args():
         # IV/CP scanning.
         if args.enc_whitelist_file:
             with open(args.enc_whitelist_file) as f:
-                args.enc_whitelist = frozenset([int(l.strip()) for l in f])
+                args.enc_whitelist = read_pokemon_ids_from_file(f)
 
         # Make max workers equal number of accounts if unspecified, and disable
         # account switching.
