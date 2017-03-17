@@ -75,6 +75,13 @@
       margin-right: 3px;
       -webkit-font-smoothing: antialiased;
     }
+
+    &.scout:before {
+      content: '\f1e5';
+      font-family: FontAwesome;
+      margin-right: 3px;
+      -webkit-font-smoothing: antialiased;
+    }
   }
 
   &.navigate {
@@ -95,5 +102,17 @@
     display: block;
     height: 48px;
     width: 48px;
+  }
+
+  &.ball {
+    display: inline;
+    height: 12px;
+    width: 12px;
+    margin-bottom: 0;
+    vertical-align: bottom;
+  }
+
+  &.scoutinfo {
+    display: hidden;
   }
 }
