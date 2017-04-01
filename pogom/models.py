@@ -1710,15 +1710,22 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # necessarily need to know *how many* forts/wild/nearby were found but
         # we'd like to know whether or not *any* were found to help determine
         # if a scan was actually bad.
-        wild_pokemon += cell.get('wild_pokemons', [])
-
+        temp_wild_pokemon = cell.get('wild_pokemons', [])
+        # go through this and determine if any of these are ignorable
+        # we'll rewrite the list without them, and the subsequent code
+        # will never know they were present.
+        if temp_wild_pokemon:
+            for wp in temp_wild_pokemon:
+                if wp['pokemon_data']['pokemon_id'] in args.ignore_list:
+                    log.debug('Ignoring pokemon id: %i',
+                              wp['pokemon_data']['pokemon_id'])
+                else:
+                    wild_pokemon.append(wp)
         forts += cell.get('forts', [])
-
     # If there are no wild or nearby Pokemon . . .
     if not wild_pokemon and not nearby_pokemon:
         # . . . and there are no gyms/pokestops then it's unusable/bad.
         abandon_loc = False
-
         if not forts:
             log.warning('Bad scan. Parsing found absolutely nothing.')
             log.info('Common causes: captchas or IP bans.')
@@ -1843,6 +1850,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Scan for IVs and moves.
             encounter_result = None
+            print args.encounter_whitelist
             if (args.encounter and (p['pokemon_data']['pokemon_id']
                                     in args.encounter_whitelist or
                                     p['pokemon_data']['pokemon_id']
