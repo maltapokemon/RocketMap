@@ -1850,7 +1850,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Scan for IVs and moves.
             encounter_result = None
-            print args.encounter_whitelist
             if (args.encounter and (p['pokemon_data']['pokemon_id']
                                     in args.encounter_whitelist or
                                     p['pokemon_data']['pokemon_id']
