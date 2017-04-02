@@ -1710,12 +1710,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # necessarily need to know *how many* forts/wild/nearby were found but
         # we'd like to know whether or not *any* were found to help determine
         # if a scan was actually bad.
-        temp_wild_pokemon = cell.get('wild_pokemons', [])
+
         # go through this and determine if any of these are ignorable
         # we'll rewrite the list without them, and the subsequent code
         # will never know they were present.
-        if temp_wild_pokemon:
-            for wp in temp_wild_pokemon:
+        for wp in cell.get('wild_pokemons', []):
                 if wp['pokemon_data']['pokemon_id'] in args.ignore_list:
                     log.debug('Ignoring pokemon id: %i',
                               wp['pokemon_data']['pokemon_id'])
