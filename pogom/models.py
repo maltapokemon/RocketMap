@@ -1710,16 +1710,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # necessarily need to know *how many* forts/wild/nearby were found but
         # we'd like to know whether or not *any* were found to help determine
         # if a scan was actually bad.
-
-        # go through this and determine if any of these are ignorable
-        # we'll rewrite the list without them, and the subsequent code
-        # will never know they were present.
-        for wp in cell.get('wild_pokemons', []):
-                if wp['pokemon_data']['pokemon_id'] in args.ignore_list:
-                    log.debug('Ignoring pokemon id: %i',
-                              wp['pokemon_data']['pokemon_id'])
-                else:
-                    wild_pokemon.append(wp)
+        wild_pokemon += cell.get('wild_pokemons', [])
         forts += cell.get('forts', [])
     # If there are no wild or nearby Pokemon . . .
     if not wild_pokemon and not nearby_pokemon:
@@ -1844,6 +1835,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             disappear_time = now_date + \
                 timedelta(seconds=seconds_until_despawn)
 
+            # if this is an ignored pokemon, skip this whole section
+            # We want the stuff above or we will impact spawn detection
+            # but we don't want to insert it, or send it to webhooks
+            if p['pokemon_data']['pokemon_id'] in args.ignore_list:
+                log.debug("Ignoring Pokemon id: %i",
+                          p['pokemon_data']['pokemon_id'])
+                continue
             printPokemon(p['pokemon_data']['pokemon_id'], p[
                          'latitude'], p['longitude'], disappear_time)
 
@@ -1909,7 +1907,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'weight': pokemon_info['weight_kg'],
                     'gender': pokemon_info['pokemon_display']['gender'],
                 })
-
             if args.webhooks:
 
                 wh_poke = pokemon[p['encounter_id']].copy()
