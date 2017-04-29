@@ -11,7 +11,7 @@ import time
 import geopy
 import math
 from peewee import InsertQuery, \
-    Check, CompositeKey, ForeignKeyField, \
+    Check, CompositeKey, PrimaryKeyField, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
     DateTimeField, fn, DeleteQuery, FloatField, SQL, TextField, JOIN, \
     OperationalError
@@ -1753,6 +1753,48 @@ class Token(flaskDb.Model):
         return tokens
 
 
+# Geofence DB Model
+class Geofence(BaseModel):
+    id = PrimaryKeyField()
+    geofence_id = SmallIntegerField()
+    forbidden = BooleanField()
+    name = CharField(max_length=50)
+    coordinates_id = SmallIntegerField()
+    latitude = DoubleField()
+    longitude = DoubleField()
+
+    @staticmethod
+    def clear_all():
+        DeleteQuery(Geofence).execute()
+
+    @staticmethod
+    def get_geofences():
+        query = Geofence.select(
+                Geofence.geofence_id, Geofence.forbidden, Geofence.name,
+                Geofence.coordinates_id, Geofence.latitude,
+                Geofence.longitude)
+
+        # Send them all
+        query = (query.dicts())
+
+        # Performance:  disable the garbage collector prior to creating a
+        # (potentially) large dict with append().
+        gc.disable()
+
+        geofences = []
+        for g in query:
+            if args.china:
+                g['polygon']['latitude'], g['polygon']['longitude'] = \
+                    transform_from_wgs_to_gcj(
+                        g['polygon']['latitude'], g['polygon']['longitude'])
+            geofences.append(g)
+
+        # Re-enable the GC.
+        gc.enable()
+
+        return geofences
+
+
 def hex_bounds(center, steps=None, radius=None):
     # Make a box that is (70m * step_limit * 2) + 70m away from the
     # center point.  Rationale is that you need to travel.
@@ -2594,7 +2636,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude]
+              Token, LocationAltitude, Geofence]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -2610,7 +2652,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token]
+              Token, Geofence]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:
