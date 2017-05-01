@@ -161,16 +161,13 @@ def get_args():
                               'in scan threads.'),
                         type=float, default=1)
     ignore_list = parser.add_mutually_exclusive_group()
-    ignore_list.add_argument('-ign', '--ignore-list',
-                             action='append', default=[],
-                             help=('List of Pokemon to ignore. Pokemon will ' +
-                                   'not be added to DB, not sent to ' +
-                                   'webhooks, and not encountered.' +
-                                   ' Will still be used to ' +
-                                   'determine spawnpoints.'))
-    ignore_list.add_argument('-ignf', '--ignore-list-file',
+    ignore_list.add_argument('-ignf', '--ignorelist-file',
                              default='', help='File containing a list of '
-                             'Pokemon to ignore.')
+                             'Pokemon IDs to ignore. Pokemon will ' +
+                             'not be added to DB, not sent to ' +
+                             'webhooks, and not encountered. ' +
+                             'Will still be used to ' +
+                             'determine spawnpoints.')
     parser.add_argument('-encwf', '--enc-whitelist-file',
                         default='', help='File containing a list of '
                         'Pokemon IDs to encounter for'
@@ -724,14 +721,9 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
-        if args.ignore_list_file:
-            with open(args.ignore_file) as f:
-                args.ignore_list = [get_pokemon_id(name) for name in
-                                    f.read().splitlines()]
-        else:
-            args.ignore_list = [int(i) for i in
-                                args.ignore_list]
-
+        if args.ignorelist_file:
+            with open(args.ignorelist_file) as f:
+                args.ignorelist = frozenset([int(l.strip()) for l in f])
         # Decide which scanning mode to use.
         if args.spawnpoint_scanning:
             args.scheduler = 'SpawnScan'

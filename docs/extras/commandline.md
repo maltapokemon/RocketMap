@@ -1,4 +1,4 @@
-# Command line
+# Command Line
 
     usage: runserver.py [-h] [-cf CONFIG] [-a AUTH_SERVICE] [-u USERNAME]
                     [-p PASSWORD] [-w WORKERS] [-asi ACCOUNT_SEARCH_INTERVAL]

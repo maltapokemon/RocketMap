@@ -1932,18 +1932,20 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             disappear_time = now_date + \
                 timedelta(seconds=seconds_until_despawn)
 
+            # Store this and reuse
+            pokemon_id = p['pokemon_data']['pokemon_id']
+
             # if this is an ignored pokemon, skip this whole section
             # We want the stuff above or we will impact spawn detection
             # but we don't want to insert it, or send it to webhooks
-            if p['pokemon_data']['pokemon_id'] in args.ignore_list:
-                log.debug("Ignoring Pokemon id: %i",
-                          p['pokemon_data']['pokemon_id'])
+            if pokemon_id in args.ignorelist:
+                log.info("Ignoring Pokemon id: %i", pokemon_id)
                 continue
-            printPokemon(p['pokemon_data']['pokemon_id'], p[
+
+            printPokemon(pokemon_id, p[
                          'latitude'], p['longitude'], disappear_time)
 
             # Scan for IVs/CP and moves.
-            pokemon_id = p['pokemon_data']['pokemon_id']
             encounter_result = None
 
             if args.encounter and (pokemon_id in args.enc_whitelist):
@@ -2061,7 +2063,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             pokemon[p['encounter_id']] = {
                 'encounter_id': b64encode(str(p['encounter_id'])),
                 'spawnpoint_id': p['spawn_point_id'],
-                'pokemon_id': p['pokemon_data']['pokemon_id'],
+                'pokemon_id': pokemon_id,
                 'latitude': p['latitude'],
                 'longitude': p['longitude'],
                 'disappear_time': disappear_time,
@@ -2106,7 +2108,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'pokemon_display'].get('form', None)
 
             if args.webhooks:
-                pokemon_id = p['pokemon_data']['pokemon_id']
                 if (pokemon_id in args.webhook_whitelist or
                     (not args.webhook_whitelist and pokemon_id
                      not in args.webhook_blacklist)):
