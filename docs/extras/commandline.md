@@ -10,7 +10,7 @@
                     [-cds CAPTCHA_DSK] [-mcd MANUAL_CAPTCHA_DOMAIN]
                     [-mcr MANUAL_CAPTCHA_REFRESH]
                     [-mct MANUAL_CAPTCHA_TIMEOUT] [-ed ENCOUNTER_DELAY]
-                    [-ign IGNORE_LIST | -ignf IGNORE_LIST_FILE]
+                    [-ignf IGNORE_LIST_FILE]
                     [-encwf ENC_WHITELIST_FILE] [-nostore]
                     [-wwht WEBHOOK_WHITELIST | -wblk WEBHOOK_BLACKLIST | -wwhtf WEBHOOK_WHITELIST_FILE | -wblkf WEBHOOK_BLACKLIST_FILE]
                     [-ld LOGIN_DELAY] [-lr LOGIN_RETRIES] [-mf MAX_FAILURES]
