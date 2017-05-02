@@ -160,14 +160,13 @@ def get_args():
                         help=('Time delay between encounter pokemon ' +
                               'in scan threads.'),
                         type=float, default=1)
-    ignore_list = parser.add_mutually_exclusive_group()
-    ignore_list.add_argument('-ignf', '--ignorelist-file',
-                             default='', help='File containing a list of '
-                             'Pokemon IDs to ignore. Pokemon will ' +
-                             'not be added to DB, not sent to ' +
-                             'webhooks, and not encountered. ' +
-                             'Will still be used to ' +
-                             'determine spawnpoints.')
+    parser.add_argument('-ignf', '--ignorelist-file',
+                        default='', help='File containing a list of '
+                        'Pokemon IDs to ignore. Pokemon will ' +
+                        'not be added to DB, not sent to ' +
+                        'webhooks, and not encountered. ' +
+                        'Will still be used to ' +
+                        'determine spawnpoints.')
     parser.add_argument('-encwf', '--enc-whitelist-file',
                         default='', help='File containing a list of '
                         'Pokemon IDs to encounter for'

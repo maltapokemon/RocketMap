@@ -1938,8 +1938,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # if this is an ignored pokemon, skip this whole section
             # We want the stuff above or we will impact spawn detection
             # but we don't want to insert it, or send it to webhooks
-            if pokemon_id in args.ignorelist:
-                log.info("Ignoring Pokemon id: %i", pokemon_id)
+            if args.ignorelist_file and (pokemon_id in args.ignorelist):
+                log.debug("Ignoring Pokemon id: %i", pokemon_id)
                 continue
 
             printPokemon(pokemon_id, p[
