@@ -274,7 +274,7 @@ def main():
         t.start()
 
     # Create Geofences object and save into args
-    args.geofences = Geofences(args, db_updates_queue)
+    args.geofences = Geofences(args)
 
     if not args.only_server:
 
