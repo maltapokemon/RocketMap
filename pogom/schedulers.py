@@ -387,7 +387,7 @@ class SpawnScan(BaseScheduler):
             self.locations = Pokemon.get_spawnpoints_in_hex(
                 self.scan_location, self.args.step_limit)
 
-        # Geofence spawnpoints
+        # Geofence spawnpoints.
         if self.geofences.is_enabled():
             self.locations = self.geofences.get_geofenced_coordinates(
                 self.locations)
@@ -606,7 +606,7 @@ class SpeedScan(HexSearch):
                     loc = get_new_coords(star_loc, xdist * (j), 210 + 60 * i)
                     results.append((loc[0], loc[1], 0))
 
-        # Geofence results
+        # Geofence results.
         if self.geofences.is_enabled():
             results = self.geofences.get_geofenced_coordinates(results)
             if not results:
