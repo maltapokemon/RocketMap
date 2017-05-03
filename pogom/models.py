@@ -11,7 +11,7 @@ import time
 import geopy
 import math
 from peewee import InsertQuery, \
-    Check, CompositeKey, PrimaryKeyField, ForeignKeyField, \
+    Check, CompositeKey, ForeignKeyField, \
     SmallIntegerField, IntegerField, CharField, DoubleField, BooleanField, \
     DateTimeField, fn, DeleteQuery, FloatField, SQL, TextField, JOIN, \
     OperationalError
@@ -37,15 +37,6 @@ from .account import (tutorial_pokestop_spin, get_player_level, check_login,
                       setup_api, encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
-
-# Trying to import the, not to all hardware compatible, matplotlib
-# Matlplotlib is faster for big calulations
-try:
-    from matplotlib.path import Path
-except ImportError as e:
-    log.warning('Exception while importing matplotlib: %s', repr(e))
-    log.warning('Enable "-nmptl" or "--no-matplotlib" to circumvent.')
-    pass
 
 args = get_args()
 flaskDb = FlaskDB()
@@ -1762,122 +1753,6 @@ class Token(flaskDb.Model):
         return tokens
 
 
-# Geofence DB Model
-class Geofence(BaseModel):
-    id = PrimaryKeyField()
-    forbidden = BooleanField()
-    name = CharField(max_length=50)
-    coordinates_id = SmallIntegerField()
-    latitude = DoubleField()
-    longitude = DoubleField()
-
-    @staticmethod
-    def clear_all():
-        # Remove all geofences without interfering with other threads.
-        with flaskDb.database.transaction():
-            DeleteQuery(Geofence).execute()
-
-    @staticmethod
-    def remove_duplicates(geofences):
-        # Remove old geofences without interfering with other threads.
-        with flaskDb.database.transaction():
-            for geofence in geofences:
-                (DeleteQuery(Geofence)
-                    .where(Geofence.name == geofences[geofence]['name'])
-                    .execute())
-
-    @staticmethod
-    def get_db_entries(geofences):
-        db_geofences = {}
-        id = 0
-        for geofence in geofences:
-            coordinates_id = 0
-            for coordinates in geofences[geofence]['polygon']:
-                id = id + 1
-                db_geofences[id] = {
-                    'forbidden': geofences[geofence]['forbidden'],
-                    'name': geofences[geofence]['name'],
-                    'coordinates_id': coordinates_id,
-                    'latitude': coordinates['lat'],
-                    'longitude': coordinates['lon']
-                }
-                coordinates_id = coordinates_id + 1
-
-        return db_geofences
-
-    @staticmethod
-    def get_geofences():
-        query = Geofence.select().dicts()
-
-        # Performance:  disable the garbage collector prior to creating a
-        # (potentially) large dict with append().
-        gc.disable()
-
-        geofences = []
-        for g in query:
-            if args.china:
-                g['polygon']['latitude'], g['polygon']['longitude'] = \
-                    transform_from_wgs_to_gcj(
-                        g['polygon']['latitude'], g['polygon']['longitude'])
-            geofences.append(g)
-
-        # Re-enable the GC.
-        gc.enable()
-
-        return geofences
-
-    @staticmethod
-    def point_in_polygon_matplotlib(point, polygon):
-        pointTouple = (point['lat'], point['lon'])
-        polygonToupleList = []
-        for c in polygon:
-            coordinateTouple = (c['lat'], c['lon'])
-            polygonToupleList.append(coordinateTouple)
-
-        polygonToupleList.append(polygonToupleList[0])
-        path = Path(polygonToupleList)
-
-        return path.contains_point(pointTouple)
-
-    @staticmethod
-    def point_in_polygon_custom(point, polygon):
-        # Initialize first coordinate as default.
-        maxLat = polygon[0]['lat']
-        minLat = polygon[0]['lat']
-        maxLon = polygon[0]['lon']
-        minLon = polygon[0]['lon']
-
-        for coords in polygon:
-            maxLat = max(coords['lat'], maxLat)
-            minLat = min(coords['lat'], minLat)
-            maxLon = max(coords['lon'], maxLon)
-            minLon = min(coords['lon'], minLon)
-
-        if ((point['lat'] > maxLat) or (point['lat'] < minLat) or
-                (point['lon'] > maxLon) or (point['lon'] < minLon)):
-            return False
-
-        inside = False
-        lat1, lon1 = polygon[0]['lat'], polygon[0]['lon']
-        N = len(polygon)
-        for n in range(1, N+1):
-            lat2, lon2 = polygon[n % N]['lat'], polygon[n % N]['lon']
-            if (min(lon1, lon2) < point['lon'] <= max(lon1, lon2) and
-                    point['lat'] <= max(lat1, lat2)):
-                        if lon1 != lon2:
-                            latIntersection = (
-                                (point['lon'] - lon1) *
-                                (lat2 - lat1) / (lon2 - lon1) +
-                                lat1)
-
-                        if lat1 == lat2 or point['lat'] <= latIntersection:
-                            inside = not inside
-
-            lat1, lon1 = lat2, lon2
-
-        return inside
-
-
 def hex_bounds(center, steps=None, radius=None):
     # Make a box that is (70m * step_limit * 2) + 70m away from the
     # center point.  Rationale is that you need to travel.
@@ -2743,7 +2618,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, Geofence]
+              Token, LocationAltitude]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -2759,7 +2634,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, Geofence]
+              Token]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:

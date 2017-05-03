@@ -17,7 +17,7 @@ from bisect import bisect_left
 
 from . import config
 from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
-                     MainWorker, WorkerStatus, Token, Geofence)
+                     MainWorker, WorkerStatus, Token)
 from .utils import now, dottedQuadToNum, get_blacklist
 log = logging.getLogger(__name__)
 compress = Compress()
@@ -369,35 +369,6 @@ class Pogom(Flask):
                             swLat, swLng, neLat, neLng,
                             oSwLat=oSwLat, oSwLng=oSwLng,
                             oNeLat=oNeLat, oNeLng=oNeLng))
-
-        if request.args.get('geofences', 'true') == 'true':
-            db_geofences = Geofence.get_geofences()
-
-            d['geofences'] = {}
-            geofence = {}
-            last_geofence_name = ''
-
-            if db_geofences:
-                for g in db_geofences:
-                    if (g['name'] != last_geofence_name):
-                        # Push current geofence to dict, if we find a new one
-                        if last_geofence_name:
-                            d['geofences'][geofence['name']] = geofence
-
-                        geofence = {
-                            'forbidden': g['forbidden'],
-                            'name': g['name'],
-                            'coordinates': []
-                        }
-
-                    coordinate = {
-                        'lat': g['latitude'],
-                        'lng': g['longitude']
-                    }
-                    geofence['coordinates'].append(coordinate)
-                    last_geofence_name = g['name']
-
-                d['geofences'][geofence['name']] = geofence
 
         if request.args.get('status', 'false') == 'true':
             args = get_args()
