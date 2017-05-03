@@ -273,9 +273,6 @@ def main():
         t.daemon = True
         t.start()
 
-    # Create Geofences object and save into args
-    args.geofences = Geofences(args)
-
     if not args.only_server:
 
         # Abort if we don't have a hash key set
