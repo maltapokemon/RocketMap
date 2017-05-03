@@ -38,6 +38,15 @@ from .account import (tutorial_pokestop_spin, get_player_level, check_login,
 
 log = logging.getLogger(__name__)
 
+# Trying to import the, not to all hardware compatible, matplotlib
+# Matlplotlib is faster for big calulations
+try:
+    from matplotlib.path import Path
+except ImportError as e:
+    log.warning('Exception while importing matplotlib: %s', repr(e))
+    log.warning('Enable "-nmptl" or "--no-matplotlib" to circumvent.')
+    pass
+
 args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
@@ -1756,7 +1765,6 @@ class Token(flaskDb.Model):
 # Geofence DB Model
 class Geofence(BaseModel):
     id = PrimaryKeyField()
-    geofence_id = SmallIntegerField()
     forbidden = BooleanField()
     name = CharField(max_length=50)
     coordinates_id = SmallIntegerField()
@@ -1765,17 +1773,41 @@ class Geofence(BaseModel):
 
     @staticmethod
     def clear_all():
-        DeleteQuery(Geofence).execute()
+        # Remove all geofences without interfering with other threads.
+        with flaskDb.database.transaction():
+            DeleteQuery(Geofence).execute()
+
+    @staticmethod
+    def remove_duplicates(geofences):
+        # Remove old geofences without interfering with other threads.
+        with flaskDb.database.transaction():
+            for geofence in geofences:
+                (DeleteQuery(Geofence)
+                    .where(Geofence.name == geofences[geofence]['name'])
+                    .execute())
+
+    @staticmethod
+    def get_db_entries(geofences):
+        db_geofences = {}
+        id = 0
+        for geofence in geofences:
+            coordinates_id = 0
+            for coordinates in geofences[geofence]['polygon']:
+                id = id + 1
+                db_geofences[id] = {
+                    'forbidden': geofences[geofence]['forbidden'],
+                    'name': geofences[geofence]['name'],
+                    'coordinates_id': coordinates_id,
+                    'latitude': coordinates['lat'],
+                    'longitude': coordinates['lon']
+                }
+                coordinates_id = coordinates_id + 1
+
+        return db_geofences
 
     @staticmethod
     def get_geofences():
-        query = Geofence.select(
-                Geofence.geofence_id, Geofence.forbidden, Geofence.name,
-                Geofence.coordinates_id, Geofence.latitude,
-                Geofence.longitude)
-
-        # Send them all
-        query = (query.dicts())
+        query = Geofence.select().dicts()
 
         # Performance:  disable the garbage collector prior to creating a
         # (potentially) large dict with append().
@@ -1793,6 +1825,57 @@ class Geofence(BaseModel):
         gc.enable()
 
         return geofences
+
+    @staticmethod
+    def point_in_polygon_matplotlib(point, polygon):
+        pointTouple = (point['lat'], point['lon'])
+        polygonToupleList = []
+        for c in polygon:
+            coordinateTouple = (c['lat'], c['lon'])
+            polygonToupleList.append(coordinateTouple)
+
+        polygonToupleList.append(polygonToupleList[0])
+        path = Path(polygonToupleList)
+
+        return path.contains_point(pointTouple)
+
+    @staticmethod
+    def point_in_polygon_custom(point, polygon):
+        # Initialize first coordinate as default.
+        maxLat = polygon[0]['lat']
+        minLat = polygon[0]['lat']
+        maxLon = polygon[0]['lon']
+        minLon = polygon[0]['lon']
+
+        for coords in polygon:
+            maxLat = max(coords['lat'], maxLat)
+            minLat = min(coords['lat'], minLat)
+            maxLon = max(coords['lon'], maxLon)
+            minLon = min(coords['lon'], minLon)
+
+        if ((point['lat'] > maxLat) or (point['lat'] < minLat) or
+                (point['lon'] > maxLon) or (point['lon'] < minLon)):
+            return False
+
+        inside = False
+        lat1, lon1 = polygon[0]['lat'], polygon[0]['lon']
+        N = len(polygon)
+        for n in range(1, N+1):
+            lat2, lon2 = polygon[n % N]['lat'], polygon[n % N]['lon']
+            if (min(lon1, lon2) < point['lon'] <= max(lon1, lon2) and
+                    point['lat'] <= max(lat1, lat2)):
+                        if lon1 != lon2:
+                            latIntersection = (
+                                (point['lon'] - lon1) *
+                                (lat2 - lat1) / (lon2 - lon1) +
+                                lat1)
+
+                        if lat1 == lat2 or point['lat'] <= latIntersection:
+                            inside = not inside
+
+            lat1, lon1 = lat2, lon2
+
+        return inside
 
 
 def hex_bounds(center, steps=None, radius=None):
