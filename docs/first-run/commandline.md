@@ -143,11 +143,6 @@
     -ed ENCOUNTER_DELAY, --encounter-delay ENCOUNTER_DELAY
                           Time delay between encounter pokemon in scan threads.
                           [env var: POGOMAP_ENCOUNTER_DELAY]
-    -ign IGNORE_LIST, --ignore-list IGNORE_LIST
-                          List of Pokemon to ignore. Pokemon will not be added
-                          to DB, not sent to webhooks, and not encountered. Will
-                          still be used to determine spawnpoints. [env var:
-                          POGOMAP_IGNORE_LIST]
     -ignf IGNORE_LIST_FILE, --ignore-list-file IGNORE_LIST_FILE
                           File containing a list of Pokemon to ignore. [env var:
                           POGOMAP_IGNORE_LIST_FILE]
