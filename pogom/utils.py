@@ -166,11 +166,11 @@ def get_args():
                         'not be added to DB, not sent to ' +
                         'webhooks, and not encountered. ' +
                         'Will still be used to ' +
-                        'determine spawnpoints.')
+                        'determine spawnpoints. One line per ID.')
     parser.add_argument('-encwf', '--enc-whitelist-file',
                         default='', help='File containing a list of '
                         'Pokemon IDs to encounter for'
-                        ' IV/CP scanning.')
+                        ' IV/CP scanning. One line per ID')
     parser.add_argument('-nostore', '--no-api-store',
                         help=("Don't store the API objects used by the high"
                               + ' level accounts in memory. This will increase'
