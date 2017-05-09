@@ -9,6 +9,7 @@ from timeit import default_timer
 
 from pgoapi import PGoApi
 from pgoapi.exceptions import AuthException
+from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from .fakePogoApi import FakePogoApi
 from .utils import in_radius, generate_device_info, equi_rect_distance
@@ -281,6 +282,51 @@ def get_player_level(map_dict):
         return player_level
 
     return 0
+
+
+def get_player_stats(response_dict):
+    inventory_items = response_dict.get('responses', {})\
+        .get('GET_INVENTORY', {}).get('inventory_delta', {})\
+        .get('inventory_items', [])
+    for item in inventory_items:
+        item_data = item.get('inventory_item_data', {})
+        if 'player_stats' in item_data:
+            return item_data['player_stats']
+    return {}
+
+
+def get_player_inventory(map_dict):
+    inventory_items = map_dict['responses'].get(
+        'GET_INVENTORY', {}).get(
+        'inventory_delta', {}).get(
+        'inventory_items', [])
+    inventory = {}
+    no_item_ids = (
+        ITEM_UNKNOWN,
+        ITEM_TROY_DISK,
+        ITEM_X_ATTACK,
+        ITEM_X_DEFENSE,
+        ITEM_X_MIRACLE,
+        ITEM_POKEMON_STORAGE_UPGRADE,
+        ITEM_ITEM_STORAGE_UPGRADE
+    )
+    total_items = 0
+    for item in inventory_items:
+        iid = item.get('inventory_item_data', {})
+        if 'item' in iid and iid['item']['item_id'] not in no_item_ids:
+            item_id = iid['item']['item_id']
+            count = iid['item'].get('count', 0)
+            inventory[item_id] = count
+            total_items += count
+        elif 'egg_incubators' in iid and 'egg_incubator' in iid['egg_incubators']:
+            for incubator in iid['egg_incubators']['egg_incubator']:
+                item_id = incubator['item_id']
+                inventory[item_id] = inventory.get(item_id, 0) + 1
+                total_items += 1
+    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(ITEM_GREAT_BALL, 0) + inventory.get(
+        ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
+    inventory['total'] = total_items
+    return inventory
 
 
 def spin_pokestop(api, fort, step_location):
