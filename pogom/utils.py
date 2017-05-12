@@ -720,6 +720,9 @@ def get_args():
                                       args.webhook_blacklist]
             args.webhook_whitelist = [int(i) for i in
                                       args.webhook_whitelist]
+                       
+        # create an empty set
+        args.ignorelist = []                                      
         if args.ignorelist_file:
             with open(args.ignorelist_file) as f:
                 args.ignorelist = frozenset([int(l.strip()) for l in f])
