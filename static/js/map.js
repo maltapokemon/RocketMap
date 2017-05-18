@@ -92,6 +92,14 @@ var notifyText = 'disappears at <dist> (<udist>)'
 // Functions
 //
 
+function isShowAllZoom() {
+    return showAllZoomLevel > 0 && map.getZoom() >= showAllZoomLevel
+}
+
+function getExcludedPokemon() {
+    return isShowAllZoom() ? [] : excludedPokemon
+}
+
 function excludePokemon(id) { // eslint-disable-line no-unused-vars
     $selectExclude.val(
         $selectExclude.val().concat(id)
@@ -447,7 +455,7 @@ function pokemonLabel(item) {
             var pokemonLevel = getPokemonLevel(cpMultiplier)
             details += `
             <div>
-                CP: ${cp} | Level: ${pokemonLevel} 
+                CP: ${cp} | Level: ${pokemonLevel}
             </div>
             `
         }
@@ -1089,7 +1097,8 @@ function addListeners(marker) {
 function clearStaleMarkers() {
     $.each(mapData.pokemons, function (key, value) {
         if (mapData.pokemons[key]['disappear_time'] < new Date().getTime() ||
-            excludedPokemon.indexOf(mapData.pokemons[key]['pokemon_id']) >= 0) {
+            getExcludedPokemon().indexOf(mapData.pokemons[key]['pokemon_id']) >=
+             0) {
             if (mapData.pokemons[key].marker.rangeCircle) {
                 mapData.pokemons[key].marker.rangeCircle.setMap(null)
                 delete mapData.pokemons[key].marker.rangeCircle
@@ -1101,7 +1110,7 @@ function clearStaleMarkers() {
 
     $.each(mapData.lurePokemons, function (key, value) {
         if (mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
-            excludedPokemon.indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
+            getExcludedPokemon().indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
             mapData.lurePokemons[key].marker.setMap(null)
             delete mapData.lurePokemons[key]
         }
@@ -1206,8 +1215,8 @@ function loadRawData() {
             'oSwLng': oSwLng,
             'oNeLat': oNeLat,
             'oNeLng': oNeLng,
-            'reids': String(reincludedPokemon),
-            'eids': String(excludedPokemon)
+            'reids': String(isShowAllZoom() ? excludedPokemon :  reincludedPokemon),
+            'eids': String(getExcludedPokemon())
         },
         dataType: 'json',
         cache: false,
@@ -1251,7 +1260,7 @@ function processPokemons(i, item) {
     }
 
     if (!(item['encounter_id'] in mapData.pokemons) &&
-        excludedPokemon.indexOf(item['pokemon_id']) < 0 && item['disappear_time'] > Date.now()) {
+        getExcludedPokemon().indexOf(item['pokemon_id']) < 0 && item['disappear_time'] > Date.now()) {
         // add marker to map and item to dict
         if (item.marker) {
             item.marker.setMap(null)

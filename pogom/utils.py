@@ -426,6 +426,11 @@ def get_args():
                         help=('Enables the use of X-FORWARDED-FOR headers ' +
                               'to identify the IP of clients connecting ' +
                               'through these trusted proxies.'))
+    parser.add_argument('-sazl', '--show-all-zoom-level',
+                        help=('Show all Pokemon, even excluded, at this map '
+                              'zoom level. Set to 0 to disable this feature. '
+                              'Set to 19 or higher for nice results.'),
+                        type=int, default=0)
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('-v', '--verbose',
                            help=('Show debug messages from RocketMap ' +
