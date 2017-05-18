@@ -448,6 +448,8 @@ def get_args():
                                  'specify file to log to.'),
                            nargs='?', const='nofile', default=False,
                            metavar='filename.log')
+    parser.add_argument('-pgsu', '--pgscout-url', default=None,
+                        help='URL to query PGScout for Pokemon IV/CP.')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
