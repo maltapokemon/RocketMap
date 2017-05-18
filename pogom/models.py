@@ -25,6 +25,8 @@ from cachetools import TTLCache
 from cachetools import cached
 from timeit import default_timer
 
+from pogom.gainxp import pokestop_spinnable, cleanup_inventory, \
+    spin_pokestop_update_inventory, is_ditto
 from . import config
 from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
                     get_args, cellid, in_radius, date_secs, clock_between,
@@ -43,6 +45,9 @@ flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
 db_schema_version = 19
+
+# These Pokemon could be Dittos
+DITTO_POKEDEX_IDS = [16, 19, 41, 129, 161, 163, 193]
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -1756,6 +1761,47 @@ class HashKeys(BaseModel):
                 return 0
 
 
+class Account(BaseModel):
+    last_modified = DateTimeField(
+        index=True, default=datetime.utcnow)
+    username = CharField(primary_key=True, max_length=32)
+    level = SmallIntegerField(null=True)
+    xp = IntegerField(null=True)
+    encounters = IntegerField(null=True)
+    balls_thrown = IntegerField(null=True)
+    captures = IntegerField(null=True)
+    spins = IntegerField(null=True)
+    walked = DoubleField(null=True)
+    awarded_to_level = SmallIntegerField(default=1)
+    num_balls = SmallIntegerField(null=True)
+
+    def update(self, acc):
+        self.level = acc.get('level')
+        self.xp = acc.get('experience')
+        self.encounters = acc.get('pokemons_encountered')
+        self.balls_thrown = acc.get('pokeballs_thrown')
+        self.captures = acc.get('pokemons_captured')
+        self.spins = acc.get('poke_stop_visits')
+        self.walked = acc.get('km_walked')
+        self.num_balls = acc.get('inventory', {}).get('balls')
+        self.last_modified = datetime.utcnow()
+
+    def db_format(self):
+        return {
+            'username': self.username,
+            'level': self.level,
+            'xp': self.xp,
+            'encounters': self.encounters,
+            'balls_thrown': self.balls_thrown,
+            'captures': self.captures,
+            'spins': self.spins,
+            'walked': self.walked,
+            'awarded_to_level': self.awarded_to_level,
+            'num_balls': self.num_balls,
+            'last_modified': datetime.utcnow()
+        }
+
+
 def hex_bounds(center, steps=None, radius=None):
     # Make a box that is (70m * step_limit * 2) + 70m away from the
     # center point.  Rationale is that you need to travel.
@@ -1786,6 +1832,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     new_spawn_points = []
     sp_id_list = []
     captcha_url = ''
+
+    # Accounts with this minimum level get reliable Pokemon stats
+    account_is_adult = account.get('level', 0) >= 30
+
+    # Access to account inventory
+    inventory = account['inventory']
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
@@ -2126,6 +2178,16 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'cp_multiplier'] = pokemon_info.get(
                         'cp_multiplier', None)
 
+            # Catch pokemon to check for Ditto if --gain-xp enabled
+            # Original code by voxx!
+            have_balls = inventory.get('balls', 0) > 0
+            if args.gain_xp and not account_is_adult and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
+                if is_ditto(args, api, p, inventory):
+                    pokemon[p['encounter_id']]['pokemon_id'] = 132
+                    pokemon_id = 132
+                    # Scout result is useless
+                    scout_result = None
+
             if args.webhooks:
                 if (not args.webhook_whitelist
                     or pokemon_id in args.webhook_whitelist):
@@ -2162,7 +2224,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
 
         # Complete tutorial with a Pokestop spin
-        if args.complete_tutorial and not (len(captcha_url) > 1):
+        if args.complete_tutorial and not (len(captcha_url) > 1 and not args.gain_xp):
             if config['parse_pokestops']:
                 tutorial_pokestop_spin(
                     api, level, forts, step_location, account)
@@ -2212,6 +2274,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'lure_expiration': l_e,
                         'active_fort_modifier': active_fort_modifier
                     }))
+
+                # Spin Pokestop to gain XP if account is below level 25
+                if args.gain_xp and not account_is_adult and pokestop_spinnable(
+                    f, step_location):
+                    cleanup_inventory(api, inventory)
+                    spin_pokestop_update_inventory(api, f, step_location, inventory)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):
@@ -2632,7 +2700,7 @@ def create_tables(db):
     tables = [Pokemon, Pokestop, Gym, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, HashKeys]
+              Token, LocationAltitude, HashKeys, Account]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -2647,7 +2715,7 @@ def drop_tables(db):
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude,
-              Token, HashKeys]
+              Token, HashKeys, Account]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:

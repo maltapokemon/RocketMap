@@ -432,6 +432,9 @@ def get_args():
                         help=('Enables the use of X-FORWARDED-FOR headers ' +
                               'to identify the IP of clients connecting ' +
                               'through these trusted proxies.'))
+    parser.add_argument('-gxp', '--gain-xp',
+                        help='Do various things to let map accounts gain XP.',
+                        action='store_true', default=False)
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('-v', '--verbose',
                            help=('Show debug messages from RocketMap ' +
