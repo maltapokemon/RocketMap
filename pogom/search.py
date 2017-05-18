@@ -47,7 +47,8 @@ from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
 from .utils import now, clear_dict_response
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, get_tutorial_state,
-                      complete_tutorial, AccountSet, get_player_inventory, get_player_stats)
+                      complete_tutorial, AccountSet, get_player_inventory,
+                      get_player_stats)
 from pogom.gainxp import level_up_rewards_request
 from .captcha import captcha_overseer_thread, handle_captcha
 from .proxy import get_new_proxy

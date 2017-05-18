@@ -323,8 +323,9 @@ def get_player_inventory(map_dict):
                 item_id = incubator['item_id']
                 inventory[item_id] = inventory.get(item_id, 0) + 1
                 total_items += 1
-    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(ITEM_GREAT_BALL, 0) + inventory.get(
-        ITEM_ULTRA_BALL, 0) + inventory.get(ITEM_MASTER_BALL, 0)
+    inventory['balls'] = inventory.get(ITEM_POKE_BALL, 0) + inventory.get(
+        ITEM_GREAT_BALL, 0) + inventory.get(ITEM_ULTRA_BALL,
+        0) + inventory.get(ITEM_MASTER_BALL, 0)
     inventory['total'] = total_items
     return inventory
 
