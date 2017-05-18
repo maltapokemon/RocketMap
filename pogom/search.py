@@ -46,9 +46,8 @@ from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys)
 from .utils import now, clear_dict_response
 from .transform import get_new_coords, jitter_location
-from .account import (setup_api, check_login, get_tutorial_state,
-                      complete_tutorial, AccountSet, get_player_inventory,
-                      get_player_stats)
+from .account import (setup_api, check_login, complete_tutorial, AccountSet,
+                      get_player_inventory, get_player_stats, get_player_state)
 from .captcha import captcha_overseer_thread, handle_captcha
 from .proxy import get_new_proxy
 
@@ -316,9 +315,9 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:5} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:>8} | {:10} | {:6}' \
                                             ' | {:8} | {:9} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Level', 'XP', 'Encounters',
+    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Level', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
                                 'Walked'))
 
@@ -349,9 +348,12 @@ def print_account_stats(rows, thread_status, account_queue,
         if inv:
             inv_str = '{}B/{}T'.format(inv.get('balls', 0), inv.get('total', 0))
 
+        warning = account.get('warn')
+        warning = '' if warning is None else ('Yes' if warning else 'No')
         rows.append(row_tmpl.format(
             status,
             account.get('username', ''),
+            warning,
             account.get('level', ''),
             account.get('experience', ''),
             account.get('pokemons_encountered', ''),
@@ -1043,9 +1045,14 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if first_login:
                     first_login = False
 
+                    # Get warning/banned flags and tutorial state.
+                    account.update(get_player_state(api))
+
                     # Check tutorial completion.
                     if args.complete_tutorial:
-                        tutorial_state = get_tutorial_state(api, account)
+                        log.debug('Checking tutorial state for %s.',
+                                  account['username'])
+                        tutorial_state = account['tutorial_state']
 
                         if not all(x in tutorial_state
                                    for x in (0, 1, 3, 4, 7)):
