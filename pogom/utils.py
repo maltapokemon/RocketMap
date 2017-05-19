@@ -435,6 +435,11 @@ def get_args():
     parser.add_argument('-gxp', '--gain-xp',
                         help='Do various things to let map accounts gain XP.',
                         action='store_true', default=False)
+    parser.add_argument('-sazl', '--show-all-zoom-level',
+                        help=('Show all Pokemon, even excluded, at this map '
+                              'zoom level. Set to 0 to disable this feature. '
+                              'Set to 19 or higher for nice results.'),
+                        type=int, default=0)
     verbosity = parser.add_mutually_exclusive_group()
     verbosity.add_argument('-v', '--verbose',
                            help=('Show debug messages from RocketMap ' +
