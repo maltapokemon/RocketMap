@@ -96,6 +96,8 @@ def switch_status_printer(display_type, current_page, mainlog,
         elif command.lower() == 'h':
             mainlog.handlers[0].setLevel(logging.CRITICAL)
             display_type[0] = 'hashstatus'
+        elif command.lower() == 'q':
+            os._exit(0)
 
 
 # Thread to print out the status of each worker.
@@ -278,7 +280,7 @@ def status_printer(threadStatus, search_items_queue_array, db_updates_queue,
         # Print the status_text for the current screen.
         status_text.append((
             'Page {}/{}. Page number to switch pages. F to show on hold ' +
-            'accounts. H to show hash status. A to show account stats. '
+            'accounts. H to show hash status. A to show account stats. Q to force quit the server. '
             '<ENTER> alone to switch between status and log view')
                            .format(current_page[0], total_pages))
         # Clear the screen.
