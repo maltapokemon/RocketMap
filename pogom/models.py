@@ -2022,9 +2022,18 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             disappear_time = now_date + \
                 timedelta(seconds=seconds_until_despawn)
 
+            # Store this and reuse
             pokemon_id = p['pokemon_data']['pokemon_id']
-            printPokemon(pokemon_id, p['latitude'], p['longitude'],
-                         disappear_time)
+
+            # if this is an ignored pokemon, skip this whole section
+            # We want the stuff above or we will impact spawn detection
+            # but we don't want to insert it, or send it to webhooks
+            if args.ignorelist_file and (pokemon_id in args.ignorelist):
+                log.debug("Ignoring Pokemon id: %i", pokemon_id)
+                continue
+
+            printPokemon(pokemon_id, p[
+                         'latitude'], p['longitude'], disappear_time)
 
             # Scan for IVs/CP and moves.
             encounter_result = None
