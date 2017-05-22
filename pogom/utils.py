@@ -53,6 +53,18 @@ def get_args():
         auto_env_var_prefix='POGOMAP_')
     parser.add_argument('-cf', '--config',
                         is_config_file=True, help='Set configuration file')
+    parser.add_argument('-acc', '--account-country',
+                        default='US',
+                        help=('Country code used for API on all accounts ' +
+                              '(default: US)'))
+    parser.add_argument('-acl', '--account-language',
+                        default='en',
+                        help=('Language code used for API on all accounts ' +
+                              '(default: en)'))
+    parser.add_argument('-act', '--account-timezone',
+                        default='America/Denver',
+                        help=('Timezone code used for API on all accounts ' +
+                              '(default: America/Denver)'))
     parser.add_argument('-a', '--auth-service', type=str.lower,
                         action='append', default=[],
                         help=('Auth Services, either one for all accounts ' +

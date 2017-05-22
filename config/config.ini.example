@@ -180,3 +180,6 @@
 #version-check-interval:        # Interval to check API version in seconds (Default: in range [60, 300]).
 #mock:                          # Mock mode - point to a fpgo endpoint instead of using the real PogoApi,
                                 # ec: http://127.0.0.1:9090 (default='')
+#account-country:               # Country code used for API on all accounts (default: US)
+#account-language:              # Language code used for API on all accounts (default: en)
+#account-timezone:              # Timezone code used for API on all accounts  (default: America/Denver)
