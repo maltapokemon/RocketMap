@@ -317,12 +317,12 @@ def main():
             try:
                 timezone = geolocator.timezone(args.location)
                 args.player_locale.update({
-                    'timezone': str(timezone),
-                    'country': country
+                    'country': country,
+                    'timezone': str(timezone)
                 })
             except Exception as e:
-                log.warning('Exception while obtaining Google Timezone, ' +
-                            'key not enabled: %s.', repr(e))
+                log.warning('Exception while obtaining Google Timezone. ' +
+                            'Key probably not enabled: %s.', repr(e))
                 pass
         except Exception as e:
             log.warning('Exception while obtaining player locale: %s.',
