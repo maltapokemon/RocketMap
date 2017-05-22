@@ -106,10 +106,6 @@ def check_login(args, account, api, position, proxy_url):
 def get_tutorial_state(args, api, account):
     log.debug('Checking tutorial state for %s.', account['username'])
     request = api.create_request()
-    print {
-        'country': args.account_country,
-        'language': args.account_language,
-        'timezone': args.account_timezone}
     request.get_player(
         player_locale={'country': args.account_country,
                        'language': args.account_language,
