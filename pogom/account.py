@@ -107,9 +107,7 @@ def get_tutorial_state(args, api, account):
     log.debug('Checking tutorial state for %s.', account['username'])
     request = api.create_request()
     request.get_player(
-        player_locale={'country': args.account_country,
-                       'language': args.account_language,
-                       'timezone': args.account_timezone})
+        player_locale=args.player_locale)
     response = request.call().get('responses', {})
 
     get_player = response.get('GET_PLAYER', {})
@@ -184,10 +182,7 @@ def complete_tutorial(args, api, account, tutorial_state):
         time.sleep(random.uniform(0.5, 0.6))
         request = api.create_request()
         request.get_player(
-            player_locale={
-                'country': args.account_country,
-                'language': args.account_language,
-                'timezone': args.account_timezone})
+            player_locale=args.player_locale)
         responses = request.call().get('responses', {})
 
         inventory = responses.get('GET_INVENTORY', {}).get(
@@ -213,10 +208,7 @@ def complete_tutorial(args, api, account, tutorial_state):
         time.sleep(0.1)
         request = api.create_request()
         request.get_player(
-            player_locale={
-                'country': args.account_country,
-                'language': args.account_language,
-                'timezone': args.account_timezone})
+            player_locale=args.player_locale)
         request.call()
 
     if 7 not in tutorial_state:

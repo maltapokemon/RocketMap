@@ -15,6 +15,7 @@ from threading import Thread, Event
 from queue import Queue
 from flask_cors import CORS
 from flask_cache_bust import init_cache_busting
+from geopy.geocoders import GoogleV3
 
 from pogom import config
 from pogom.app import Pogom
@@ -302,6 +303,31 @@ def main():
             t.start()
         else:
             log.info('Periodical proxies refresh disabled.')
+
+        # Find the reverse geolocation
+        geolocator = GoogleV3(api_key=args.gmaps_key)
+        args.player_locale = {
+            'country': 'US',
+            'language': args.locale,
+            'timezone': 'America/Denver'
+        }
+        try:
+            location = geolocator.reverse(args.location)
+            country = location[-1].raw['address_components'][-1]['short_name']
+            try:
+                timezone = geolocator.timezone(args.location)
+                args.player_locale.update({
+                    'timezone': str(timezone),
+                    'country': country
+                })
+            except Exception as e:
+                log.warning('Exception while obtaining Google Timezone, ' +
+                            'key not enabled: %s.', repr(e))
+                pass
+        except Exception as e:
+            log.warning('Exception while obtaining player locale: %s.',
+                        repr(e))
+            pass
 
         # Gather the Pokemon!
 
