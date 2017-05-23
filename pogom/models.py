@@ -36,7 +36,7 @@ from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .customLog import printPokemon
 
-from .account import (tutorial_pokestop_spin, get_player_level, check_login,
+from .account import (tutorial_pokestop_spin, check_login,
                       setup_api, encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
@@ -1868,9 +1868,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     sp_id_list = []
     captcha_url = ''
 
-    # Accounts with this minimum level get reliable Pokemon stats
-    account_is_adult = account.get('level', 0) >= 30
-
     # Access to account inventory
     inventory = account['inventory']
 
@@ -1878,9 +1875,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     # and a list of forts.
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
-    level = get_player_level(map_dict)
+    level = account.get('level', 1)
     # Use separate level indicator for our L30 encounters.
     encounter_level = level
+
+    # Accounts with this minimum level get reliable Pokemon stats
+    account_is_adult = level >= 30
 
     # Helping out the GC.
     if 'GET_INVENTORY' in map_dict['responses']:
@@ -2133,8 +2133,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         else:
                             # Update level indicator before we clear the
                             # response.
-                            encounter_level = get_player_level(
-                                encounter_result)
+                            encounter_level = hlvl_account['level']
 
                             # User error?
                             if encounter_level < 30:
@@ -2237,7 +2236,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # Original code by voxx!
             have_balls = inventory.get('balls', 0) > 0
             if args.gain_xp and not account_is_adult and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
-                if is_ditto(args, api, p, inventory):
+                if is_ditto(args, api, p, account):
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon_id = 132
                     # Scout result is useless
@@ -2354,8 +2353,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # Spin Pokestop to gain XP if account is below level 25
                 if args.gain_xp and not account_is_adult and pokestop_spinnable(
                     f, step_location):
-                    cleanup_inventory(api, inventory)
-                    spin_pokestop_update_inventory(api, f, step_location, inventory)
+                    cleanup_inventory(api, account)
+                    spin_pokestop_update_inventory(api, f, step_location, account)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):

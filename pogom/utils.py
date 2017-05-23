@@ -664,7 +664,7 @@ def get_args():
                 'username': username,
                 'password': args.password[i],
                 'auth_service': args.auth_service[i],
-                'last_timestamp_ms': now()
+                'last_timestamp_ms': None
             })
 
         # Prepare the L30 accounts for the account sets.
@@ -696,7 +696,7 @@ def get_args():
                         'username': username,
                         'password': password,
                         'captcha': False,
-                        'last_timestamp_ms': now()
+                        'last_timestamp_ms': None
                     }
 
                     args.accounts_L30.append(hlvl_account)
