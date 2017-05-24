@@ -45,7 +45,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 20
+db_schema_version = 21
 
 # These Pokemon could be Dittos
 DITTO_POKEDEX_IDS = [16, 19, 41, 129, 161, 163, 193]
@@ -1781,8 +1781,10 @@ class Account(BaseModel):
     awarded_to_level = SmallIntegerField(default=1)
     num_balls = SmallIntegerField(null=True)
     warn = BooleanField(null=True)
+    blind = BooleanField(null=True)
 
     def update(self, acc):
+        args = get_args()
         self.level = acc.get('level')
         self.xp = acc.get('experience')
         self.encounters = acc.get('pokemons_encountered')
@@ -1792,6 +1794,7 @@ class Account(BaseModel):
         self.walked = acc.get('km_walked')
         self.num_balls = acc.get('inventory', {}).get('balls')
         self.warn = acc.get('warn')
+        self.blind = (acc.get('scans_without_rares') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
 
     def db_format(self):
@@ -1807,6 +1810,7 @@ class Account(BaseModel):
             'awarded_to_level': self.awarded_to_level,
             'num_balls': self.num_balls,
             'warn': self.warn,
+            'blind': self.blind,
             'last_modified': datetime.utcnow()
         }
 
@@ -3104,6 +3108,12 @@ def database_migrate(db, old_ver):
                        'MODIFY COLUMN `trainer_name` VARCHAR(191) NOT NULL')
             db.execute_sql('ALTER TABLE `pokemon` '
                        'MODIFY COLUMN `spawnpoint_id` VARCHAR(16) NOT NULL')
+
+    if old_ver < 21:
+        migrate(
+            migrator.add_column('account', 'blind',
+                                BooleanField(null=True))
+        )
 
     # Always log that we're done.
     log.info('Schema upgrade complete.')

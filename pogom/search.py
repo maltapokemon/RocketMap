@@ -45,7 +45,7 @@ from pgoapi.hash_server import (HashServer, BadHashRequestException,
                                 HashingOfflineException)
 from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys, Account)
-from .utils import now, clear_dict_response, get_new_api_timestamp
+from .utils import now, clear_dict_response, get_new_api_timestamp, get_args
 from .transform import get_new_coords, jitter_location
 from .account import (setup_api, check_login, complete_tutorial, AccountSet,
                       get_player_inventory, get_player_stats, get_player_state,
@@ -298,6 +298,8 @@ def print_account_stats(rows, thread_status, account_queue,
     rows.append('Account statistics:')
     rows.append('-----------------------------------------')
 
+    args = get_args()
+
     # Collect all accounts.
     accounts = []
     for item in thread_status:
@@ -320,9 +322,9 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:3} | {:>8} | {:10} | {:6}' \
                                             ' | {:8} | {:9} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Level', 'XP', 'Encounters',
+    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
                                 'Walked'))
 
@@ -355,10 +357,22 @@ def print_account_stats(rows, thread_status, account_queue,
 
         warning = account.get('warn')
         warning = '' if warning is None else ('Yes' if warning else 'No')
+
+        rareless_scans = account.get('scans_without_rares')
+        if rareless_scans is None:
+            blind = ''
+        elif rareless_scans == 0:
+            blind = 'No'
+        elif rareless_scans in range(1, args.rareless_scans_threshold):
+            blind = 'Maybe'
+        else:
+            blind = 'Yes'
+
         rows.append(row_tmpl.format(
             status,
             account.get('username', ''),
             warning,
+            blind,
             account.get('level', ''),
             account.get('experience', ''),
             account.get('pokemons_encountered', ''),
@@ -999,6 +1013,20 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                                                  'last_fail_time': now(),
                                                  'reason': 'rest interval'})
                         break
+
+                # Let account rest if it got blind (although resting won't heal it unfortunately.)
+                if args.rotate_blind and account[
+                    'scans_without_rares'] >= args.rareless_scans_threshold:
+                    status['message'] = (
+                        'Account {} has become blind. Rotating out.'.format(
+                            account['username']))
+                    log.info(status['message'])
+                    account_failures.append({
+                        'account': account,
+                        'last_fail_time': now(),
+                        'reason': 'Got shadowbanned.'
+                    })
+                    break
 
                 # Grab the next thing to search (when available).
                 step, step_location, appears, leaves, messages, wait = (
