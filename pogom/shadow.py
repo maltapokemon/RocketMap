@@ -1,33 +1,36 @@
-# Shadowbanned accounts cannot see these Pokemon
-SHADOWED_POKEMON = [
-    7,      # Squirtle
-    13,     # Weedle
-    20,     # Raticate
-    21,     # Spearow
-    22,     # Fearow
-    48,     # Venonat
-    70,     # Weepinbell
-    75,     # Graveler
-    79,     # Slowpoke
-    90,     # Shellder
-    95,     # Onix
-    111,    # Rhyhorn
-    116,    # Horsea
-    138,    # Omanyte
-    140,    # Kabuto
-    162,    # Furret
-    163,    # Hoothoot
-    166,    # Ledian
-    168,    # Ariados
-    170,    # Chinchou
-    184,    # Azumarill
-    185,    # Sudowoodo
-    213,    # Shuckle
-    216,    # Teddiursa
-    219,    # Magcargo
-    223,    # Remoraid
-    224,    # Octillery
-    226     # Mantine
+# Common Pokemon - seen by every account
+COMMON_POKEMON = [
+    16,     # Pidgey
+    19,     # Rattata
+    23,     # Ekans
+    27,     # Sandshrew
+    29,     # Nidoran F
+    32,     # Nidoran M
+    41,     # Zubat
+    43,     # Oddish
+    46,     # Paras
+    52,     # Meowth
+    54,     # Psyduck
+    60,     # Poliwag
+    69,     # Bellsprout
+    72,     # Tentacool
+    74,     # Geodude
+    81,     # Magnemite
+    98,     # Krabby
+    118,    # Goldeen
+    120,    # Staryu
+    129,    # Magikarp
+    161,    # Sentret
+    165,    # Ledyba
+    167,    # Spinarak
+    177,    # Natu
+    183,    # Marill
+    187,    # Hoppip
+    191,    # Sunkern
+    194,    # Wooper
+    198,    # Murkrow
+    209,    # Snubbull
+    218     # Slugma
 ]
 
 def sees_shadowed_pokemon(api_response):
@@ -36,10 +39,10 @@ def sees_shadowed_pokemon(api_response):
     for cell in cells:
         for p in cell.get('wild_pokemons', []):
             pid = p['pokemon_data']['pokemon_id']
-            if pid in SHADOWED_POKEMON:
+            if pid not in COMMON_POKEMON:
                 return True
         for p in cell.get('nearby_pokemons', []):
             pid = p['pokemon_id']
-            if pid in SHADOWED_POKEMON:
+            if pid not in COMMON_POKEMON:
                 return True
     return False
