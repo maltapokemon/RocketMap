@@ -359,7 +359,7 @@ def print_account_stats(rows, thread_status, account_queue,
         warning = '' if warning is None else ('Yes' if warning else 'No')
 
         rareless_scans = account.get('scans_without_rares')
-        maybe_border = round(args.rareless_scans_threshold / 2)
+        maybe_border = int(round(args.rareless_scans_threshold / 2))
         if rareless_scans is None:
             blind = ''
         elif rareless_scans in range(0, maybe_border):
