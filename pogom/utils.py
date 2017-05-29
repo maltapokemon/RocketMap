@@ -991,6 +991,11 @@ def calc_pokemon_level(cp_multiplier):
 
 
 def get_new_api_timestamp(api_response):
+    if 'GET_INVENTORY' not in api_response['responses']:
+        log.warning("TIMESTAMP: No inventory in responses. Got {}".format(
+            api_response['responses'].keys()))
+        return None
+
     return (api_response
             ['responses']
             ['GET_INVENTORY']

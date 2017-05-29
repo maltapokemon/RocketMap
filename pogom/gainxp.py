@@ -155,6 +155,12 @@ def catch(api, encounter_id, spawn_point_id, account):
 
 
 def get_captured_pokemon_id_from_inventory(capture_id, response):
+    if 'GET_INVENTORY' not in response['responses']:
+        log.warning(
+            "CAPTURED_PKM_ID: No inventory in responses. Got {}".format(
+                response['responses'].keys()))
+        return None
+
     iitems = response['responses']['GET_INVENTORY']['inventory_delta'][
         'inventory_items']
     for item in iitems:

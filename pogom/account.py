@@ -132,6 +132,10 @@ def check_login(args, account, api, position, proxy_url):
         response = request.call()
 
         update_account_from_response(account, response)
+        log.info('Account {} is lvl {}, warned: {}'.format(
+            account['username'],
+            account.get('level', '?'),
+            account.get('warn', '?')))
         time.sleep(random.uniform(.2, .3))
     except Exception as e:
         log.debug('Login for account %s failed. Exception in ' +
@@ -140,7 +144,7 @@ def check_login(args, account, api, position, proxy_url):
 
     try:  # 4 - level_up_rewards
         request = api.create_request()
-        request.level_up_rewards(level=account['level'])
+        request.level_up_rewards(level=account.get('level', 2))
         request.check_challenge()
         request.get_hatched_eggs()
         add_get_inventory_request(request, account)
@@ -490,6 +494,9 @@ def update_account_from_response(account, response):
     account['inventory'].update(inventory_update)
     update_inventory_totals(account['inventory'])
 
+    # Update last timestamp for inventory requests
+    account['last_timestamp_ms'] = get_new_api_timestamp(response)
+
     # Update stats (level, xp, encounters, captures, km walked, etc.)
     account.update(get_player_stats(response))
 
@@ -500,9 +507,6 @@ def update_account_from_response(account, response):
         else:
             account['scans_without_rares'] = (account.get(
                 'scans_without_rares') or 0) + 1
-
-    # Update last timestamp for inventory requests
-    account['last_timestamp_ms'] = get_new_api_timestamp(response)
 
 
 def add_get_inventory_request(request, account):
