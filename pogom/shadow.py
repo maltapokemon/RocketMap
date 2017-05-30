@@ -15,6 +15,7 @@ COMMON_POKEMON = [
     69,     # Bellsprout
     72,     # Tentacool
     74,     # Geodude
+    77,     # Ponyta
     81,     # Magnemite
     98,     # Krabby
     118,    # Goldeen
