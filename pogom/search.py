@@ -322,7 +322,7 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:3} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:>8} | {:10} | {:6}' \
                                             ' | {:8} | {:9} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
@@ -358,7 +358,7 @@ def print_account_stats(rows, thread_status, account_queue,
         warning = account.get('warn')
         warning = '' if warning is None else ('Yes' if warning else 'No')
 
-        rareless_scans = account.get('scans_without_rares')
+        rareless_scans = account.get('rareless_scans')
         maybe_border = int(round(args.rareless_scans_threshold / 2))
         if rareless_scans is None:
             blind = ''
@@ -368,6 +368,12 @@ def print_account_stats(rows, thread_status, account_queue,
             blind = 'Maybe'
         else:
             blind = 'Yes'
+        if blind:
+            if rareless_scans >= args.rareless_scans_threshold:
+                scans = '{}+'.format(args.rareless_scans_threshold)
+            else:
+                scans = rareless_scans
+            blind = '{} ({})'.format(blind, scans)
 
         rows.append(row_tmpl.format(
             status,
@@ -928,6 +934,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             if created:
                 acc_stats.update(account)
             account['stats'] = acc_stats
+            account['rareless_scans'] = args.rareless_scans_threshold if acc_stats.blind else 0
 
             # New lease of life right here.
             status['fail'] = 0
@@ -1018,7 +1025,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
                 # Let account rest if it got blind (although resting won't heal it unfortunately.)
                 if args.rotate_blind and account[
-                    'scans_without_rares'] >= args.rareless_scans_threshold:
+                    'rareless_scans'] >= args.rareless_scans_threshold:
                     status['message'] = (
                         'Account {} has become blind. Rotating out.'.format(
                             account['username']))

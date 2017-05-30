@@ -673,7 +673,7 @@ def get_args():
                 'password': args.password[i],
                 'auth_service': args.auth_service[i],
                 'last_timestamp_ms': None,
-                'scans_without_rares': None
+                'rareless_scans': None
             })
 
         # Prepare the L30 accounts for the account sets.

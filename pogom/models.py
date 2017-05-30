@@ -1794,7 +1794,7 @@ class Account(BaseModel):
         self.walked = acc.get('km_walked')
         self.num_balls = acc.get('inventory', {}).get('balls')
         self.warn = acc.get('warn')
-        self.blind = (acc.get('scans_without_rares') or 0) >= args.rareless_scans_threshold
+        self.blind = (acc.get('rareless_scans') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
 
     def db_format(self):

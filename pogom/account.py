@@ -503,10 +503,10 @@ def update_account_from_response(account, response):
     # Check if rare/shadowed Pokemon are found
     if 'GET_MAP_OBJECTS' in response.get('responses', {}):
         if sees_shadowed_pokemon(response):
-            account['scans_without_rares'] = 0
+            account['rareless_scans'] = 0
         else:
-            account['scans_without_rares'] = (account.get(
-                'scans_without_rares') or 0) + 1
+            account['rareless_scans'] = (account.get(
+                'rareless_scans') or 0) + 1
 
 
 def add_get_inventory_request(request, account):
