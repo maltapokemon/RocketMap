@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+import hashlib
 import sys
+
 import configargparse
 import os
 import math
@@ -13,7 +14,6 @@ import socket
 import struct
 import zipfile
 import requests
-from uuid import uuid4
 from s2sphere import CellId, LatLng
 
 from . import config
@@ -914,37 +914,56 @@ def get_blacklist():
         return []
 
 
-# Generate random device info.
-# Original by Noctem.
-IPHONES = {'iPhone5,1': 'N41AP',
-           'iPhone5,2': 'N42AP',
-           'iPhone5,3': 'N48AP',
-           'iPhone5,4': 'N49AP',
-           'iPhone6,1': 'N51AP',
-           'iPhone6,2': 'N53AP',
-           'iPhone7,1': 'N56AP',
-           'iPhone7,2': 'N61AP',
-           'iPhone8,1': 'N71AP',
-           'iPhone8,2': 'N66AP',
-           'iPhone8,4': 'N69AP',
-           'iPhone9,1': 'D10AP',
-           'iPhone9,2': 'D11AP',
-           'iPhone9,3': 'D101AP',
-           'iPhone9,4': 'D111AP'}
+def generate_device_info(username):
+    def gen_udid():
+        s = ''
+        for i in range(59):
+            s += chr(local_random.randint(48, 122))
+        return hashlib.sha1(s).hexdigest()
 
+    device_info = {
+        'device_brand': 'Apple',
+        'device_model': 'iPhone',
+        'hardware_manufacturer': 'Apple',
+        'firmware_brand': 'iPhone OS'
+    }
 
-def generate_device_info():
-    device_info = {'device_brand': 'Apple', 'device_model': 'iPhone',
-                   'hardware_manufacturer': 'Apple',
-                   'firmware_brand': 'iPhone OS'}
+    # Generate random device info.
+    # Original by Noctem.
+    IPHONES = {
+        'iPhone5,1': 'N41AP',
+        'iPhone5,2': 'N42AP',
+        'iPhone5,3': 'N48AP',
+        'iPhone5,4': 'N49AP',
+        'iPhone6,1': 'N51AP',
+        'iPhone6,2': 'N53AP',
+        'iPhone7,1': 'N56AP',
+        'iPhone7,2': 'N61AP',
+        'iPhone8,1': 'N71AP',
+        'iPhone8,2': 'N66AP',
+        'iPhone8,4': 'N69AP',
+        'iPhone9,1': 'D10AP',
+        'iPhone9,2': 'D11AP',
+        'iPhone9,3': 'D101AP',
+        'iPhone9,4': 'D111AP'
+    }
     devices = tuple(IPHONES.keys())
 
-    ios10 = ('10.1.1', '10.2.1', '10.3.2')
+    IOS10_VERSIONS = ('10.1.1', '10.2.1', '10.3.2')
 
-    device_info['device_model_boot'] = random.choice(devices)
-    device_info['hardware_model'] = IPHONES[device_info['device_model_boot']]
-    device_info['device_id'] = uuid4().hex
-    device_info['firmware_type'] = random.choice(ios10)
+    # Make random numbers reproducible.
+    local_random = random.Random()
+    local_random.seed(reduce(lambda x, y: x + y, map(ord, username)))
+
+    device = local_random.choice(devices)
+    device_info['device_model_boot'] = device
+    device_info['hardware_model'] = IPHONES[device]
+    device_info['device_id'] = gen_udid()
+    device_info['firmware_type'] = local_random.choice(IOS10_VERSIONS)
+
+    log.info("Account {} is using an {} on iOS {} with UDID {}".format(
+        username, device, device_info['firmware_type'],
+        device_info['device_id']))
 
     return device_info
 
