@@ -483,9 +483,6 @@ def get_args():
     parser.add_argument('-rb', '--rotate-blind',
                         help='Rotate out blinded accounts.',
                         action='store_true', default=False)
-    parser.add_argument('-rss', '--random-seed-salt',
-                        help=('Used as salt for reproducible random numbers.'),
-                        type=int, default=0)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -917,17 +914,15 @@ def get_blacklist():
         return []
 
 
-def generate_device_info(username):
-    device_info = {
-        'device_brand': 'Apple',
-        'device_model': 'iPhone',
-        'hardware_manufacturer': 'Apple',
-        'firmware_brand': 'iPhone OS'
-    }
+def generate_device_info(account):
+    identifier = account['username'] + account['password']
+    md5 = hashlib.md5()
+    md5.update(identifier)
+    pick_hash = int(md5.hexdigest(), 16)
 
     # Generate random device info.
     # Original by Noctem.
-    IPHONES = {
+    iphones = {
         'iPhone5,1': 'N41AP',
         'iPhone5,2': 'N42AP',
         'iPhone5,3': 'N48AP',
@@ -944,27 +939,37 @@ def generate_device_info(username):
         'iPhone9,3': 'D101AP',
         'iPhone9,4': 'D111AP'
     }
-    devices = tuple(IPHONES.keys())
 
-    IOS10_VERSIONS = ('10.1.1', '10.2.1', '10.3.2')
+    ios8 = ('8.0', '8.0.1', '8.0.2', '8.1', '8.1.1',
+            '8.1.2', '8.1.3', '8.2', '8.3', '8.4', '8.4.1')
+    ios9 = ('9.0', '9.0.1', '9.0.2', '9.1', '9.2', '9.2.1',
+            '9.3', '9.3.1', '9.3.2', '9.3.3', '9.3.4', '9.3.5')
+    ios10 = ('10.0', '10.0.1', '10.0.2', '10.0.3', '10.1', '10.1.1')
 
-    # Make random numbers reproducible.
-    args = get_args()
-    local_random = random.Random()
-    seed = int(hashlib.sha1(username).hexdigest(), 16)
-    seed += args.random_seed_salt
-    local_random.seed(seed)
+    device_info = {
+        'device_brand': 'Apple',
+        'device_model': 'iPhone',
+        'hardware_manufacturer': 'Apple',
+        'firmware_brand': 'iPhone OS'
+    }
 
-    device = local_random.choice(devices)
+    devices = tuple(iphones.keys())
+    device = devices[pick_hash % len(devices)]
     device_info['device_model_boot'] = device
-    device_info['hardware_model'] = IPHONES[device]
-    device_info['device_id'] = '%032x' % local_random.randrange(16 ** 32)
-    device_info['firmware_type'] = local_random.choice(IOS10_VERSIONS)
+    device_info['hardware_model'] = iphones[device]
+    device_info['device_id'] = md5.hexdigest()
+
+    if device in ('iPhone9,1', 'iPhone9,2', 'iPhone9,3', 'iPhone9,4'):
+        ios_pool = ios10
+    elif device in ('iPhone8,1', 'iPhone8,2', 'iPhone8,4'):
+        ios_pool = ios9 + ios10
+    else:
+        ios_pool = ios8 + ios9 + ios10
+    device_info['firmware_type'] = ios_pool[pick_hash % len(ios_pool)]
 
     log.info("Account {} is using an {} on iOS {} with device ID {}".format(
-        username, device, device_info['firmware_type'],
+        account['username'], device, device_info['firmware_type'],
         device_info['device_id']))
-
     return device_info
 
 
