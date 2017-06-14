@@ -6,21 +6,25 @@ COMMON_POKEMON = [
     27,     # Sandshrew
     29,     # Nidoran F
     32,     # Nidoran M
+    37,     # Vulpix
     41,     # Zubat
     43,     # Oddish
     46,     # Paras
     52,     # Meowth
     54,     # Psyduck
+    58,     # Growlithe
     60,     # Poliwag
     69,     # Bellsprout
     72,     # Tentacool
     74,     # Geodude
     77,     # Ponyta
     81,     # Magnemite
+    90,     # Shellder
     98,     # Krabby
     118,    # Goldeen
     120,    # Staryu
     129,    # Magikarp
+    155,    # Cyndaquil
     161,    # Sentret
     165,    # Ledyba
     167,    # Spinarak
@@ -31,7 +35,9 @@ COMMON_POKEMON = [
     194,    # Wooper
     198,    # Murkrow
     209,    # Snubbull
-    218     # Slugma
+    218,    # Slugma
+    220,    # Swinub
+    228     # Houndour
 ]
 
 def sees_shadowed_pokemon(api_response):
