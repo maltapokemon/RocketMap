@@ -12,6 +12,8 @@ import json
 from distutils.version import StrictVersion
 
 from threading import Thread, Event
+
+from mrmime import init_mr_mime
 from queue import Queue
 from flask_cors import CORS
 from flask_cache_bust import init_cache_busting
@@ -98,6 +100,11 @@ def main():
     sys.excepthook = handle_exception
 
     args = get_args()
+
+    # Logins should not be in parallel
+    init_mr_mime({
+        'parallel_logins': False
+    })
 
     # Add file logging if enabled.
     if args.verbose and args.verbose != 'nofile':
