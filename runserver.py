@@ -103,7 +103,7 @@ def main():
 
     # Logins should not be in parallel
     init_mr_mime({
-        'parallel_logins': False
+        'parallel_logins': True
     })
 
     # Add file logging if enabled.

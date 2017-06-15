@@ -948,6 +948,8 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
             status['skip'] = 0
             status['captcha'] = 0
 
+            stagger_thread(args)
+
             # Sleep when consecutive_fails reaches max_failures, overall fails
             # for stat purposes.
             consecutive_fails = 0
@@ -1377,6 +1379,15 @@ def calc_distance(pos1, pos2):
     d = R * c
 
     return d
+
+
+# Delay each thread start time so that logins occur after delay.
+def stagger_thread(args):
+    loginDelayLock.acquire()
+    delay = args.login_delay * 3 + random.random() - .5
+    log.debug('Delaying thread startup for %.2f seconds', delay)
+    time.sleep(delay)
+    loginDelayLock.release()
 
 
 # The delta from last stat to current stat
