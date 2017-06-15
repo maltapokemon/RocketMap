@@ -41,7 +41,7 @@ COMMON_POKEMON = [
 ]
 
 def sees_shadowed_pokemon(api_response):
-    cells = api_response.get('responses', {}).get('GET_MAP_OBJECTS', {}).get(
+    cells = api_response['GET_MAP_OBJECTS'].get(
         'map_cells', [])
     for cell in cells:
         for p in cell.get('wild_pokemons', []):

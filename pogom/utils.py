@@ -1,18 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import hashlib
-import sys
-
-import configargparse
-import os
-import math
 import json
 import logging
+import math
+import os
 import random
-import time
 import socket
 import struct
+import sys
+import time
 import zipfile
+
+import configargparse
 import requests
 from s2sphere import CellId, LatLng
 
@@ -914,65 +913,6 @@ def get_blacklist():
         return []
 
 
-def generate_device_info(account):
-    identifier = account['username'] + account['password']
-    md5 = hashlib.md5()
-    md5.update(identifier)
-    pick_hash = int(md5.hexdigest(), 16)
-
-    # Generate random device info.
-    # Original by Noctem.
-    iphones = {
-        'iPhone5,1': 'N41AP',
-        'iPhone5,2': 'N42AP',
-        'iPhone5,3': 'N48AP',
-        'iPhone5,4': 'N49AP',
-        'iPhone6,1': 'N51AP',
-        'iPhone6,2': 'N53AP',
-        'iPhone7,1': 'N56AP',
-        'iPhone7,2': 'N61AP',
-        'iPhone8,1': 'N71AP',
-        'iPhone8,2': 'N66AP',
-        'iPhone8,4': 'N69AP',
-        'iPhone9,1': 'D10AP',
-        'iPhone9,2': 'D11AP',
-        'iPhone9,3': 'D101AP',
-        'iPhone9,4': 'D111AP'
-    }
-
-    ios8 = ('8.0', '8.0.1', '8.0.2', '8.1', '8.1.1',
-            '8.1.2', '8.1.3', '8.2', '8.3', '8.4', '8.4.1')
-    ios9 = ('9.0', '9.0.1', '9.0.2', '9.1', '9.2', '9.2.1',
-            '9.3', '9.3.1', '9.3.2', '9.3.3', '9.3.4', '9.3.5')
-    ios10 = ('10.0', '10.0.1', '10.0.2', '10.0.3', '10.1', '10.1.1')
-
-    device_info = {
-        'device_brand': 'Apple',
-        'device_model': 'iPhone',
-        'hardware_manufacturer': 'Apple',
-        'firmware_brand': 'iPhone OS'
-    }
-
-    devices = tuple(iphones.keys())
-    device = devices[pick_hash % len(devices)]
-    device_info['device_model_boot'] = device
-    device_info['hardware_model'] = iphones[device]
-    device_info['device_id'] = md5.hexdigest()
-
-    if device in ('iPhone9,1', 'iPhone9,2', 'iPhone9,3', 'iPhone9,4'):
-        ios_pool = ios10
-    elif device in ('iPhone8,1', 'iPhone8,2', 'iPhone8,4'):
-        ios_pool = ios9 + ios10
-    else:
-        ios_pool = ios8 + ios9 + ios10
-    device_info['firmware_type'] = ios_pool[pick_hash % len(ios_pool)]
-
-    log.info("Account {} is using an {} on iOS {} with device ID {}".format(
-        account['username'], device, device_info['firmware_type'],
-        device_info['device_id']))
-    return device_info
-
-
 def extract_sprites(root_path):
     zip_path = os.path.join(
            root_path,
@@ -989,18 +929,16 @@ def extract_sprites(root_path):
 def clear_dict_response(response, keep_inventory=False):
     if 'platform_returns' in response:
         del response['platform_returns']
-    if 'responses' not in response:
-        return response
-    if 'GET_INVENTORY' in response['responses'] and not keep_inventory:
-        del response['responses']['GET_INVENTORY']
-    if 'GET_HATCHED_EGGS' in response['responses']:
-        del response['responses']['GET_HATCHED_EGGS']
-    if 'CHECK_AWARDED_BADGES' in response['responses']:
-        del response['responses']['CHECK_AWARDED_BADGES']
-    if 'DOWNLOAD_SETTINGS' in response['responses']:
-        del response['responses']['DOWNLOAD_SETTINGS']
-    if 'GET_BUDDY_WALKED' in response['responses']:
-        del response['responses']['GET_BUDDY_WALKED']
+    if 'GET_INVENTORY' in response and not keep_inventory:
+        del response['GET_INVENTORY']
+    if 'GET_HATCHED_EGGS' in response:
+        del response['GET_HATCHED_EGGS']
+    if 'CHECK_AWARDED_BADGES' in response:
+        del response['CHECK_AWARDED_BADGES']
+    if 'DOWNLOAD_SETTINGS' in response:
+        del response['DOWNLOAD_SETTINGS']
+    if 'GET_BUDDY_WALKED' in response:
+        del response['GET_BUDDY_WALKED']
     return response
 
 
@@ -1012,16 +950,3 @@ def calc_pokemon_level(cp_multiplier):
         pokemon_level = 171.0112688 * cp_multiplier - 95.20425243
     pokemon_level = int((round(pokemon_level) * 2) / 2)
     return pokemon_level
-
-
-def get_new_api_timestamp(api_response):
-    if 'GET_INVENTORY' not in api_response['responses']:
-        log.warning("TIMESTAMP: No inventory in responses. Got {}".format(
-            api_response['responses'].keys()))
-        return None
-
-    return (api_response
-            ['responses']
-            ['GET_INVENTORY']
-            ['inventory_delta']
-            .get('new_timestamp_ms', now()))

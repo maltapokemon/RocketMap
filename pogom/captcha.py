@@ -15,20 +15,15 @@
 
 import logging
 import time
-import requests
-
 from datetime import datetime
 from threading import Thread
 
-from pgoapi import PGoApi
-from .fakePogoApi import FakePogoApi
+import requests
+from mrmime.pogoaccount import POGOAccount
 
 from .models import Token
-from .transform import jitter_location
-from .account import check_login
 from .proxy import get_new_proxy
 from .utils import now
-
 
 log = logging.getLogger(__name__)
 
@@ -112,14 +107,12 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
                          account['username'])
     log.info(status['message'])
 
-    if args.mock != '':
-        api = FakePogoApi(args.mock)
-    else:
-        api = PGoApi()
+    pgacc = POGOAccount(account['auth_service'], account['username'],
+                        account['password'])
 
     if hash_key:
         log.debug('Using key {} for solving this captcha.'.format(hash_key))
-        api.activate_hash_server(hash_key)
+        pgacc.hash_key = hash_key
 
     proxy_url = False
     if args.proxy:
@@ -128,16 +121,12 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
 
         if proxy_url:
             log.debug('Using proxy %s', proxy_url)
-            api.set_proxy({'http': proxy_url, 'https': proxy_url})
+            pgacc.proxy_url = proxy_url
 
     location = account['last_location']
 
-    if not args.no_jitter:
-        # Jitter location before uncaptcha attempt
-        location = jitter_location(location)
-
-    api.set_position(*location)
-    check_login(args, account, api, location, proxy_url)
+    pgacc.set_position(location[0], location[1], location[2])
+    pgacc.check_login()
 
     wh_message = {'status_name': args.status_name,
                   'status': 'error',
@@ -149,24 +138,18 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
         token = token_request(args, status, captcha_url)
         wh_message['mode'] = '2captcha'
 
-    response = api.verify_challenge(token=token)
+    verified = pgacc.req_verify_challenge(token)
 
     last_active = account['last_active']
     hold_time = (datetime.utcnow() - last_active).total_seconds()
     wh_message['time'] = int(hold_time)
 
-    if 'success' in response['responses']['VERIFY_CHALLENGE']:
-        status['message'] = (
-            "Account {} successfully uncaptcha'd, returning to " +
-            'active duty.').format(account['username'])
-        log.info(status['message'])
+    if verified:
+        status['message'] = pgacc.last_msg + ", returning to active duty."
         account_queue.put(account)
         wh_message['status'] = 'success'
     else:
-        status['message'] = (
-            'Account {} failed verifyChallenge, putting back ' +
-            'in captcha queue.').format(account['username'])
-        log.warning(status['message'])
+        status['message'] = pgacc.last_msg + ", putting back in captcha queue."
         account_captchas.append((status, account, captcha_url))
         wh_message['status'] = 'failure'
 
@@ -176,12 +159,10 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
     time.sleep(1)
 
 
-def handle_captcha(args, status, api, account, account_failures,
+def handle_captcha(args, status, pgacc, account, account_failures,
                    account_captchas, whq, response_dict, step_location):
     try:
-        captcha_url = response_dict['responses'][
-            'CHECK_CHALLENGE']['challenge_url']
-        if len(captcha_url) > 1:
+        if pgacc.has_captcha():
             status['captcha'] += 1
             if not args.captcha_solving:
                 status['message'] = ('Account {} has encountered a captcha. ' +
@@ -203,8 +184,8 @@ def handle_captcha(args, status, api, account, account_failures,
                 return False
 
             if args.captcha_key and args.manual_captcha_timeout == 0:
-                if automatic_captcha_solve(args, status, api, captcha_url,
-                                           account, whq):
+                if automatic_captcha_solve(args, status, pgacc,
+                                           pgacc.captcha_url, account, whq):
                     return True
                 else:
                     account_failures.append({
@@ -219,7 +200,7 @@ def handle_captcha(args, status, api, account, account_failures,
                 log.warning(status['message'])
                 account['last_active'] = datetime.utcnow()
                 account['last_location'] = step_location
-                account_captchas.append((status, account, captcha_url))
+                account_captchas.append((status, account, pgacc.captcha_url))
                 if args.webhooks:
                     wh_message = {'status_name': args.status_name,
                                   'status': 'encounter',
@@ -236,7 +217,7 @@ def handle_captcha(args, status, api, account, account_failures,
 
 
 # Return True if captcha was succesfully solved
-def automatic_captcha_solve(args, status, api, captcha_url, account, wh_queue):
+def automatic_captcha_solve(args, status, pgacc, captcha_url, account, wh_queue):
     status['message'] = (
         'Account {} is encountering a captcha, starting 2captcha ' +
         'sequence.').format(account['username'])
@@ -270,28 +251,21 @@ def automatic_captcha_solve(args, status, api, captcha_url, account, wh_queue):
             'for {}.').format(account['username'])
         log.info(status['message'])
 
-        response = api.verify_challenge(token=captcha_token)
+        verify_succeeded = pgacc.req_verify_challenge(captcha_token)
         time_elapsed = now() - time_start
-        if 'success' in response['responses']['VERIFY_CHALLENGE']:
-            status['message'] = "Account {} successfully uncaptcha'd.".format(
-                account['username'])
-            log.info(status['message'])
+        if verify_succeeded:
+            status['message'] = pgacc.last_msg
             if args.webhooks:
                 wh_message['status'] = 'success'
                 wh_message['time'] = time_elapsed
                 wh_queue.put(('captcha', wh_message))
-
             return True
         else:
-            status['message'] = (
-                'Account {} failed verifyChallenge, putting away ' +
-                'account for now.').format(account['username'])
-            log.info(status['message'])
+            status['message'] = pgacc.last_msg + ', putting away account for now.'
             if args.webhooks:
                 wh_message['status'] = 'failure'
                 wh_message['time'] = time_elapsed
                 wh_queue.put(('captcha', wh_message))
-
             return False
 
 

@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import time
 import random
+import time
 
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
-from pogom.account import get_player_inventory, log, spin_pokestop_request, \
-    encounter_pokemon_request, add_get_inventory_request, \
-    update_account_from_response
+from pogom.account import log, spin_pokestop_request, \
+    encounter_pokemon_request
 from pogom.utils import get_pokemon_name, in_radius
 
 log = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ ITEM_NAMES = {
 }
 
 
-def is_ditto(args, api, p, account):
+def is_ditto(args, pgacc, p):
     pokemon_id = p['pokemon_data']['pokemon_id']
     pokemon_name = get_pokemon_name(pokemon_id)
     captured_pokemon_name = pokemon_name
@@ -45,13 +44,13 @@ def is_ditto(args, api, p, account):
 
     # Encounter Pokemon.
     time.sleep(args.encounter_delay)
-    encounter_pokemon_request(api, account, p['encounter_id'],
+    encounter_pokemon_request(pgacc, p['encounter_id'],
                               p['spawn_point_id'],
                               [p['latitude'], p['longitude']])
 
     # Now try to catch it.
     got_ditto = False
-    catch_result = catch(api, p['encounter_id'], p['spawn_point_id'], account)
+    catch_result = catch(pgacc, p['encounter_id'], p['spawn_point_id'])
     if catch_result['catch_status'] == 'success':
         if int(catch_result['pid']) == DITTO_POKEDEX_ID:
             logmsg = u'Successfully caught a Ditto disguised as {}! Needed {} attempts.'
@@ -62,13 +61,13 @@ def is_ditto(args, api, p, account):
         log.info(logmsg.format(pokemon_name, catch_result['attempts']))
         # Release the Pokemon in any case
         time.sleep(random.uniform(7, 10))
-        if release(api, catch_result['capture_id'], account):
+        if release(pgacc, catch_result['capture_id']):
             log.info(u'Successfully released {}.'.format(captured_pokemon_name))
     else:
         log.info("Failed catching {}: {} Attempts: {}".format(pokemon_name, catch_result['reason'], catch_result['attempts']))
     return got_ditto
 
-def catch(api, encounter_id, spawn_point_id, account):
+def catch(pgacc, encounter_id, spawn_point_id):
     # Try to catch pokemon, but don't get stuck.
     rv = {
         'catch_status': 'fail',
@@ -85,37 +84,24 @@ def catch(api, encounter_id, spawn_point_id, account):
             spin_modifier = 0.4 + 0.4 * random.random()
 
             # Determine best ball - we know for sure that we have at least one
-            inventory = account.get('inventory', {})
+            inventory = pgacc.inventory
             ball = ITEM_ULTRA_BALL if inventory.get(ITEM_ULTRA_BALL, 0) > 0 else (
                 ITEM_GREAT_BALL if inventory.get(ITEM_GREAT_BALL, 0) > 0 else ITEM_POKE_BALL)
 
-            req = api.create_request()
-            req.catch_pokemon(
-                encounter_id=encounter_id,
-                pokeball=ball,
-                normalized_reticle_size=normalized_reticle_size,
-                spawn_point_id=spawn_point_id,
-                hit_pokemon=1,
-                spin_modifier=spin_modifier,
-                normalized_hit_position=1.0)
-            req.check_challenge()
-            req.get_hatched_eggs()
-            add_get_inventory_request(req, account)
-            req.check_awarded_badges()
-            req.download_settings()
-            req.get_buddy_walked()
-            catch_result = req.call()
+            catch_result = pgacc.req_catch_pokemon(
+                encounter_id,
+                spawn_point_id,
+                ball,
+                normalized_reticle_size,
+                spin_modifier)
 
-            # Inventory changed on throwing a ball.
-            update_account_from_response(account, catch_result)
-
-            if (catch_result is not None and 'CATCH_POKEMON' in catch_result['responses']):
-                catch_status = catch_result['responses']['CATCH_POKEMON']['status']
+            if (catch_result is not None and 'CATCH_POKEMON' in catch_result):
+                catch_status = catch_result['CATCH_POKEMON']['status']
 
                 # Success!
                 if catch_status == 1:
                     # Check inventory for caught Pokemon
-                    capture_id = catch_result['responses']['CATCH_POKEMON']['captured_pokemon_id']
+                    capture_id = catch_result['CATCH_POKEMON']['captured_pokemon_id']
                     pid = get_captured_pokemon_id_from_inventory(capture_id, catch_result)
                     if pid:
                         # Set ID of caught Pokemon
@@ -155,13 +141,13 @@ def catch(api, encounter_id, spawn_point_id, account):
 
 
 def get_captured_pokemon_id_from_inventory(capture_id, response):
-    if 'GET_INVENTORY' not in response['responses']:
+    if 'GET_INVENTORY' not in response:
         log.warning(
             "CAPTURED_PKM_ID: No inventory in responses. Got {}".format(
-                response['responses'].keys()))
+                response.keys()))
         return None
 
-    iitems = response['responses']['GET_INVENTORY']['inventory_delta'][
+    iitems = response['GET_INVENTORY']['inventory_delta'][
         'inventory_items']
     for item in iitems:
         iidata = item['inventory_item_data']
@@ -170,22 +156,12 @@ def get_captured_pokemon_id_from_inventory(capture_id, response):
     return None
 
 
-def release(api, cpid, account):
+def release(pgacc, cpid):
     try:
-        req = api.create_request()
-        req.release_pokemon(pokemon_id=cpid)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        add_get_inventory_request(req, account)
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        release_result = req.call()
+        release_result = pgacc.req_release_pokemon(cpid)
 
-        update_account_from_response(account, release_result)
-
-        if (release_result is not None and 'RELEASE_POKEMON' in release_result['responses']):
-            release_result = release_result['responses']['RELEASE_POKEMON']['result']
+        if (release_result is not None and 'RELEASE_POKEMON' in release_result):
+            release_result = release_result['RELEASE_POKEMON']['result']
             if int(release_result) == 1:
                 return True
             else:
@@ -206,22 +182,21 @@ def pokestop_spinnable(fort, step_location):
     return in_range and not needs_cooldown
 
 
-def spin_pokestop_update_inventory(api, fort, step_location, account):
+def spin_pokestop_update_inventory(pgacc, fort, step_location):
     time.sleep(random.uniform(0.8, 1.8))  # Do not let Niantic throttle
-    spin_response = spin_pokestop_request(api, fort, step_location, account)
+    spin_response = spin_pokestop_request(pgacc, fort, step_location)
     time.sleep(random.uniform(2, 4))  # Do not let Niantic throttle
     if not spin_response:
         return False
 
-    # Check for reCaptcha
-    captcha_url = spin_response['responses']['CHECK_CHALLENGE']['challenge_url']
-    if len(captcha_url) > 1:
+    # Check for Captcha
+    if pgacc.has_captcha():
         log.debug('Account encountered a reCaptcha.')
         return False
 
-    spin_result = spin_response['responses']['FORT_SEARCH']['result']
+    spin_result = spin_response['FORT_SEARCH']['result']
     if spin_result is 1:
-        awards = get_awarded_items(spin_response['responses']['FORT_SEARCH']['items_awarded'])
+        awards = get_awarded_items(spin_response['FORT_SEARCH']['items_awarded'])
         log.info('Got {} items ({} balls) from Pokestop.'.format(awards['total'], awards['balls']))
         return True
     elif spin_result is 2:
@@ -255,33 +230,33 @@ def get_awarded_items(items_awarded):
     return awards
 
 
-def cleanup_inventory(api, account):
-    inventory = account.get('inventory', {})
+def cleanup_inventory(pgacc):
+    inventory = pgacc.inventory
     drop_stats = {}
     # Just need to make room for more items
     if inventory['total'] >= 350:
-        drop_items(api, account, ITEM_POTION, drop_stats)
-        drop_items(api, account, ITEM_SUPER_POTION, drop_stats)
-        drop_items(api, account, ITEM_HYPER_POTION, drop_stats)
-        drop_items(api, account, ITEM_MAX_POTION, drop_stats)
-        drop_items(api, account, ITEM_REVIVE, drop_stats)
-        drop_items(api, account, ITEM_MAX_REVIVE, drop_stats)
-        drop_items(api, account, ITEM_BLUK_BERRY, drop_stats)
-        drop_items(api, account, ITEM_NANAB_BERRY, drop_stats)
-        drop_items(api, account, ITEM_WEPAR_BERRY, drop_stats)
-        drop_items(api, account, ITEM_PINAP_BERRY, drop_stats)
-        drop_items(api, account, ITEM_RAZZ_BERRY, drop_stats)
+        drop_items(pgacc, ITEM_POTION, drop_stats)
+        drop_items(pgacc, ITEM_SUPER_POTION, drop_stats)
+        drop_items(pgacc, ITEM_HYPER_POTION, drop_stats)
+        drop_items(pgacc, ITEM_MAX_POTION, drop_stats)
+        drop_items(pgacc, ITEM_REVIVE, drop_stats)
+        drop_items(pgacc, ITEM_MAX_REVIVE, drop_stats)
+        drop_items(pgacc, ITEM_BLUK_BERRY, drop_stats)
+        drop_items(pgacc, ITEM_NANAB_BERRY, drop_stats)
+        drop_items(pgacc, ITEM_WEPAR_BERRY, drop_stats)
+        drop_items(pgacc, ITEM_PINAP_BERRY, drop_stats)
+        drop_items(pgacc, ITEM_RAZZ_BERRY, drop_stats)
 
         # Throw away balls if necessary
         if inventory['total'] >= 350:
             need_to_drop = inventory['total'] - 350 + DROP_BALLS
-            items_dropped = drop_items(api, account, ITEM_POKE_BALL, drop_stats, need_to_drop)
+            items_dropped = drop_items(pgacc, ITEM_POKE_BALL, drop_stats, need_to_drop)
             if items_dropped < need_to_drop:
                 need_to_drop -= items_dropped
-                items_dropped = drop_items(api, account, ITEM_GREAT_BALL, drop_stats, need_to_drop)
+                items_dropped = drop_items(pgacc, ITEM_GREAT_BALL, drop_stats, need_to_drop)
                 if items_dropped < need_to_drop:
                     need_to_drop -= items_dropped
-                    drop_items(api, account, ITEM_ULTRA_BALL, drop_stats, need_to_drop)
+                    drop_items(pgacc, ITEM_ULTRA_BALL, drop_stats, need_to_drop)
 
         # Log what was dropped
         drops = []
@@ -291,12 +266,11 @@ def cleanup_inventory(api, account):
         log.info(u"Items dropped: {}".format(u", ".join(drops)))
 
 
-def drop_items(api, account, item_id, drop_stats, drop_count=-1):
-    inventory = account.get('inventory', {})
-    item_count = inventory.get(item_id, 0)
+def drop_items(pgacc, item_id, drop_stats, drop_count=-1):
+    item_count = pgacc.inventory.get(item_id, 0)
     drop_count = item_count if drop_count == -1 else min(item_count, drop_count)
     if drop_count > 0:
-        result = drop_items_request(api, item_id, drop_count, account)
+        result = drop_items_request(pgacc, item_id, drop_count)
         if result == 1:
             drop_stats[item_id] = drop_count
             return drop_count
@@ -305,22 +279,12 @@ def drop_items(api, account, item_id, drop_stats, drop_count=-1):
     return 0
 
 
-def drop_items_request(api, item_id, amount, account):
+def drop_items_request(pgacc, item_id, amount):
     time.sleep(random.uniform(2, 4))
     try:
-        req = api.create_request()
-        req.recycle_inventory_item(item_id=item_id,
-                                   count=amount)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        add_get_inventory_request(req, account)
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        response_dict = req.call()
-        update_account_from_response(account, response_dict)
-        if ('responses' in response_dict) and ('RECYCLE_INVENTORY_ITEM' in response_dict['responses']):
-            drop_details = response_dict['responses']['RECYCLE_INVENTORY_ITEM']
+        response_dict = pgacc.req_recycle_inventory_item(item_id, amount)
+        if ('RECYCLE_INVENTORY_ITEM' in response_dict):
+            drop_details = response_dict['RECYCLE_INVENTORY_ITEM']
             return drop_details.get('result', -1)
     except Exception as e:
         log.warning('Exception while dropping items: %s', repr(e))
@@ -332,23 +296,13 @@ def drop_items_request(api, item_id, amount, account):
 # 0: UNSET
 # 1: SUCCESS
 # 2: AWARDED_ALREADY
-def level_up_rewards_request(api, account):
+def level_up_rewards_request(pgacc, level):
     time.sleep(random.uniform(2, 3))
     try:
-        req = api.create_request()
-        req.level_up_rewards(level=account['level'])
-        req.check_challenge()
-        req.get_hatched_eggs()
-        add_get_inventory_request(req, account)
-        req.check_awarded_badges()
-        req.download_settings()
-        req.get_buddy_walked()
-        rewards_response = req.call()
+        rewards_response = pgacc.req_level_up_rewards(level)
 
-        update_account_from_response(account, rewards_response)
-
-        if ('responses' in rewards_response) and ('LEVEL_UP_REWARDS' in rewards_response['responses']):
-            reward_details = rewards_response['responses']['LEVEL_UP_REWARDS']
+        if 'LEVEL_UP_REWARDS' in rewards_response:
+            reward_details = rewards_response['LEVEL_UP_REWARDS']
             return reward_details.get('result', -1)
 
     except Exception as e:

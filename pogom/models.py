@@ -1,43 +1,43 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import logging
-import itertools
 import calendar
-import sys
-import traceback
 import gc
-import time
-import geopy
+import itertools
+import logging
 import math
+import sys
+import time
+import traceback
+from base64 import b64encode
+from datetime import datetime, timedelta
+from timeit import default_timer
+
+import geopy
+from cachetools import TTLCache
+from cachetools import cached
 from peewee import (InsertQuery, Check, CompositeKey, ForeignKeyField,
                     SmallIntegerField, IntegerField, CharField, DoubleField,
                     BooleanField, DateTimeField, fn, DeleteQuery, FloatField,
                     SQL, TextField, JOIN, OperationalError)
 from playhouse.flask_utils import FlaskDB
+from playhouse.migrate import migrate, MySQLMigrator, SqliteMigrator
 from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError, case
-from playhouse.migrate import migrate, MySQLMigrator, SqliteMigrator
 from playhouse.sqlite_ext import SqliteExtDatabase
-from datetime import datetime, timedelta
-from base64 import b64encode
-from cachetools import TTLCache
-from cachetools import cached
-from timeit import default_timer
 
 from pogom.gainxp import pokestop_spinnable, cleanup_inventory, \
     spin_pokestop_update_inventory, is_ditto
 from pogom.pgscout import pgscout_encounter
 from . import config
+from .account import (tutorial_pokestop_spin, setup_pogo_account,
+                      encounter_pokemon_request)
+from .customLog import printPokemon
+from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
                     get_args, cellid, in_radius, date_secs, clock_between,
                     get_move_name, get_move_damage, get_move_energy,
                     get_move_type, clear_dict_response, calc_pokemon_level)
-from .transform import transform_from_wgs_to_gcj, get_new_coords
-from .customLog import printPokemon
-
-from .account import (tutorial_pokestop_spin, check_login,
-                      setup_api, encounter_pokemon_request)
 
 log = logging.getLogger(__name__)
 
@@ -1783,17 +1783,18 @@ class Account(BaseModel):
     warn = BooleanField(null=True)
     blind = BooleanField(null=True)
 
-    def update(self, acc):
+    def update(self, pgacc, acc):
         args = get_args()
-        self.level = acc.get('level')
-        self.xp = acc.get('experience')
-        self.encounters = acc.get('pokemons_encountered')
-        self.balls_thrown = acc.get('pokeballs_thrown')
-        self.captures = acc.get('pokemons_captured')
-        self.spins = acc.get('poke_stop_visits')
-        self.walked = acc.get('km_walked')
-        self.num_balls = acc.get('inventory', {}).get('balls')
-        self.warn = acc.get('warn')
+        stats = pgacc.player_stats
+        self.level = stats.get('level')
+        self.xp = stats.get('experience')
+        self.encounters = stats.get('pokemons_encountered')
+        self.balls_thrown = stats.get('pokeballs_thrown')
+        self.captures = stats.get('pokemons_captured')
+        self.spins = stats.get('poke_stop_visits')
+        self.walked = stats.get('km_walked')
+        self.num_balls = pgacc.inventory.get('balls')
+        self.warn = pgacc.is_warned()
         self.blind = (acc.get('rareless_scans') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
 
@@ -1854,7 +1855,7 @@ def perform_pgscout(p):
 
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
 def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
-              key_scheduler, api, status, now_date, account, account_sets):
+              key_scheduler, pgacc, status, now_date, account, account_sets):
     pokemon = {}
     pokestops = {}
     gyms = {}
@@ -1872,12 +1873,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     sp_id_list = []
     captcha_url = ''
 
-    # Access to account inventory
-    inventory = account['inventory']
-
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
-    cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
+    cells = map_dict['GET_MAP_OBJECTS']['map_cells']
     # Get the level for the pokestop spin, and to send to webhook.
     level = account.get('level', 1)
     # Use separate level indicator for our L30 encounters.
@@ -1887,8 +1885,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     account_is_adult = level >= 30
 
     # Helping out the GC.
-    if 'GET_INVENTORY' in map_dict['responses']:
-        del map_dict['responses']['GET_INVENTORY']
+    if 'GET_INVENTORY' in map_dict:
+        del map_dict['GET_INVENTORY']
 
     for i, cell in enumerate(cells):
         # If we have map responses then use the time from the request
@@ -1918,7 +1916,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     if forts:
         forts_count = len(forts)
 
-    del map_dict['responses']['GET_MAP_OBJECTS']
+    del map_dict['GET_MAP_OBJECTS']
 
     # If there are no wild or nearby Pokemon . . .
     if not wild_pokemon and not nearby_pokemon:
@@ -2050,7 +2048,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 time.sleep(args.encounter_delay)
 
                 hlvl_account = None
-                hlvl_api = None
+                hlvl_pgacc = None
                 using_accountset = False
 
                 scan_location = [p['latitude'], p['longitude']]
@@ -2059,14 +2057,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # can just use the current account.
                 if level >= 30:
                     hlvl_account = account
-                    hlvl_api = api
+                    hlvl_pgacc = pgacc
                 else:
                     # Get account to use for IV and CP scanning.
                     hlvl_account = account_sets.next('30', scan_location)
 
                 # If we don't have an API object yet, it means we didn't re-use
                 # an old one, so we're using AccountSet.
-                using_accountset = not hlvl_api
+                using_accountset = not hlvl_pgacc
 
                 # If we didn't get an account, we can't encounter.
                 if hlvl_account:
@@ -2082,16 +2080,16 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # re-use an old API object if it's stored and we're
                     # using an account from the AccountSet.
                     if not args.no_api_store and using_accountset:
-                        hlvl_api = hlvl_account.get('api', None)
+                        hlvl_pgacc = hlvl_account.get('pgacc', None)
 
                     # Make new API for this account if we're not using an
                     # API that's already logged in.
-                    if not hlvl_api:
+                    if not hlvl_pgacc:
                         hlvl_status = {
                             'account': hlvl_account,
                             'proxy_url': status['proxy_url']
                         }
-                        hlvl_api = setup_api(args, hlvl_status)
+                        hlvl_pgacc = setup_pogo_account(args, hlvl_status)
 
                         # Hashing key.
                         # TODO: all of this should be handled properly... all
@@ -2101,38 +2099,31 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             key = key_scheduler.next()
                             log.debug('Using hashing key %s for this'
                                       + ' encounter.', key)
-                            hlvl_api.activate_hash_server(key)
+                            hlvl_pgacc.hash_key = key
 
                     # We have an API object now. If necessary, store it.
                     if using_accountset and not args.no_api_store:
-                        hlvl_account['api'] = hlvl_api
+                        hlvl_account['pgacc'] = hlvl_pgacc
 
                     # Set location.
-                    hlvl_api.set_position(*scan_location)
+                    hlvl_pgacc.set_position(scan_location[0], scan_location[1],
+                                            scan_location[2])
 
                     # Log in.
-                    check_login(args, hlvl_account, hlvl_api, scan_location,
-                                status['proxy_url'])
+                    hlvl_pgacc.check_login()
 
                     # Encounter Pokémon.
                     encounter_result = encounter_pokemon_request(
-                        hlvl_api,
-                        hlvl_account,
+                        hlvl_pgacc,
                         p['encounter_id'],
                         p['spawn_point_id'],
                         scan_location)
 
                     # Handle errors.
                     if encounter_result:
-                        # Readability.
-                        responses = encounter_result['responses']
-
                         # Check for captcha.
-                        captcha_url = responses[
-                            'CHECK_CHALLENGE']['challenge_url']
-
                         # Throw warning but finish parsing.
-                        if len(captcha_url) > 1:
+                        if hlvl_pgacc.has_captcha():
                             # Flag account.
                             hlvl_account['captcha'] = True
                             log.error('Account %s encountered a captcha.'
@@ -2201,9 +2192,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'pokemon_display'].get('form', None)
 
             if (encounter_result is not None and 'wild_pokemon'
-                    in encounter_result['responses']['ENCOUNTER']):
-                pokemon_info = encounter_result['responses'][
-                    'ENCOUNTER']['wild_pokemon']['pokemon_data']
+                    in encounter_result['ENCOUNTER']):
+                pokemon_info = encounter_result['ENCOUNTER']['wild_pokemon'][
+                    'pokemon_data']
 
                 # IVs.
                 individual_attack = pokemon_info.get('individual_attack', 0)
@@ -2242,9 +2233,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
-            have_balls = inventory.get('balls', 0) > 0
+            have_balls = pgacc.inventory.get('balls', 0) > 0
             if args.gain_xp and not account_is_adult and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
-                if is_ditto(args, api, p, account):
+                if is_ditto(args, pgacc, p):
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
                     pokemon_id = 132
                     # Scout result is useless
@@ -2307,10 +2298,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                      datetime(1970, 1, 1)).total_seconds())) for f in query]
 
         # Complete tutorial with a Pokestop spin
-        if args.complete_tutorial and not (len(captcha_url) > 1 and not args.gain_xp):
+        if args.complete_tutorial and not pgacc.has_captcha() and not args.gain_xp:
             if config['parse_pokestops']:
                 tutorial_pokestop_spin(
-                    api, level, forts, step_location, account)
+                    pgacc, level, forts, step_location, account)
             else:
                 log.error(
                     'Pokestop can not be spun since parsing Pokestops is ' +
@@ -2361,8 +2352,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 # Spin Pokestop to gain XP if account is below level 25
                 if args.gain_xp and not account_is_adult and pokestop_spinnable(
                     f, step_location):
-                    cleanup_inventory(api, account)
-                    spin_pokestop_update_inventory(api, f, step_location, account)
+                    cleanup_inventory(pgacc)
+                    spin_pokestop_update_inventory(pgacc, f, step_location)
 
                 if ((f['id'], int(f['last_modified_timestamp_ms'] / 1000.0))
                         in encountered_pokestops):

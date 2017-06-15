@@ -17,42 +17,38 @@ Search Architecture:
    - Pushes finds to db queue and webhook queue
 '''
 
+import copy
 import logging
 import math
 import os
-import sys
-import traceback
 import random
+import sys
 import time
-import copy
-import requests
-import schedulers
-import terminalsize
 import timeit
-
-from datetime import datetime
-from threading import Thread, Lock
-from queue import Queue, Empty
-from sets import Set
+import traceback
 from collections import deque
+from datetime import datetime
+from distutils.version import StrictVersion
+from sets import Set
+from threading import Thread, Lock
+
+import requests
+from pgoapi.hash_server import (HashServer)
+from queue import Queue, Empty
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from distutils.version import StrictVersion
 
-from pgoapi.utilities import f2i
-from pgoapi import utilities as util
-from pgoapi.hash_server import (HashServer, BadHashRequestException,
-                                HashingOfflineException)
+import schedulers
+import terminalsize
+from pogom.gainxp import level_up_rewards_request
+from .account import (setup_pogo_account, AccountSet,
+                      update_rareless_scans)
+from .captcha import captcha_overseer_thread, handle_captcha
 from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
                      WorkerStatus, HashKeys, Account)
-from .utils import now, clear_dict_response, get_new_api_timestamp, get_args
-from .transform import get_new_coords, jitter_location
-from .account import (setup_api, check_login, complete_tutorial, AccountSet,
-                      get_player_inventory, get_player_stats, get_player_state,
-                      add_get_inventory_request, update_account_from_response)
-from pogom.gainxp import level_up_rewards_request
-from .captcha import captcha_overseer_thread, handle_captcha
 from .proxy import get_new_proxy
+from .transform import get_new_coords
+from .utils import now, clear_dict_response, get_args
 
 log = logging.getLogger(__name__)
 
@@ -342,8 +338,13 @@ def print_account_stats(rows, thread_status, account_queue,
         if current_line > end_line:
             break
 
+        # Access to the underlying POGOAccount
+        pgacc = account.get('pgacc')
+        stats = pgacc.player_stats if pgacc else {}
+        inventory = pgacc.inventory if pgacc else {}
+
         # Format walked km
-        km_walked_f = account.get('km_walked', 'none')
+        km_walked_f = stats.get('km_walked', 'none')
         if km_walked_f != 'none':
             km_walked_str = '{:.1f} km'.format(km_walked_f)
         else:
@@ -351,20 +352,21 @@ def print_account_stats(rows, thread_status, account_queue,
 
         # Inventory
         inv_str = ''
-        inv = account.get('inventory', {})
-        if inv:
-            inv_str = '{}B/{}T'.format(inv.get('balls', 0), inv.get('total', 0))
+        if inventory:
+            balls = pgacc.inventory_balls
+            total = pgacc.inventory_total
+            inv_str = '{}B/{}T'.format(balls, total)
 
-        warning = account.get('warn')
+        warning = pgacc.is_warned() if pgacc else None
         warning = '' if warning is None else ('Yes' if warning else 'No')
 
         rareless_scans = account.get('rareless_scans')
-        maybe_border = int(round(args.rareless_scans_threshold / 2))
+        maybe_threshold = int(round(args.rareless_scans_threshold / 2))
         if rareless_scans is None:
             blind = ''
-        elif rareless_scans in range(0, maybe_border):
+        elif rareless_scans in range(0, maybe_threshold):
             blind = 'No'
-        elif rareless_scans in range(maybe_border, args.rareless_scans_threshold):
+        elif rareless_scans in range(maybe_threshold, args.rareless_scans_threshold):
             blind = 'Maybe'
         else:
             blind = 'Yes'
@@ -380,13 +382,13 @@ def print_account_stats(rows, thread_status, account_queue,
             account.get('username', ''),
             warning,
             blind,
-            account.get('level', ''),
-            account.get('experience', ''),
-            account.get('pokemons_encountered', ''),
-            account.get('pokeballs_thrown', ''),
-            account.get('pokemons_captured', ''),
+            stats.get('level', ''),
+            stats.get('experience', ''),
+            stats.get('pokemons_encountered', ''),
+            stats.get('pokeballs_thrown', ''),
+            stats.get('pokemons_captured', ''),
             inv_str,
-            account.get('poke_stop_visits', ''),
+            stats.get('poke_stop_visits', ''),
             km_walked_str))
 
     return total_pages
@@ -817,7 +819,9 @@ def update_total_stats(threadStatus, last_account_status):
             overseer['fail_total'] += stat_delta(tstatus, last_status, 'fail')
             overseer[
                 'success_total'] += stat_delta(tstatus, last_status, 'success')
-            last_account_status[username] = copy.deepcopy(tstatus)
+            last_account_status[username] = {key: tstatus[key] for key in
+                                             ['skip', 'captcha', 'noitems',
+                                              'fail', 'success']}
 
     overseer['active_accounts'] = usercount
 
@@ -910,9 +914,6 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
 
             status['starttime'] = now()
 
-            # Track per loop.
-            first_login = True
-
             # Make sure the scheduler is done for valid locations.
             while not scheduler.ready:
                 time.sleep(1)
@@ -931,11 +932,13 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
             log.info(status['message'])
 
             # Get or create new account stats entry
-            acc_stats, created = Account.get_or_create(username=account['username'],
-                                                       defaults={'username': account['username']})
-            if created:
-                acc_stats.update(account)
-            account['stats'] = acc_stats
+            acc_stats, created = Account.get_or_create(
+                username=account['username'],
+                defaults={
+                    'auth_service': account['auth_service'],
+                    'username': account['username'],
+                    'password': account['password']
+                })
             account['rareless_scans'] = args.rareless_scans_threshold if acc_stats.blind else 0
 
             # New lease of life right here.
@@ -955,7 +958,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
             # for stat purposes.
             consecutive_noitems = 0
 
-            api = setup_api(args, status)
+            pgacc = setup_pogo_account(args, status, account)
 
             # The forever loop for the searches.
             while True:
@@ -1086,38 +1089,17 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                 # Let the api know where we intend to be for this loop.
                 # Doing this before check_login so it does not also have
                 # to be done when the auth token is refreshed.
-                api.set_position(*step_location)
+                pgacc.set_position(step_location[0], step_location[1],
+                                   step_location[2])
 
                 if args.hash_key:
                     key = key_scheduler.next()
                     log.debug('Using key {} for this scan.'.format(key))
-                    api.activate_hash_server(key)
+                    pgacc.hash_key = key
 
                 # Ok, let's get started -- check our login status.
                 status['message'] = 'Logging in...'
-                check_login(args, account, api, step_location,
-                            status['proxy_url'])
-
-                # Only run this when it's the account's first login, after
-                # check_login().
-                if first_login:
-                    first_login = False
-
-                    # Check tutorial completion.
-                    if args.complete_tutorial:
-                        log.debug('Checking tutorial state for %s.',
-                                  account['username'])
-                        tutorial_state = account['tutorial_state']
-
-                        if not all(x in tutorial_state
-                                   for x in (0, 1, 3, 4, 7)):
-                            log.info('Completing tutorial steps for %s.',
-                                     account['username'])
-                            complete_tutorial(args, api, account,
-                                              tutorial_state)
-                        else:
-                            log.info('Account %s already completed tutorial.',
-                                     account['username'])
+                pgacc.check_login()
 
                 # Putting this message after the check_login so the messages
                 # aren't out of order.
@@ -1126,12 +1108,14 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
 
                 # Make the actual request.
                 scan_date = datetime.utcnow()
-                response_dict = map_request(api, account,
-                                            step_location, args.no_jitter)
-                status['last_scan_date'] = datetime.utcnow()
+                response_dict = pgacc.req_get_map_objects()
+
+                # Check if any rare Pokemon nearby
+                update_rareless_scans(account, response_dict)
 
                 # Record the time and the place that the worker made the
                 # request.
+                status['last_scan_date'] = datetime.utcnow()
                 status['latitude'] = step_location[0]
                 status['longitude'] = step_location[1]
                 dbq.put((WorkerStatus, {0: WorkerStatus.db_format(status)}))
@@ -1148,7 +1132,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                 # Got the response, check for captcha, parse it out, then send
                 # todo's to db/wh queues.
                 try:
-                    captcha = handle_captcha(args, status, api, account,
+                    captcha = handle_captcha(args, status, pgacc, account,
                                              account_failures,
                                              account_captchas, whq,
                                              response_dict, step_location)
@@ -1156,16 +1140,14 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                         # Make another request for the same location
                         # since the previous one was captcha'd.
                         scan_date = datetime.utcnow()
-                        response_dict = map_request(api, account,
-                                                    step_location,
-                                                    args.no_jitter)
+                        response_dict = pgacc.req_get_map_objects()
                     elif captcha is not None:
                         account_queue.task_done()
                         time.sleep(3)
                         break
 
                     parsed = parse_map(args, response_dict, step_location,
-                                       dbq, whq, key_scheduler, api, status,
+                                       dbq, whq, key_scheduler, pgacc, status,
                                        scan_date, account, account_sets)
                     del response_dict
                     scheduler.task_done(status, parsed)
@@ -1198,15 +1180,16 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                         del response_dict
 
                 # Check for level up rewards.
-                if acc_stats.awarded_to_level < account['level']:
+                level = pgacc.player_stats.get('level', 1)
+                if acc_stats.awarded_to_level < level:
                     log.info("Checking level up rewards for level {}.".format(
-                        account['level']))
-                    lvlup_award_result = level_up_rewards_request(api, account)
+                        level))
+                    lvlup_award_result = level_up_rewards_request(pgacc, level)
                     if lvlup_award_result in (1, 2):
                         log.info("Got level up rewards! Yay!")
-                        acc_stats.awarded_to_level = account['level']
+                        acc_stats.awarded_to_level = level
                 # Update account stats
-                acc_stats.update(account)
+                acc_stats.update(pgacc, account)
                 dbq.put((Account, {account['username']: acc_stats.db_format()}))
 
                 # Get detailed information about gyms.
@@ -1260,17 +1243,14 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                                     current_gym, len(gyms_to_update),
                                     step_location[0], step_location[1])
                             time.sleep(random.random() + 2)
-                            response = gym_request(api,
-                                                   account,
+                            response = gym_request(pgacc,
                                                    step_location,
-                                                   gym,
-                                                   api_version)
+                                                   gym)
 
                             # Make sure the gym was in range. (Sometimes the
                             # API gets cranky about gyms that are ALMOST 1km
                             # away.)
-                            if response['responses'][
-                                    'GET_GYM_DETAILS']['result'] == 2:
+                            if response['GET_GYM_DETAILS']['result'] == 2:
                                 log.warning(
                                     ('Gym @ %f/%f is out of range (%dkm), ' +
                                      'skipping.'),
@@ -1278,7 +1258,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                                     distance)
                             else:
                                 gym_responses[gym['gym_id']] = response[
-                                    'responses']['GET_GYM_DETAILS']
+                                    'GET_GYM_DETAILS']
                             del response
                             # Increment which gym we're on for status messages.
                             current_gym += 1
@@ -1367,69 +1347,16 @@ def upsertKeys(keys, key_scheduler, db_updates_queue):
     db_updates_queue.put((HashKeys, hashkeys))
 
 
-def map_request(api, account, position, no_jitter=False):
-    # Create scan_location to send to the api based off of position, because
-    # tuples aren't mutable.
-    if no_jitter:
-        # Just use the original coordinates.
-        scan_location = position
-    else:
-        # Jitter it, just a little bit.
-        scan_location = jitter_location(position)
-        log.debug('Jittered to: %f/%f/%f',
-                  scan_location[0], scan_location[1], scan_location[2])
-
-    try:
-        cell_ids = util.get_cell_ids(scan_location[0], scan_location[1])
-        timestamps = [0, ] * len(cell_ids)
-        req = api.create_request()
-        req.get_map_objects(latitude=f2i(scan_location[0]),
-                            longitude=f2i(scan_location[1]),
-                            since_timestamp_ms=timestamps,
-                            cell_id=cell_ids)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        add_get_inventory_request(req, account)
-        req.check_awarded_badges()
-        req.get_buddy_walked()
-        response = req.call()
-
-        update_account_from_response(account, response)
-
-        response = clear_dict_response(response, True)
-        return response
-
-    except HashingOfflineException as e:
-        log.warning('Hashing server is unreachable, it might be offline.')
-    except BadHashRequestException as e:
-        log.warning('Invalid or expired hashing key: %s.',
-                    api._hash_server_token)
-    except Exception as e:
-        log.warning('Exception while downloading map: %s', repr(e))
-        return False
-
-
-def gym_request(api, account, position, gym, api_version):
+def gym_request(pgacc, position, gym):
     try:
         log.debug('Getting details for gym @ %f/%f (%fkm away).',
                   gym['latitude'], gym['longitude'],
                   calc_distance(position, [gym['latitude'], gym['longitude']]))
-        req = api.create_request()
-        req.get_gym_details(gym_id=gym['gym_id'],
-                            player_latitude=f2i(position[0]),
-                            player_longitude=f2i(position[1]),
-                            gym_latitude=gym['latitude'],
-                            gym_longitude=gym['longitude'],
-                            client_version=api_version)
-        req.check_challenge()
-        req.get_hatched_eggs()
-        add_get_inventory_request(req, account)
-        req.check_awarded_badges()
-        req.get_buddy_walked()
-        response = req.call()
-
-        update_account_from_response(account, response)
-
+        response = pgacc.req_get_gym_details(gym['gym_id'],
+                                             gym['latitude'],
+                                             gym['longitude'],
+                                             position[0],
+                                             position[1])
         response = clear_dict_response(response)
         return response
 
