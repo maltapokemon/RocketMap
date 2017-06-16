@@ -231,10 +231,9 @@ def get_awarded_items(items_awarded):
 
 
 def cleanup_inventory(pgacc):
-    inventory = pgacc.inventory
     drop_stats = {}
     # Just need to make room for more items
-    if inventory['total'] >= 350:
+    if pgacc.inventory_total >= 350:
         drop_items(pgacc, ITEM_POTION, drop_stats)
         drop_items(pgacc, ITEM_SUPER_POTION, drop_stats)
         drop_items(pgacc, ITEM_HYPER_POTION, drop_stats)
@@ -248,8 +247,8 @@ def cleanup_inventory(pgacc):
         drop_items(pgacc, ITEM_RAZZ_BERRY, drop_stats)
 
         # Throw away balls if necessary
-        if inventory['total'] >= 350:
-            need_to_drop = inventory['total'] - 350 + DROP_BALLS
+        if pgacc.inventory_total >= 350:
+            need_to_drop = pgacc.inventory_total - 350 + DROP_BALLS
             items_dropped = drop_items(pgacc, ITEM_POKE_BALL, drop_stats, need_to_drop)
             if items_dropped < need_to_drop:
                 need_to_drop -= items_dropped
