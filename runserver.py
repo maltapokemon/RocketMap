@@ -101,10 +101,7 @@ def main():
 
     args = get_args()
 
-    # Logins should not be in parallel
-    init_mr_mime({
-        'parallel_logins': True
-    })
+    init_mr_mime(config_file='config/mrmime_config.json')
 
     # Add file logging if enabled.
     if args.verbose and args.verbose != 'nofile':

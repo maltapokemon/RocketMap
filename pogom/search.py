@@ -948,7 +948,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
             status['skip'] = 0
             status['captcha'] = 0
 
-            stagger_thread(args)
+            #stagger_thread(args)
 
             # Sleep when consecutive_fails reaches max_failures, overall fails
             # for stat purposes.
