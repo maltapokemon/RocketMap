@@ -45,7 +45,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 21
+db_schema_version = 22
 
 # These Pokemon could be Dittos
 DITTO_POKEDEX_IDS = [16, 19, 41, 129, 161, 163, 193]
@@ -557,7 +557,16 @@ class Gym(BaseModel):
     gym_id = Utf8mb4CharField(primary_key=True, max_length=50)
     team_id = SmallIntegerField()
     guard_pokemon_id = SmallIntegerField()
-    gym_points = IntegerField()
+    total_gym_cp = IntegerField()
+    slots_available = SmallIntegerField()
+    raid_spawn = DateTimeField(null=True)
+    raid_battle = DateTimeField(null=True)
+    raid_end = DateTimeField(null=True)
+    raid_level = SmallIntegerField(null=True)
+    raid_pokemon_id = SmallIntegerField(null=True)
+    raid_pokemon_cp = IntegerField(null=True)
+    raid_pokemon_move_1 = SmallIntegerField(null=True)
+    raid_pokemon_move_2 = SmallIntegerField(null=True)
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
@@ -618,6 +627,8 @@ class Gym(BaseModel):
         for g in results:
             g['name'] = None
             g['pokemon'] = []
+            if g['raid_pokemon_id']:
+                g['raid_pokemon_name'] = get_pokemon_name(g['raid_pokemon_id'])
             gyms[g['gym_id']] = g
             gym_ids.append(g['gym_id'])
 
@@ -2375,6 +2386,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
+                raid_info = f.get('raid_info', {})
+                raid_pokemon = raid_info.get('raid_pokemon', {})
                 # Send gyms to webhooks.
                 if args.webhooks and not args.webhook_updates_only:
                     # Explicitly set 'webhook_data', in case we want to change
@@ -2384,7 +2397,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'gym_id': b64encode(str(f['id'])),
                         'team_id': f.get('owned_by_team', 0),
                         'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'gym_points': f.get('gym_points', 0),
+                        'gym_points': 0, # DEPRECATED
                         'enabled': f['enabled'],
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
@@ -2395,12 +2408,21 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'gym_id': f['id'],
                     'team_id': f.get('owned_by_team', 0),
                     'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                    'gym_points': f.get('gym_points', 0),
                     'enabled': f['enabled'],
                     'latitude': f['latitude'],
                     'longitude': f['longitude'],
                     'last_modified': datetime.utcfromtimestamp(
                         f['last_modified_timestamp_ms'] / 1000.0),
+                    'slots_available': f.get('slots_available', 0),
+                    'total_gym_cp': f.get('gym_display', {}).get('total_gym_cp', 0),
+                    'raid_level': raid_info.get('raid_level'),
+                    'raid_spawn': db_timestamp(raid_info.get('raid_spawn_ms')),
+                    'raid_end': db_timestamp(raid_info.get('raid_end_ms')),
+                    'raid_battle': db_timestamp(raid_info.get('raid_battle_ms')),
+                    'raid_pokemon_id': raid_pokemon.get('pokemon_id'),
+                    'raid_pokemon_cp': raid_pokemon.get('cp'),
+                    'raid_pokemon_move_1': raid_pokemon.get('move_1'),
+                    'raid_pokemon_move_2': raid_pokemon.get('move_2')
                 }
 
         # Helping out the GC.
@@ -2619,6 +2641,10 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
     log.info('Upserted gyms: %d, gym members: %d.',
              len(gym_details),
              len(gym_members))
+
+
+def db_timestamp(tstamp):
+    return None if tstamp is None else datetime.utcfromtimestamp(tstamp / 1000)
 
 
 def db_updater(args, q, db):
@@ -3108,6 +3134,29 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.add_column('account', 'blind',
                                 BooleanField(null=True))
+        )
+
+    if old_ver < 22:
+        migrate(
+            migrator.rename_column('gym', 'gym_points', 'total_gym_cp'),
+            migrator.add_column('gym', 'slots_available',
+                                SmallIntegerField(default=6)),
+            migrator.add_column('gym', 'raid_pokemon_id',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('gym', 'raid_pokemon_cp',
+                                IntegerField(null=True)),
+            migrator.add_column('gym', 'raid_pokemon_move_1',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('gym', 'raid_pokemon_move_2',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('gym', 'raid_battle',
+                                DateTimeField(null=True)),
+            migrator.add_column('gym', 'raid_end',
+                                DateTimeField(null=True)),
+            migrator.add_column('gym', 'raid_spawn',
+                                DateTimeField(null=True)),
+            migrator.add_column('gym', 'raid_level',
+                                SmallIntegerField(null=True))
         )
 
     # Always log that we're done.
