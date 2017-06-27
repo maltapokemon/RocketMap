@@ -2386,6 +2386,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Currently, there are only stops and gyms.
             elif config['parse_gyms'] and f.get('type') is None:
+                gym_display = f.get('gym_display', {})
                 raid_info = f.get('raid_info', {})
                 raid_pokemon = raid_info.get('raid_pokemon', {})
                 # Send gyms to webhooks.
@@ -2413,8 +2414,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'longitude': f['longitude'],
                     'last_modified': datetime.utcfromtimestamp(
                         f['last_modified_timestamp_ms'] / 1000.0),
-                    'slots_available': f.get('slots_available', 0),
-                    'total_gym_cp': f.get('gym_display', {}).get('total_gym_cp', 0),
+                    'slots_available': gym_display.get('slots_available', 0),
+                    'total_gym_cp': gym_display.get('total_gym_cp', 0),
                     'raid_level': raid_info.get('raid_level'),
                     'raid_spawn': db_timestamp(raid_info.get('raid_spawn_ms')),
                     'raid_end': db_timestamp(raid_info.get('raid_end_ms')),
