@@ -1194,9 +1194,6 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
 
                 # Get detailed information about gyms.
                 if args.gym_info and parsed:
-                    status['message'] = "Gym info currently unavailable..."
-                    log.warning(status['message'])
-                elif False:
                     # Build a list of gyms to update.
                     gyms_to_update = {}
                     for gym in parsed['gyms'].values():
@@ -1253,7 +1250,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                             # Make sure the gym was in range. (Sometimes the
                             # API gets cranky about gyms that are ALMOST 1km
                             # away.)
-                            if response['GET_GYM_DETAILS']['result'] == 2:
+                            if response['GYM_GET_INFO']['result'] == 2:
                                 log.warning(
                                     ('Gym @ %f/%f is out of range (%dkm), ' +
                                      'skipping.'),
@@ -1261,7 +1258,7 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                                     distance)
                             else:
                                 gym_responses[gym['gym_id']] = response[
-                                    'GET_GYM_DETAILS']
+                                    'GYM_GET_INFO']
                             del response
                             # Increment which gym we're on for status messages.
                             current_gym += 1
@@ -1355,11 +1352,11 @@ def gym_request(pgacc, position, gym):
         log.debug('Getting details for gym @ %f/%f (%fkm away).',
                   gym['latitude'], gym['longitude'],
                   calc_distance(position, [gym['latitude'], gym['longitude']]))
-        response = pgacc.req_get_gym_details(gym['gym_id'],
-                                             gym['latitude'],
-                                             gym['longitude'],
-                                             position[0],
-                                             position[1])
+        response = pgacc.req_gym_get_info(gym['gym_id'],
+                                          gym['latitude'],
+                                          gym['longitude'],
+                                          position[0],
+                                          position[1])
         response = clear_dict_response(response)
         return response
 
