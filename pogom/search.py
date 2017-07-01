@@ -1194,6 +1194,9 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
 
                 # Get detailed information about gyms.
                 if args.gym_info and parsed:
+                    status['message'] = "Gym info currently unavailable..."
+                    log.warning(status['message'])
+                elif False:
                     # Build a list of gyms to update.
                     gyms_to_update = {}
                     for gym in parsed['gyms'].values():
