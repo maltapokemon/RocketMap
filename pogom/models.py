@@ -1803,7 +1803,7 @@ class Account(BaseModel):
         self.captures = stats.get('pokemons_captured')
         self.spins = stats.get('poke_stop_visits')
         self.walked = stats.get('km_walked')
-        self.num_balls = pgacc.inventory.get('balls')
+        self.num_balls = pgacc.inventory_balls
         self.warn = pgacc.is_warned()
         self.blind = (acc.get('rareless_scans') or 0) >= args.rareless_scans_threshold
         self.last_modified = datetime.utcnow()
@@ -2243,7 +2243,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
-            have_balls = pgacc.inventory.get('balls', 0) > 0
+            have_balls = pgacc.inventory_balls > 0
             if args.gain_xp and not account_is_adult and pokemon_id in DITTO_POKEDEX_IDS and have_balls:
                 if is_ditto(args, pgacc, p):
                     pokemon[p['encounter_id']]['pokemon_id'] = 132
