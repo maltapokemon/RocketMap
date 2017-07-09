@@ -67,6 +67,7 @@ def is_ditto(args, pgacc, p):
         log.info("Failed catching {}: {} Attempts: {}".format(pokemon_name, catch_result['reason'], catch_result['attempts']))
     return got_ditto
 
+
 def catch(pgacc, encounter_id, spawn_point_id):
     # Try to catch pokemon, but don't get stuck.
     rv = {
@@ -100,14 +101,11 @@ def catch(pgacc, encounter_id, spawn_point_id):
 
                 # Success!
                 if catch_status == 1:
-                    # Check inventory for caught Pokemon
-                    capture_id = catch_result['CATCH_POKEMON']['captured_pokemon_id']
-                    pid = get_captured_pokemon_id_from_inventory(capture_id, catch_result)
-                    if pid:
+                    if pgacc.last_caught_pokemon:
                         # Set ID of caught Pokemon
                         rv['catch_status'] = 'success'
-                        rv['pid'] = pid
-                        rv['capture_id'] = capture_id
+                        rv['pid'] = pgacc.last_caught_pokemon['pokemon_id']
+                        rv['capture_id'] = pgacc.last_caught_pokemon['id']
                     else:
                         rv['reason'] = "Could not find caught Pokemon in inventory."
                     return rv
@@ -138,22 +136,6 @@ def catch(pgacc, encounter_id, spawn_point_id):
         rv['reason'] = "Giving up."
 
     return rv
-
-
-def get_captured_pokemon_id_from_inventory(capture_id, response):
-    if 'GET_INVENTORY' not in response:
-        log.warning(
-            "CAPTURED_PKM_ID: No inventory in responses. Got {}".format(
-                response.keys()))
-        return None
-
-    iitems = response['GET_INVENTORY']['inventory_delta'][
-        'inventory_items']
-    for item in iitems:
-        iidata = item['inventory_item_data']
-        if 'pokemon_data' in iidata and iidata['pokemon_data']['id'] == capture_id:
-            return iidata['pokemon_data']['pokemon_id']
-    return None
 
 
 def release(pgacc, cpid):
