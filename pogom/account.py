@@ -113,7 +113,7 @@ def spin_pokestop(pgacc, fort, step_location):
 
 def spin_pokestop_request(pgacc, fort, step_location):
     try:
-        return pgacc.req_fort_search(fort['id'],
+        return pgacc.seq_spin_pokestop(fort['id'],
                                      fort['latitude'],
                                      fort['longitude'],
                                      step_location[0],
