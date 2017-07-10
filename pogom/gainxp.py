@@ -4,11 +4,14 @@
 import logging
 import random
 import time
+from matplotlib.path import Path
+from ast import literal_eval
 
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from pogom.account import log, spin_pokestop_request, \
-    encounter_pokemon_request, pokestop_spinnable, incubate_eggs, clear_inventory_request, request_release_pokemon
+    encounter_pokemon_request, pokestop_spinnable, incubate_eggs, \
+    clear_inventory_request, request_release_pokemon, lure_pokestop_request
 from pogom.utils import get_pokemon_name, in_radius
 
 log = logging.getLogger(__name__)
@@ -230,3 +233,69 @@ def drop_items(pgacc, item_id, drop_stats, drop_count=-1):
         else:
             log.warning(u"GXP: Failed dropping {} {}s.".format(drop_count, ITEM_NAMES[item_id]))
     return 0
+
+def lure_pokestop(args, pgacc, fort, step_location):
+    log.warning(fort)
+    if len(fort.active_fort_modifier) == 0:
+        lures = pgacc.inventory_lures
+        lure_result = None
+        modifier = 501
+        if args.lureFence is not None:
+            allowed = lure_geofence(step_location, args.lureFence)
+            if allowed == []:
+                forbidden = True
+            else:
+                forbidden = False
+        if args.nolureFence is not None:
+            forbidden = lure_geofence(step_location, args.nolureFence, forbidden=True)
+            if forbidden == []:
+                forbidden = False
+            else:
+                forbidden = True
+        if lures == 0:
+            forbidden = True
+        while lure_result is None and lures > 0:
+            lure_response = lure_pokestop_request(pgacc, modifier, fort, step_location)
+            # Check for Captcha
+            if pgacc.has_captcha():
+                log.debug('Account encountered a reCaptcha.')
+                return False
+            lure_result = lure_response['ADD_FORT_MODIFIER'].result
+            if lure_result is 0:
+                log.warning('Lure unset!')
+            elif lure_result is 1:
+                log.warning('Lure Successfully Set!')
+            elif lure_result is 2:
+                log.warning('Stop already has lure!')
+            elif lure_result is 3:
+                log.warning('Out of range to set lure!')
+            elif lure_result is 4:
+                log.warning('Account has no lures!')
+            else:
+                log.debug(
+                    'Failed to lure a Pokestop. Unknown result %d.',
+                    lure_result)
+            return False
+
+# Need to Modifiy this to possible use built in geofence stuff (WIP)
+def lure_geofence(results, geofence_file, forbidden=False):
+    geofence = []
+    with open(geofence_file) as f:
+        for line in f:
+            if len(line.strip()) == 0 or line.startswith('#'):
+                continue
+            geofence.append(literal_eval(line.strip()))
+        if forbidden:
+            log.info('Loaded %d geofence-forbidden coordinates. ' +
+                     'Applying...', len(geofence))
+        else:
+            log.info('Loaded %d geofence coordinates. Applying...',
+                     len(geofence))
+    log.info(geofence)
+    p = Path(geofence)
+    results_geofenced = []
+    for g in range(len(results)):
+        result_x, result_y, result_z = results[g]
+        if p.contains_point([result_x, result_y]) ^ forbidden:
+            results_geofenced.append((result_x, result_y, result_z))
+    return results_geofenced

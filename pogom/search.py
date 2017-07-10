@@ -305,7 +305,7 @@ def print_account_stats(rows, thread_status, account_queue,
 
     # Print table header.
     row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:>8} | {:10} | {:6}' \
-                                            ' | {:8} | {:9} | {:5} | {:>10}'
+                                            ' | {:8} | {:13} | {:5} | {:>10}'
     rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
                                 'Walked'))
@@ -338,8 +338,9 @@ def print_account_stats(rows, thread_status, account_queue,
         inv_str = ''
         if pgacc and pgacc.inventory:
             balls = pgacc.inventory_balls
+            lures = pgacc.inventory_lures
             total = pgacc.inventory_total
-            inv_str = '{}B/{}T'.format(balls, total)
+            inv_str = '{}B/{}L/{}T'.format(balls, lures, total)
 
         warning = pgacc.is_warned() if pgacc else None
         warning = '' if warning is None else ('Yes' if warning else 'No')

@@ -516,6 +516,13 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-pgpu', '--pgpool-url', default=None,
                         help='URL of PGPool account manager.')
+    parser.add_argument('-lus', '--lure-stop',
+                        help='Lure up Pokestops Automatically.',
+                        action='store_true', default=False)
+    parser.add_argument('-lf', '--lureFence',
+                        help='Choose area for Pokestop luring')
+    parser.add_argument('-nlf', '--nolureFence',
+                        help='Choose area that CANNOT have Pokestop luring')
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

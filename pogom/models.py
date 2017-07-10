@@ -28,7 +28,7 @@ from playhouse.sqlite_ext import SqliteExtDatabase
 
 
 from pogom.pgscout import pgscout_encounter
-from pogom.gainxp import gxp_spin_stops, DITTO_CANDIDATES_IDS, is_ditto
+from pogom.gainxp import gxp_spin_stops, DITTO_CANDIDATES_IDS, is_ditto, lure_pokestop
 
 from . import config
 from .account import (encounter_pokemon_request,
@@ -2325,7 +2325,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 if f.type == 1 and pokestop_spinnable(f, step_location):
                     if spin_pokestop(pgacc, account, args, f, step_location):
                         incubate_eggs(pgacc)
-
+        # Lure Stops if in range, has lures, is enabled
+        if args.lure_stop:
+            for f in forts:
+                if f.type == 1 and pokestop_spinnable(f, step_location):
+                    lure_pokestop(args, pgacc, f, step_location)
         # Helping out the GC.
         del forts
 
