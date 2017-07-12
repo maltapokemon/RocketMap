@@ -2096,10 +2096,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     # API that's already logged in.
                     if not hlvl_pgacc:
                         hlvl_status = {
-                            'account': hlvl_account,
                             'proxy_url': status['proxy_url']
                         }
-                        hlvl_pgacc = setup_pogo_account(args, hlvl_status)
+                        hlvl_pgacc = setup_pogo_account(args, hlvl_status, hlvl_account)
 
                         # Hashing key.
                         # TODO: all of this should be handled properly... all
