@@ -2061,7 +2061,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 hlvl_pgacc = None
                 using_accountset = False
 
-                scan_location = [p['latitude'], p['longitude']]
+                scan_location = [p['latitude'], p['longitude'], step_location[2]]
 
                 # If the host has L30s in the regular account pool, we
                 # can just use the current account.
