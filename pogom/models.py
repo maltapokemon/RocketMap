@@ -2141,7 +2141,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         else:
                             # Update level indicator before we clear the
                             # response.
-                            encounter_level = hlvl_account['level']
+                            encounter_level = hlvl_pgacc.player_stats['level']
 
                             # User error?
                             if encounter_level < 30:
