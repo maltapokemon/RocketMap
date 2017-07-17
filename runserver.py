@@ -101,7 +101,10 @@ def main():
 
     args = get_args()
 
-    init_mr_mime(config_file='config/mrmime_config.json')
+    init_mr_mime(config_file='config/mrmime_config.json', user_cfg={
+        # We don't want exceptions on captchas because we handle them differently.
+        'exception_on_captcha': False
+    })
 
     # Add file logging if enabled.
     if args.verbose and args.verbose != 'nofile':
