@@ -2429,7 +2429,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'raid_pokemon_move_2': raid_pokemon.get('move_2')
                 }
 
-                if raid_info and args.webhooks and not args.webhook_updates_only:
+                if raid_info and args.webhooks:
                     wh_raid = {
                         'gym_id': b64encode(str(f['id'])),
                         'level': raid_info.get('raid_level'),
@@ -2440,8 +2440,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'cp': raid_pokemon.get('cp'),
                         'move_1': raid_pokemon.get('move_1'),
                         'move_2': raid_pokemon.get('move_2'),
-                        'latitude': f.latitude,
-                        'longitude': f.longitude
+                        'latitude': f['latitude'],
+                        'longitude': f['longitude']
                     }
                     wh_update_queue.put(('raid', wh_raid))
 
