@@ -2396,14 +2396,14 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'gym_id': b64encode(str(f['id'])),
                         'team_id': f.get('owned_by_team', 0),
                         'guard_pokemon_id': f.get('guard_pokemon_id', 0),
-                        'gym_points': 0, # DEPRECATED
+                        'slots_available': gym_display.get('slots_available', 0),
+                        'total_cp': gym_display.get('total_gym_cp', 0),
                         'enabled': f.get('enabled', False),
                         'latitude': f['latitude'],
                         'longitude': f['longitude'],
-                        'total_gym_cp': gym_display.get('total_gym_cp', 0),
                         'lowest_pokemon_motivation': gym_display.get(
                             'lowest_pokemon_motivation', 0),
-                        'occupied_seconds': gym_display.get(
+                        'occupied_since': gym_display.get(
                             'occupied_millis', 0) / 1000,
                         'last_modified': f['last_modified_timestamp_ms']
                     }))
@@ -2428,6 +2428,22 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'raid_pokemon_move_1': raid_pokemon.get('move_1'),
                     'raid_pokemon_move_2': raid_pokemon.get('move_2')
                 }
+
+                if raid_info and args.webhooks and not args.webhook_updates_only:
+                    wh_raid = {
+                        'gym_id': b64encode(str(f['id'])),
+                        'level': raid_info.get('raid_level'),
+                        'spawn': raid_info.get('raid_spawn_ms', 0) / 1000,
+                        'start': raid_info.get('raid_battle_ms', 0) / 1000,
+                        'end': raid_info.get('raid_end_ms', 0) / 1000,
+                        'pokemon_id': raid_pokemon.get('pokemon_id'),
+                        'cp': raid_pokemon.get('cp'),
+                        'move_1': raid_pokemon.get('move_1'),
+                        'move_2': raid_pokemon.get('move_2'),
+                        'latitude': f.latitude,
+                        'longitude': f.longitude
+                    }
+                    wh_update_queue.put(('raid', wh_raid))
 
         # Helping out the GC.
         del forts
