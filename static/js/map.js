@@ -1035,11 +1035,9 @@ function customizePokemonMarker(marker, item, skipNotification) {
 function getGymMarkerIconURL(item) {
     var slots_occupied = (6 - item['slots_available'])
     if (item['raid_pokemon_id'] != null) {
-        console.log("Got RAID STARTED with Pokemon " + item['raid_pokemon_id'])
         return 'static/forts/shield/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + slots_occupied : '') + '_raid_' + item['raid_pokemon_id'] + '.png'
     } else if (item['raid_level'] != null) {
         var raidEgg = item['raid_level'] <= 2 ? 'normal' : 'rare'
-        console.log("Got RAID SPAWNED with Egg " + raidEgg)
         return 'static/forts/shield/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + slots_occupied : '') + '_raid_' + raidEgg + '.png'
     } else {
         return 'static/forts/' + Store.get('gymMarkerStyle') + '/' + gymTypes[item['team_id']] + (item['team_id'] !== 0 ? '_' + slots_occupied : '') + '.png'
