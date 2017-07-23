@@ -697,10 +697,10 @@ function gymLabel(item) {
         raidStr += `<div style="margin-bottom: 10px">Time: <b>${raidStartStr}</b> - <b>${raidEndStr}</b></div>`
 
         if (raid_started) {
-            raidIcon = `<img src='static/raids/pokemon_${item.raid_pokemon_id}.png'>`            
+            raidIcon = `<img height='70px' src='static/raids/pokemon_${item.raid_pokemon_id}.png'>`
         } else {
             raidIcon = item['raid_level'] <= 2 ? 'normal' : 'rare'
-            raidIcon = `<img src='static/raids/egg_${raidIcon}.png'>`            
+            raidIcon = `<img height='70px' src='static/raids/egg_${raidIcon}.png'>`
         }
     }
 
