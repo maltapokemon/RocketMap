@@ -1197,10 +1197,10 @@ def search_worker_thread(args, api_version, account_queue, account_sets,
                     # Build a list of gyms to update.
                     gyms_to_update = {}
                     for gym in parsed['gyms'].values():
-                        # Can only get gym details within 450m of our position.
+                        # Can only get gym details within 1km of our position.
                         distance = calc_distance(
                             step_location, [gym['latitude'], gym['longitude']])
-                        if distance < 0.45:
+                        if distance < 1.0:
                             # Check if we already have details on this gym.
                             # Get them if not.
                             try:
