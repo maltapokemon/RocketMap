@@ -497,6 +497,9 @@ def get_args():
     parser.add_argument('-rb', '--rotate-blind',
                         help='Rotate out blinded accounts.',
                         action='store_true', default=False)
+    parser.add_argument('-gxp', '--gain-xp',
+                        help='Do various things to let map accounts gain XP.',
+                        action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

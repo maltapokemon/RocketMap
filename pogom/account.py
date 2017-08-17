@@ -119,7 +119,6 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
             parse_level_up_rewards(pgacc)
             clear_inventory(pgacc)
             account['session_spins'] += 1
-            incubate_eggs(pgacc)
             return True
         elif spin_result is 2:
             log.debug('Pokestop was not in range to spin.')
@@ -138,15 +137,7 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
     return False
 
 
-def clear_inventory(pgacc):
-    items = [(1, 'Pokeball'), (2, 'Greatball'), (3, 'Ultraball'),
-             (101, 'Potion'), (102, 'Super Potion'), (103, 'Hyper Potion'),
-             (104, 'Max Potion'),
-             (201, 'Revive'), (202, 'Max Revive'),
-             (701, 'Razz Berry'), (703, 'Nanab Berry'), (705, 'Pinap Berry'),
-             (1101, 'Sun Stone'), (1102, 'Kings Rock'), (1103, 'Metal Coat'),
-             (1104, 'Dragon Scale'), (1105, 'Upgrade')]
-
+def clear_pokemon(pgacc):
     total_pokemon = len(pgacc.pokemon)
     release_count = int(total_pokemon - 5)
     if total_pokemon > random.randint(5, 10):
@@ -171,6 +162,18 @@ def clear_inventory(pgacc):
                 pgacc.pokemon.pop(p_id, None)
         elif release_result != 1:
             log.error('Failed to release Pokemon.')
+
+
+def clear_inventory(pgacc):
+    items = [(1, 'Pokeball'), (2, 'Greatball'), (3, 'Ultraball'),
+             (101, 'Potion'), (102, 'Super Potion'), (103, 'Hyper Potion'),
+             (104, 'Max Potion'),
+             (201, 'Revive'), (202, 'Max Revive'),
+             (701, 'Razz Berry'), (703, 'Nanab Berry'), (705, 'Pinap Berry'),
+             (1101, 'Sun Stone'), (1102, 'Kings Rock'), (1103, 'Metal Coat'),
+             (1104, 'Dragon Scale'), (1105, 'Upgrade')]
+
+    clear_pokemon(pgacc)
 
     for item_id, item_name in items:
         item_count = pgacc.inventory.get(item_id, 0)
