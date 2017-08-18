@@ -510,6 +510,9 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-pgsu', '--pgscout-url', default=None,
                         help='URL to query PGScout for Pokemon IV/CP.')
+    parser.add_argument('-gxp', '--gain-xp',
+                        help='Do various things to let map accounts gain XP.',
+                        action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()

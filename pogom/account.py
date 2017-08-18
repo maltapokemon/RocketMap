@@ -104,6 +104,8 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
     if random.random() > 0.5 or pgacc.get_stats('level', 1):
         time.sleep(random.uniform(0.8, 1.8))
         response = spin_pokestop_request(pgacc, fort, step_location)
+        if not response:
+            return False
         time.sleep(random.uniform(2, 4))  # Don't let Niantic throttle.
 
         # Check for reCaptcha.
@@ -119,7 +121,6 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
             parse_level_up_rewards(pgacc)
             clear_inventory(pgacc)
             account['session_spins'] += 1
-            incubate_eggs(pgacc)
             return True
         elif spin_result is 2:
             log.debug('Pokestop was not in range to spin.')
@@ -138,15 +139,7 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
     return False
 
 
-def clear_inventory(pgacc):
-    items = [(1, 'Pokeball'), (2, 'Greatball'), (3, 'Ultraball'),
-             (101, 'Potion'), (102, 'Super Potion'), (103, 'Hyper Potion'),
-             (104, 'Max Potion'),
-             (201, 'Revive'), (202, 'Max Revive'),
-             (701, 'Razz Berry'), (703, 'Nanab Berry'), (705, 'Pinap Berry'),
-             (1101, 'Sun Stone'), (1102, 'Kings Rock'), (1103, 'Metal Coat'),
-             (1104, 'Dragon Scale'), (1105, 'Upgrade')]
-
+def clear_pokemon(pgacc):
     total_pokemon = len(pgacc.pokemon)
     release_count = int(total_pokemon - 5)
     if total_pokemon > random.randint(5, 10):
@@ -172,6 +165,18 @@ def clear_inventory(pgacc):
         elif release_result != 1:
             log.error('Failed to release Pokemon.')
 
+
+def clear_inventory(pgacc):
+    items = [(1, 'Pokeball'), (2, 'Greatball'), (3, 'Ultraball'),
+             (101, 'Potion'), (102, 'Super Potion'), (103, 'Hyper Potion'),
+             (104, 'Max Potion'),
+             (201, 'Revive'), (202, 'Max Revive'),
+             (701, 'Razz Berry'), (703, 'Nanab Berry'), (705, 'Pinap Berry'),
+             (1101, 'Sun Stone'), (1102, 'Kings Rock'), (1103, 'Metal Coat'),
+             (1104, 'Dragon Scale'), (1105, 'Upgrade')]
+
+    clear_pokemon(pgacc)
+
     for item_id, item_name in items:
         item_count = pgacc.inventory.get(item_id, 0)
         random_max = random.randint(5, 10)
@@ -186,6 +191,9 @@ def clear_inventory(pgacc):
             if pgacc.has_captcha():
                 log.info('Account encountered a reCaptcha.')
                 return False
+
+            if not clear_inventory_response:
+                continue
 
             clear_response = clear_inventory_response['RECYCLE_INVENTORY_ITEM']
             clear_result = clear_response.result
@@ -212,15 +220,16 @@ def incubate_eggs(pgacc):
 
     pgacc.eggs = sorted(pgacc.eggs, key=lambda k: k['km_target'])
     for incubator in pgacc.incubators:
-        egg = pgacc.eggs.pop(0)
-        time.sleep(random.uniform(2.0, 4.0))
-        if request_use_item_egg_incubator(
-           pgacc, incubator['id'], egg['id']):
-            log.info('Egg #%s (%.0f km) is on incubator #%s.',
-                     egg['id'], egg['km_target'], incubator['id'])
-            pgacc.incubators.remove(incubator)
-        else:
-            log.warning('Failed to put egg on incubator #%s.', incubator['id'])
+        if pgacc.eggs:
+            egg = pgacc.eggs.pop(0)
+            time.sleep(random.uniform(2.0, 4.0))
+            if request_use_item_egg_incubator(
+               pgacc, incubator['id'], egg['id']):
+                log.info('Egg #%s (%.0f km) is on incubator #%s.',
+                         egg['id'], egg['km_target'], incubator['id'])
+                pgacc.incubators.remove(incubator)
+            else:
+                log.warning('Failed to put egg on incubator #%s.', incubator['id'])
 
     return
 

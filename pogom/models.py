@@ -26,10 +26,13 @@ from playhouse.pool import PooledMySQLDatabase
 from playhouse.shortcuts import RetryOperationalError, case
 from playhouse.sqlite_ext import SqliteExtDatabase
 
+
 from pogom.pgscout import pgscout_encounter
+from pogom.gainxp import gxp_spin_stops, DITTO_CANDIDATES_IDS, is_ditto
+
 from . import config
 from .account import (encounter_pokemon_request,
-                      pokestop_spinnable, spin_pokestop, setup_mrmime_account)
+                      pokestop_spinnable, spin_pokestop, setup_mrmime_account, incubate_eggs)
 from .customLog import printPokemon
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
@@ -2078,8 +2081,18 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_defense': None
             }
 
+            # Catch pokemon to check for Ditto if --gain-xp enabled
+            # Original code by voxx!
+            have_balls = pgacc.inventory_balls > 0
+            if args.gain_xp and not pgacc.get_stats(
+                'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
+                if is_ditto(args, pgacc, p):
+                    log.info('++++++++++++++++++++++ %s', p)
+                    pokemon[p.encounter_id]['pokemon_id'] = 132
+                    pokemon_id = 132
+                    pokemon_info = None
             # Check for Unown's alphabetic character.
-            if pokemon_id == 201:
+            elif pokemon_id == 201:
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
 
@@ -2303,11 +2316,15 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             wh_update_queue.put(('raid', wh_raid))
 
         # Let db do it's things while we try to spin.
-        if args.pokestop_spinning:
+        if args.gain_xp:
+            gxp_spin_stops(forts, pgacc, step_location)
+            incubate_eggs(pgacc)
+        elif args.pokestop_spinning:
             for f in forts:
                 # Spin Pokestop with 50% chance.
                 if f.type == 1 and pokestop_spinnable(f, step_location):
-                    spin_pokestop(pgacc, account, args, f, step_location)
+                    if spin_pokestop(pgacc, account, args, f, step_location):
+                        incubate_eggs(pgacc)
 
         # Helping out the GC.
         del forts
@@ -2408,7 +2425,7 @@ def encounter_pokemon(args, pokemon, account, pgacc, account_sets, status,
     try:
         hlvl_pgacc = None
         pokemon_id = pokemon.pokemon_data.pokemon_id
-        scan_location = [pokemon.latitude, pokemon.longitude]
+        scan_location = [pokemon.latitude, pokemon.longitude, pgacc.altitude]
         # If the host has L30s in the regular account pool, we
         # can just use the current account.
         if pgacc.get_stats('level') >= 30:
