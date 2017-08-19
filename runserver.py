@@ -200,6 +200,7 @@ def main():
     init_mr_mime(config_file='config/mrmime_config.json', user_cfg={
         # We don't want exceptions on captchas because we handle them differently.
         'exception_on_captcha': False,
+        'pgpool_url': args.pgpool_url,
         'pgpool_system_id': args.status_name
     })
 

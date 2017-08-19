@@ -9,9 +9,10 @@ from timeit import default_timer
 
 from mrmime.pogoaccount import POGOAccount
 
+from pogom.pgpool import pgpool_request_accounts, pgpool_release_account
 from .proxy import get_new_proxy
 from .utils import (in_radius, equi_rect_distance,
-                    clear_dict_response)
+                    clear_dict_response, now)
 
 log = logging.getLogger(__name__)
 
@@ -31,12 +32,60 @@ class NullTimeException(Exception):
         super(NullTimeException, self).__init__(NullTimeException.__name__)
 
 
+def get_account(args, account_queue, status):
+    if args.pgpool_url is None:
+        return account_queue.get()
+    else:
+        if args.pgpool_initial_accounts:
+            account = args.pgpool_initial_accounts.pop()
+            log.info("Picked account {} from initial PGPool account list.".format(account['username']))
+        else:
+            account = None
+            while not account:
+                account = pgpool_request_accounts(args, 1)
+                if not account:
+                    msg = "Could not request account from PGPool (none left?). Retrying in 30 seconds."
+                    status['message'] = msg
+                    log.warning(msg)
+                    time.sleep(30)
+            log.info("Successfully requested account {} from PGPool.".format(account['username']))
+        return {
+            'username': account['username'],
+            'password': account['password'],
+            'auth_service': account['auth_service'],
+            'pgpool_account': account
+        }
+
+
+def account_revive(args, account_queue, account):
+    if args.pgpool_url is None:
+        account_queue.put(account)
+    else:
+        pgpool_release_account(args, account)
+
+
+def account_failed(args, account_failures, account, reason):
+    if args.pgpool_url is None:
+        account_failures.append({'account': account,
+                                 'last_fail_time': now(),
+                                 'reason': reason})
+    else:
+        pgpool_release_account(args, account)
+
+
 # Create the MrMime POGOAccount object that'll be used to scan.
 def setup_mrmime_account(args, status, account):
     reset_account(account)
     pgacc = POGOAccount(account['auth_service'], account['username'],
                         account['password'])
     pgacc.cfg['player_locale'] = args.player_locale
+
+    # Initialize POGOAccount from PGPool info
+    if 'pgpool_account' in account:
+        pgacc.rareless_scans = account['pgpool_account'].get('rareless_scans', 0)
+        pgacc.shadowbanned = account['pgpool_account'].get('shadowbanned', False)
+        del account['pgpool_account']
+
     account['pgacc'] = pgacc
 
     # New account - new proxy.

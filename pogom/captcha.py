@@ -21,6 +21,7 @@ from threading import Thread
 import requests
 from mrmime.pogoaccount import POGOAccount
 
+from pogom.account import account_failed, account_revive
 from .models import Token
 from .proxy import get_new_proxy
 from .utils import now
@@ -145,7 +146,7 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
 
     if verified:
         status['message'] = pgacc.last_msg + ", returning to active duty."
-        account_queue.put(account)
+        account_revive(args, account_queue, account)
         wh_message['status'] = 'success'
     else:
         status['message'] = pgacc.last_msg + ", putting back in captcha queue."
@@ -168,10 +169,7 @@ def handle_captcha(args, status, pgacc, account, account_failures,
                                      'Putting account away.').format(
                                         account['username'])
                 log.warning(status['message'])
-                account_failures.append({
-                    'account': account,
-                    'last_fail_time': now(),
-                    'reason': 'captcha found'})
+                account_failed(args, account_failures, account, 'captcha found')
                 if args.webhooks:
                     wh_message = {'status_name': args.status_name,
                                   'status': 'encounter',
@@ -187,10 +185,7 @@ def handle_captcha(args, status, pgacc, account, account_failures,
                                            account, whq):
                     return True
                 else:
-                    account_failures.append({
-                       'account': account,
-                       'last_fail_time': now(),
-                       'reason': 'captcha failed to verify'})
+                    account_failed(args, account_failures, account, 'captcha failed to verify')
                     return False
             else:
                 status['message'] = ('Account {} has encountered a captcha. ' +
