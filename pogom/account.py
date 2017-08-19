@@ -70,7 +70,7 @@ def account_failed(args, account_failures, account, reason):
                                  'last_fail_time': now(),
                                  'reason': reason})
     else:
-        pgpool_release_account(args, account)
+        pgpool_release_account(account)
 
 
 # Create the MrMime POGOAccount object that'll be used to scan.

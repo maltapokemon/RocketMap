@@ -37,3 +37,4 @@ static/js/custom.js
 !static/icons/hsl*.png
 !static/app/settings.json
 *.txt
+*.old

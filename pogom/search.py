@@ -218,6 +218,9 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
             status_text.append('Accounts on hold:')
             status_text.append('-----------------------------------------')
 
+            # There is only one page
+            total_pages = 1
+
             # Find the longest account name.
             userlen = 4
             for account in account_failures:
