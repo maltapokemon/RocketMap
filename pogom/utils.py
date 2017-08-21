@@ -516,6 +516,10 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-pgpu', '--pgpool-url', default=None,
                         help='URL of PGPool account manager.')
+    parser.add_argument('-pi', '--pokestop-info',
+                        help=('Get all details about pokestops (causes an ' +
+                              'additional API hit for every pokestop).'),
+                        action='store_true', default=False)
     parser.add_argument('-lus', '--lure-stop',
                         help='Lure up Pokestops Automatically.',
                         action='store_true', default=False)

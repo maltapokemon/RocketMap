@@ -9,6 +9,7 @@ import math
 import sys
 import time
 import traceback
+import random
 from base64 import b64encode
 from datetime import datetime, timedelta
 from timeit import default_timer
@@ -32,7 +33,8 @@ from pogom.gainxp import gxp_spin_stops, DITTO_CANDIDATES_IDS, is_ditto, lure_po
 
 from . import config
 from .account import (encounter_pokemon_request,
-                      pokestop_spinnable, spin_pokestop, setup_mrmime_account, incubate_eggs)
+                      pokestop_spinnable, spin_pokestop, setup_mrmime_account, \
+                      incubate_eggs, fort_details_request)
 from .customLog import printPokemon
 from .transform import transform_from_wgs_to_gcj, get_new_coords
 from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
@@ -356,10 +358,15 @@ class Pokestop(BaseModel):
     def get_stops(swLat, swLng, neLat, neLng, timestamp=0, oSwLat=None,
                   oSwLng=None, oNeLat=None, oNeLng=None, lured=False):
 
-        query = Pokestop.select(Pokestop.active_fort_modifier,
+        query = (Pokestop.select(Pokestop.active_fort_modifier,
                                 Pokestop.enabled, Pokestop.latitude,
-                                Pokestop.longitude, Pokestop.last_modified,
-                                Pokestop.lure_expiration, Pokestop.pokestop_id)
+                                Pokestop.longitude, Pokestop.last_updated,
+                                Pokestop.last_modified, Pokestop.lure_expiration,
+                                Pokestop.pokestop_id, PokestopDetails.name,
+                                PokestopDetails.description, PokestopDetails.url,
+                                PokestopDetails.item_id, PokestopDetails.deployer,
+                                PokestopDetails.expires, PokestopDetails.last_scanned)
+                                .join(PokestopDetails, JOIN.LEFT_OUTER, on=(PokestopDetails.pokestop_id == Pokestop.pokestop_id)) .dicts())
 
         if not (swLat and swLng and neLat and neLng):
             query = (query
@@ -427,12 +434,37 @@ class Pokestop(BaseModel):
             if args.china:
                 p['latitude'], p['longitude'] = \
                     transform_from_wgs_to_gcj(p['latitude'], p['longitude'])
+
+            # Add Pokestop details
+            query_details = (PokestopDetails.select(
+                    PokestopDetails.pokestop_id, PokestopDetails.name,
+                    PokestopDetails.description, PokestopDetails.url,
+                    PokestopDetails.item_id, PokestopDetails.deployer,
+                    PokestopDetails.expires))
+            query_details = (query_details.where(
+                PokestopDetails.pokestop_id == p['pokestop_id']).dicts())
+            details = {}
+            for d in query_details:
+                details = d
+            if len(details) > 0:
+                p['details'] = details
             pokestops.append(p)
 
         # Re-enable the GC.
         gc.enable()
 
         return pokestops
+
+
+class PokestopDetails(BaseModel):
+    pokestop_id = CharField(primary_key=True, max_length=50)
+    name = CharField()
+    description = TextField(null=True)
+    url = CharField()
+    item_id = SmallIntegerField(null=True)
+    deployer = CharField(null=True, max_length=50)
+    expires = DateTimeField(default=datetime.utcnow)
+    last_scanned = DateTimeField(default=datetime.utcnow)
 
 
 class Gym(BaseModel):
@@ -2083,11 +2115,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
-            have_balls = pgacc.inventory_balls > 0
+            have_balls = pgacc.inventory_balls > 2
             if args.gain_xp and not pgacc.get_stats(
                 'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
                 if is_ditto(args, pgacc, p):
-                    log.info('++++++++++++++++++++++ %s', p)
+                    #log.info('++++++++++++++++++++++ %s', p)
                     pokemon[p.encounter_id]['pokemon_id'] = 132
                     pokemon_id = 132
                     pokemon_info = None
@@ -2165,13 +2197,31 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         for f in forts:
             if config['parse_pokestops'] and f.type == 1:  # Pokestops.
+                get_details = False
                 if len(f.active_fort_modifier) > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f.last_modified_timestamp_ms / 1000.0) +
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f.active_fort_modifier[0]
+                    get_details = True
                 else:
                     lure_expiration, active_fort_modifier = None, None
+
+                # Get detailed informations about Pokestops
+                if args.pokestop_info:
+                    if not get_details:
+                        try:  # No need to get known info
+                            PokestopDetails.get(pokestop_id=f.id)
+                            get_details = False
+                        except PokestopDetails.DoesNotExist:  # Let's get it
+                            get_details = True
+
+                    if get_details:
+                        time.sleep(random.random() + 2)
+                        fort_details_response = fort_details_request(pgacc, f)
+                        if fort_details_response:
+                            pokestop_details = parse_pokestop_details(
+                                fort_details_response, db_update_queue)
 
                 if ((f.id, int(f.last_modified_timestamp_ms / 1000.0))
                         in encountered_pokestops):
@@ -2196,13 +2246,31 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'lure' in args.wh_types and
                         lure_expiration is not None):
                     l_e = None
+                    name = None
+                    description = None
+                    url = None
+                    deployer = None
+                    if get_details:
+                        for id in pokestop_details:
+                            #log.warning(pokestop_details)
+                            name = pokestop_details[id]['name']
+                            description = pokestop_details[id]['description']
+                            url = pokestop_details[id]['url']
+                            if len(f.active_fort_modifier) > 0:
+                                deployer = pokestop_details[id]['deployer']
+                                #log.warning('==========================POKESTOP DETAILS %s', deployer)
                     if lure_expiration is not None:
                         l_e = calendar.timegm(lure_expiration.timetuple())
                     wh_pokestop = pokestops[f.id].copy()
+                    log.warning(wh_pokestop)
                     wh_pokestop.update({
                         'pokestop_id': b64encode(str(f.id)),
                         'last_modified_time': f.last_modified_timestamp_ms,
                         'lure_expiration': l_e,
+                        'name': name,
+                        'description': description,
+                        'url': url,
+                        'deployer': deployer,
                     })
                     wh_update_queue.put(('pokestop', wh_pokestop))
 
@@ -2418,6 +2486,43 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         'bad_scan': False,
         'scan_secs': now_secs
     }
+
+
+def parse_pokestop_details(fort_details_response, db_update_queue):
+    pokestop_details = {}
+    fort_details = fort_details_response['FORT_DETAILS']
+    pokestop_id = fort_details.fort_id
+    #log.warning(fort_details)
+    pokestop_details[pokestop_id] = {
+        'pokestop_id': pokestop_id,
+        'name': fort_details.name,
+        'description': fort_details.description,
+        'url': fort_details.image_urls[0]
+    }
+
+    if fort_details.modifiers:
+        #modifiers = fort_details.get('modifiers', None)
+        log.info('========== LURE PROVIDER %s =========', fort_details.modifiers[0].deployer_player_codename)
+        pokestop_details[pokestop_id].update({
+            'item_id': fort_details.modifiers[0].item_id,
+            'deployer': fort_details.modifiers[0].deployer_player_codename,
+            'expires': datetime.utcfromtimestamp(
+                fort_details.modifiers[0].expiration_timestamp_ms / 1000.0)
+        })
+
+    # Upsert all the models.
+    if pokestop_details:
+        db_update_queue.put((PokestopDetails, pokestop_details))
+
+    with flaskDb.database.transaction():
+        # Get rid of all the forts, we're going to insert new records.
+        if pokestop_details:
+            DeleteQuery(PokestopDetails).where(
+                PokestopDetails.pokestop_id <<
+                pokestop_details.keys()).execute()
+
+    log.info('Upserted forts: %d', len(pokestop_details))
+    return pokestop_details
 
 
 def encounter_pokemon(args, pokemon, account, pgacc, account_sets, status,
@@ -2814,7 +2919,7 @@ def bulk_upsert(cls, data, db):
 
 def create_tables(db):
     db.connect()
-    tables = [Pokemon, Pokestop, Gym, Raid, ScannedLocation, GymDetails,
+    tables = [Pokemon, Pokestop, PokestopDetails, Gym, Raid, ScannedLocation, GymDetails,
               GymMember, GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
               Token, LocationAltitude, PlayerLocale, HashKeys]
@@ -2828,7 +2933,7 @@ def create_tables(db):
 
 
 def drop_tables(db):
-    tables = [Pokemon, Pokestop, Gym, Raid, ScannedLocation, Versions,
+    tables = [Pokemon, Pokestop, PokestopDetails, Gym, Raid, ScannedLocation, Versions,
               GymDetails, GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude, PlayerLocale,
