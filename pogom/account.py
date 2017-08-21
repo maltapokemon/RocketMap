@@ -12,7 +12,7 @@ from mrmime.pogoaccount import POGOAccount
 from pogom.pgpool import pgpool_request_accounts, pgpool_release_account
 from .proxy import get_new_proxy
 from .utils import (in_radius, equi_rect_distance,
-                    clear_dict_response, now)
+                    clear_dict_response, now, get_pokemon_name)
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def account_failed(args, account_failures, account, reason):
                                  'last_fail_time': now(),
                                  'reason': reason})
     else:
-        pgpool_release_account(account)
+        pgpool_release_account(account, reason)
 
 
 # Create the MrMime POGOAccount object that'll be used to scan.
@@ -79,6 +79,7 @@ def setup_mrmime_account(args, status, account):
     pgacc = POGOAccount(account['auth_service'], account['username'],
                         account['password'])
     pgacc.cfg['player_locale'] = args.player_locale
+    pgacc.callback_egg_hatched = log_hatched_egg
 
     # Initialize POGOAccount from PGPool info
     if 'pgpool_account' in account:
@@ -118,6 +119,18 @@ def reset_account(account):
     account['start_time'] = time.time()
     account['session_spins'] = 0
     account['last_timestamp_ms'] = 0
+
+
+def log_hatched_egg(pgacc, hatched_egg):
+    p = hatched_egg['hatched_pokemon']
+    iv = float(p.individual_attack + p.individual_defense + p.individual_stamina) / 45 * 100
+    pname = get_pokemon_name(p.pokemon_id)
+    km = hatched_egg['egg_km_walked']
+    xp = hatched_egg['experience_awarded']
+    candy = hatched_egg['candy_awarded']
+    dust = hatched_egg['stardust_awarded']
+    pgacc.log_info(
+        u"Hatched {:.1f}% {} from {}km egg for {} XP, {} candy, {} dust.".format(iv, pname, km, xp, candy, dust))
 
 
 def can_spin(account, max_h_spins):
