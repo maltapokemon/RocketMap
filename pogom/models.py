@@ -2252,20 +2252,17 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     deployer = None
                     if get_details:
                         for id in pokestop_details:
-                            #log.warning(pokestop_details)
                             name = pokestop_details[id]['name']
                             description = pokestop_details[id]['description']
                             url = pokestop_details[id]['url']
                             if len(f.active_fort_modifier) > 0:
                                 deployer = pokestop_details[id]['deployer']
-                                #log.warning('==========================POKESTOP DETAILS %s', deployer)
                     if lure_expiration is not None:
                         l_e = calendar.timegm(lure_expiration.timetuple())
                     wh_pokestop = pokestops[f.id].copy()
-                    log.warning(wh_pokestop)
                     wh_pokestop.update({
                         'pokestop_id': b64encode(str(f.id)),
-                        'last_modified_time': f.last_modified_timestamp_ms,
+                        'last_modified': f.last_modified_timestamp_ms,
                         'lure_expiration': l_e,
                         'name': name,
                         'description': description,

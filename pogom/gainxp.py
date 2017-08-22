@@ -235,7 +235,6 @@ def drop_items(pgacc, item_id, drop_stats, drop_count=-1):
     return 0
 
 def lure_pokestop(args, pgacc, fort, step_location):
-    log.warning(fort)
     if len(fort.active_fort_modifier) == 0:
         lures = pgacc.inventory_lures
         lure_result = None

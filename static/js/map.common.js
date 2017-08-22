@@ -978,6 +978,14 @@ var StoreOptions = {
         default: 0,
         type: StoreTypes.Number
     },
+    'scaleByRarity': {
+        default: true,
+        type: StoreTypes.Boolean
+    },
+    'upscaledPokemon': {
+        default: [],
+        type: StoreTypes.JSON
+    },
     'searchMarkerStyle': {
         default: 'pokesition',
         type: StoreTypes.String
@@ -1083,15 +1091,15 @@ function setupPokemonMarkerDetails(item, map, scaleByRarity) {
     }
 
     var iconSize = (map.getZoom() - 3) * (map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
-
-    if (Store.get('scaleByRarity') && scaleByRarity !== false) {
+    scaleByRarity = scaleByRarity && Store.get('scaleByRarity')
+    if (scaleByRarity) {
         const rarityValues = {
             'very rare': 30,
             'ultra rare': 40,
             'legendary': 50
         }
-
-        var rarityValue = isNotifyPoke(item) ? 29 : 2
+        const upscaledPokemon = Store.get('upscaledPokemon')
+        var rarityValue = isNotifyPoke(item) || (upscaledPokemon.indexOf(item['pokemon_id']) !== -1) ? 29 : 2
 
         if (item.hasOwnProperty('pokemon_rarity')) {
             const pokemonRarity = item['pokemon_rarity'].toLowerCase()
