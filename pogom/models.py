@@ -2115,7 +2115,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
-            have_balls = pgacc.inventory_balls > 2
+            have_balls = pgacc.inventory_balls > 0
             if args.gain_xp and not pgacc.get_stats(
                 'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
                 if is_ditto(args, pgacc, p):
