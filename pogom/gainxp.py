@@ -110,7 +110,7 @@ def catch(pgacc, encounter_id, spawn_point_id):
         'reason': "Unknown reason.",
         'attempts': 1
     }
-    while rv['attempts'] < 3:
+    while rv['attempts'] < 3 and pgacc.inventory_balls > 0:
         time.sleep(random.uniform(2, 3))
         try:
             # Randomize throwing parameters. Some stuff to read:

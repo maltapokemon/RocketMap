@@ -197,12 +197,15 @@ def main():
     args = get_args()
 
     # Initialize Mr. Mime library
-    init_mr_mime(config_file='config/mrmime_config.json', user_cfg={
+    mrmime_cfg = {
         # We don't want exceptions on captchas because we handle them differently.
         'exception_on_captcha': False,
-        'pgpool_url': args.pgpool_url,
         'pgpool_system_id': args.status_name
-    })
+    }
+    # Don't overwrite PGPool URL if it's only set in MrMime config JSON
+    if args.pgpool_url:
+        mrmime_cfg['pgpool_url'] = args.pgpool_url
+    init_mr_mime(config_file='config/mrmime_config.json', user_cfg=mrmime_cfg)
 
     # Abort if status name is not valid.
     regexp = re.compile('^([\w\s\-.]+)$')
