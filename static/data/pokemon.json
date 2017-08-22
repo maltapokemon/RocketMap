@@ -372,7 +372,7 @@
   },
   "30": {
     "name": "Nidorina",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Poison",
@@ -409,7 +409,7 @@
   },
   "33": {
     "name": "Nidorino",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Poison",
@@ -446,7 +446,7 @@
   },
   "36": {
     "name": "Clefable",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Fairy",
@@ -1115,7 +1115,7 @@
   },
   "87": {
     "name": "Dewgong",
-    "rarity": "Ultra Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1163,7 +1163,7 @@
   },
   "91": {
     "name": "Cloyster",
-    "rarity": "Ultra Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1271,7 +1271,7 @@
   },
   "99": {
     "name": "Kingler",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1507,7 +1507,7 @@
   },
   "119": {
     "name": "Seaking",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1529,7 +1529,7 @@
   },
   "121": {
     "name": "Starmie",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Water",
@@ -1559,7 +1559,7 @@
   },
   "123": {
     "name": "Scyther",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Bug",
@@ -1589,7 +1589,7 @@
   },
   "125": {
     "name": "Electabuzz",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Electric",
@@ -1600,7 +1600,7 @@
   },
   "126": {
     "name": "Magmar",
-    "rarity": "Rare",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Fire",
@@ -1611,7 +1611,7 @@
   },
   "127": {
     "name": "Pinsir",
-    "rarity": "Uncommon",
+    "rarity": "Very Rare",
     "types": [
       {
         "type": "Bug",
@@ -2572,7 +2572,7 @@
   },
   "202": {
     "name": "Wobbuffet",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Psychic",
@@ -2635,7 +2635,7 @@
   },
   "207": {
     "name": "Gligar",
-    "rarity": "Very Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Ground",
@@ -2825,7 +2825,7 @@
   },
   "221": {
     "name": "Piloswine",
-    "rarity": "Ultra Rare",
+    "rarity": "Rare",
     "types": [
       {
         "type": "Ice",
