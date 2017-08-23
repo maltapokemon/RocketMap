@@ -200,10 +200,12 @@ def __get_key_fields(whtype):
             'slots_available'
         ],
         'gym_details': [
-            'latitude', 'longitude', 'team', 'pokemon'
+            'latitude', 'longitude', 'team', 'pokemon', 'name', 'description',
+            'url', 'total_cp', 'slots_available', 'guard_pokemon_id'
         ],
         'raid': [
-            'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude'
+            'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude',
+            'move_1', 'move_2'
         ]
     }
 

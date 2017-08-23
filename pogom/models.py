@@ -48,7 +48,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 21
+db_schema_version = 22
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -478,6 +478,7 @@ class Gym(BaseModel):
     total_cp = SmallIntegerField()
     last_modified = DateTimeField(index=True)
     last_scanned = DateTimeField(default=datetime.utcnow, index=True)
+    is_in_battle = BooleanField()
 
     class Meta:
         indexes = ((('latitude', 'longitude'), False),)
@@ -565,12 +566,16 @@ class Gym(BaseModel):
             details = (GymDetails
                        .select(
                            GymDetails.gym_id,
-                           GymDetails.name)
+                           GymDetails.name,
+                           GymDetails.description,
+                           GymDetails.url)
                        .where(GymDetails.gym_id << gym_ids)
                        .dicts())
 
             for d in details:
                 gyms[d['gym_id']]['name'] = d['name']
+                gyms[d['gym_id']]['description'] = d['description']
+                gyms[d['gym_id']]['url'] = d['url']
 
             raids = (Raid
                      .select()
@@ -597,13 +602,15 @@ class Gym(BaseModel):
                               Gym.team_id,
                               GymDetails.name,
                               GymDetails.description,
+                              GymDetails.url,
                               Gym.guard_pokemon_id,
                               Gym.slots_available,
                               Gym.latitude,
                               Gym.longitude,
                               Gym.last_modified,
                               Gym.last_scanned,
-                              Gym.total_cp)
+                              Gym.total_cp,
+                              Gym.is_in_battle)
                       .join(GymDetails, JOIN.LEFT_OUTER,
                             on=(Gym.gym_id == GymDetails.gym_id))
                       .where(Gym.gym_id == id)
@@ -2207,22 +2214,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 else:
                     lure_expiration, active_fort_modifier = None, None
 
-                # Get detailed informations about Pokestops
-                if args.pokestop_info:
-                    if not get_details:
-                        try:  # No need to get known info
-                            PokestopDetails.get(pokestop_id=f.id)
-                            get_details = False
-                        except PokestopDetails.DoesNotExist:  # Let's get it
-                            get_details = True
-
-                    if get_details:
-                        time.sleep(random.random() + 2)
-                        fort_details_response = fort_details_request(pgacc, f)
-                        if fort_details_response:
-                            pokestop_details = parse_pokestop_details(
-                                fort_details_response, db_update_queue)
-
                 if ((f.id, int(f.last_modified_timestamp_ms / 1000.0))
                         in encountered_pokestops):
                     # If pokestop has been encountered before and hasn't
@@ -2241,33 +2232,34 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'active_fort_modifier': active_fort_modifier
                 }
 
+                wh_pokestop = pokestops[f.id].copy()
+                # Get detailed informations about Pokestops
+                if args.pokestop_info:
+                    if not get_details:
+                        try:  # No need to get known info
+                            PokestopDetails.get(pokestop_id=f.id)
+                            get_details = False
+                        except PokestopDetails.DoesNotExist:  # Let's get it
+                            get_details = True
+
+                    if get_details:
+                        time.sleep(random.random() + 2)
+                        fort_details_response = fort_details_request(pgacc, f)
+                        if fort_details_response:
+                            pokestop_details = parse_pokestop_details(args,
+                                fort_details_response, wh_update_queue, db_update_queue, wh_pokestop)
+
                 # Send all pokestops to webhooks.
                 if 'pokestop' in args.wh_types or (
                         'lure' in args.wh_types and
                         lure_expiration is not None):
                     l_e = None
-                    name = None
-                    description = None
-                    url = None
-                    deployer = None
-                    if get_details:
-                        for id in pokestop_details:
-                            name = pokestop_details[id]['name']
-                            description = pokestop_details[id]['description']
-                            url = pokestop_details[id]['url']
-                            if len(f.active_fort_modifier) > 0:
-                                deployer = pokestop_details[id]['deployer']
                     if lure_expiration is not None:
                         l_e = calendar.timegm(lure_expiration.timetuple())
-                    wh_pokestop = pokestops[f.id].copy()
                     wh_pokestop.update({
                         'pokestop_id': b64encode(str(f.id)),
                         'last_modified': f.last_modified_timestamp_ms,
                         'lure_expiration': l_e,
-                        'name': name,
-                        'description': description,
-                        'url': url,
-                        'deployer': deployer,
                     })
                     wh_update_queue.put(('pokestop', wh_pokestop))
 
@@ -2276,6 +2268,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 b64_gym_id = b64encode(str(f.id))
                 gym_display = f.gym_display
                 raid_info = f.raid_info
+                is_in_battle = f.is_in_battle
                 # Send gyms to webhooks.
                 if 'gym' in args.wh_types:
                     raid_active_until = 0
@@ -2314,7 +2307,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'last_modified':
                             f.last_modified_timestamp_ms,
                         'raid_active_until':
-                            raid_active_until
+                            raid_active_until,
+                        'is_in_battle':
+                            is_in_battle
                     }))
 
                 gyms[f.id] = {
@@ -2337,6 +2332,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'last_modified':
                         datetime.utcfromtimestamp(
                             f.last_modified_timestamp_ms / 1000.0),
+                    'is_in_battle':
+                        is_in_battle
                 }
 
                 if config['parse_raids'] and f.type == 0:
@@ -2485,43 +2482,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     }
 
 
-def parse_pokestop_details(fort_details_response, db_update_queue):
-    pokestop_details = {}
-    fort_details = fort_details_response['FORT_DETAILS']
-    pokestop_id = fort_details.fort_id
-    #log.warning(fort_details)
-    pokestop_details[pokestop_id] = {
-        'pokestop_id': pokestop_id,
-        'name': fort_details.name,
-        'description': fort_details.description,
-        'url': fort_details.image_urls[0]
-    }
-
-    if fort_details.modifiers:
-        #modifiers = fort_details.get('modifiers', None)
-        log.info('========== LURE PROVIDER %s =========', fort_details.modifiers[0].deployer_player_codename)
-        pokestop_details[pokestop_id].update({
-            'item_id': fort_details.modifiers[0].item_id,
-            'deployer': fort_details.modifiers[0].deployer_player_codename,
-            'expires': datetime.utcfromtimestamp(
-                fort_details.modifiers[0].expiration_timestamp_ms / 1000.0)
-        })
-
-    # Upsert all the models.
-    if pokestop_details:
-        db_update_queue.put((PokestopDetails, pokestop_details))
-
-    with flaskDb.database.transaction():
-        # Get rid of all the forts, we're going to insert new records.
-        if pokestop_details:
-            DeleteQuery(PokestopDetails).where(
-                PokestopDetails.pokestop_id <<
-                pokestop_details.keys()).execute()
-
-    log.info('Upserted forts: %d', len(pokestop_details))
-    return pokestop_details
-
-
 def encounter_pokemon(args, pokemon, account, pgacc, account_sets, status,
                       key_scheduler):
     using_accountset = False
@@ -2644,6 +2604,54 @@ def encounter_pokemon(args, pokemon, account, pgacc, account_sets, status,
     return result
 
 
+def parse_pokestop_details(args, fort_details_response, wh_update_queue, db_update_queue, wh_pokestop):
+    pokestop_details = {}
+    fort_details = fort_details_response['FORT_DETAILS']
+    pokestop_id = fort_details.fort_id
+
+    pokestop_details[pokestop_id] = {
+        'pokestop_id': pokestop_id,
+        'name': fort_details.name,
+        'description': fort_details.description,
+        'url': fort_details.image_urls[0]
+    }
+
+    if fort_details.modifiers:
+        #log.info('========== LURE PROVIDER %s =========', fort_details.modifiers[0].deployer_player_codename)
+        pokestop_details[pokestop_id].update({
+            'item_id': fort_details.modifiers[0].item_id,
+            'deployer': fort_details.modifiers[0].deployer_player_codename,
+            'expires': datetime.utcfromtimestamp(
+                fort_details.modifiers[0].expiration_timestamp_ms / 1000.0)
+        })
+
+    # Send all pokestops to webhooks.
+    if 'pokestop' in args.wh_types or 'lure' in args.wh_types:
+        wh_pokestop.update({
+            'name': fort_details.name,
+            'description': fort_details.description,
+            'url': fort_details.image_urls[0],
+        })
+        if fort_details.modifiers:
+            wh_pokestop.update({
+                'deployer': fort_details.modifiers[0].deployer_player_codename,
+            })
+
+    # Upsert all the models.
+    if pokestop_details:
+        db_update_queue.put((PokestopDetails, pokestop_details))
+
+    with flaskDb.database.transaction():
+        # Get rid of all the forts, we're going to insert new records.
+        if pokestop_details:
+            DeleteQuery(PokestopDetails).where(
+                PokestopDetails.pokestop_id <<
+                pokestop_details.keys()).execute()
+
+    log.info('Upserted forts: %d', len(pokestop_details))
+    return pokestop_details, wh_pokestop
+
+
 def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
     gym_details = {}
     gym_members = {}
@@ -2667,6 +2675,9 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'latitude': gym_state.pokemon_fort_proto.latitude,
                 'longitude': gym_state.pokemon_fort_proto.longitude,
                 'team': gym_state.pokemon_fort_proto.owned_by_team,
+                'slots_available': gym_state.pokemon_fort_proto.gym_display.slots_available,
+                'guard_pokemon_id': gym_state.pokemon_fort_proto.guard_pokemon_id,
+                'total_cp': gym_state.pokemon_fort_proto.gym_display.total_gym_cp,
                 'name': g.name,
                 'description': g.description,
                 'url': g.url,
@@ -3237,7 +3248,8 @@ def database_migrate(db, old_ver):
                                 DateTimeField(
                                     null=False, default=datetime.utcnow())),
             migrator.add_column('gym', 'total_cp',
-                                SmallIntegerField(null=False, default=0)))
+                                SmallIntegerField(null=False, default=0))
+        )
 
     if old_ver < 21:
         migrate(
@@ -3251,6 +3263,12 @@ def database_migrate(db, old_ver):
                                 CharField(null=True, max_length=2)),
             migrator.add_column('pokemon', 'rating_defense',
                                 CharField(null=True, max_length=2))
+        )
+
+    if old_ver < 22:
+        migrate(
+            migrator.add_column('gym', 'is_in_battle',
+                                BooleanField(null=False, default=False))
         )
 
     # Always log that we're done.
