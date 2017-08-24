@@ -67,8 +67,8 @@ var redrawTimeout = null
 
 const gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
 
-const audio = new Audio('static/sounds/ding.mp3')
-const cryFileTypes = ['wav', 'mp3']
+const audio = new Audio('static/sounds/pokewho.mp3')
+const cryFileTypes = ['wav', 'mp3', 'ogg']
 
 const genderType = ['♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
@@ -848,7 +848,7 @@ function gymLabel(gym, includeMembers = true) {
         </div>`
 }
 
-function pokestopLabel(expireTime, latitude, longitude) {
+function pokestopLabel(expireTime, latitude, longitude, deployer) {
     var str
     if (expireTime) {
         str = `
@@ -861,6 +861,9 @@ function pokestopLabel(expireTime, latitude, longitude) {
               </div>
               <div>
                 <img class='pokestop sprite' src='static/images/pokestop//PokestopLured.png'>
+              </div>
+              <div>
+                Lure Provided By: <b>${deployer}</b>
               </div>
               <div>
                 <span class='pokestop navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'; class='pokestop lure'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
@@ -1186,6 +1189,11 @@ function updateGymMarker(item, marker) {
             url: 'static/images/gym/' + gymTypes[item.team_id] + '_' + getGymLevel(item) + '_' + item['raid']['level'] + '.png',
             scaledSize: new google.maps.Size(48, 48)
         })
+    } else if (item.is_in_battle == 1) {
+          marker.setIcon({
+              url: 'static/images/battle/B' + gymTypes[item.team_id] + '_' + getGymLevel(item) + '.png',
+              scaledSize: new google.maps.Size(48, 48)
+          })
     } else {
         marker.setIcon({
             url: 'static/images/gym/' + gymTypes[item.team_id] + '_' + getGymLevel(item) + '.png',
@@ -1218,7 +1226,7 @@ function setupPokestopMarker(item) {
     }
 
     marker.infoWindow = new google.maps.InfoWindow({
-        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['details']['deployer']),
         disableAutoPan: true
     })
 
