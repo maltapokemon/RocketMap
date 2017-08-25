@@ -237,8 +237,6 @@ def clear_inventory(pgacc):
              (1101, 'Sun Stone'), (1102, 'Kings Rock'), (1103, 'Metal Coat'),
              (1104, 'Dragon Scale'), (1105, 'Upgrade')]
 
-    clear_pokemon(pgacc)
-
     for item_id, item_name in items:
         item_count = pgacc.inventory.get(item_id, 0)
         random_max = random.randint(5, 10)

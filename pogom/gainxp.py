@@ -10,10 +10,9 @@ from ast import literal_eval
 from pgoapi.protos.pogoprotos.inventory.item.item_id_pb2 import *
 
 from pogom.account import log, spin_pokestop_request, \
-    encounter_pokemon_request, pokestop_spinnable, incubate_eggs, \
-    clear_inventory_request, request_release_pokemon, lure_pokestop_request, \
-    clear_pokemon
-from pogom.utils import get_pokemon_name, in_radius
+    encounter_pokemon_request, pokestop_spinnable, clear_inventory_request, \
+    lure_pokestop_request
+from pogom.utils import get_pokemon_name
 
 log = logging.getLogger(__name__)
 
@@ -80,8 +79,6 @@ def gxp_spin_stops(forts, pgacc, step_location):
 def is_ditto(args, pgacc, p):
     pokemon_id = p.pokemon_data.pokemon_id
     pokemon_name = get_pokemon_name(pokemon_id)
-
-    clear_pokemon(pgacc)
 
     log.info(u'{} may be a Ditto. Triggering catch logic!'.format(pokemon_name))
 
