@@ -203,15 +203,18 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
 
 def clear_pokemon(pgacc):
     total_pokemon = len(pgacc.pokemon)
-    release_count = int(total_pokemon - 5)
-    if total_pokemon > random.randint(5, 10):
+    if total_pokemon > 200:
+        release_count = int(total_pokemon - random.randint(40, 80))
         release_ids = random.sample(pgacc.pokemon.keys(), release_count)
         if pgacc.get_state('buddy') in release_ids:
             release_ids.remove(pgacc.get_state('buddy'))
+
         # Don't let Niantic throttle.
         time.sleep(random.uniform(2, 4))
         release_p_response = request_release_pokemon(pgacc, 0,
                                                      release_ids)
+        if not release_p_response:
+            return False
 
         if pgacc.has_captcha():
             log.info('Account encountered a reCaptcha.')
