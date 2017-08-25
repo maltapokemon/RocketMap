@@ -594,7 +594,7 @@ function pokemonLabel(item) {
           <div class='pokemon container'>
             <div class='pokemon container content-left'>
               <div>
-                <img class='pokemon sprite' src='static/icons/${id}.png'>
+                <img class='pokemon sprite' src='static/sprites/${id}.png'>
                 <span class='pokemon'>CP: </span><span class='pokemon encounter'>${cp}</span>
                 <span class='pokemon links exclude'><a href='javascript:excludePokemon(${id})'>Exclude</a></span>
                 <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
@@ -630,7 +630,7 @@ function pokemonLabel(item) {
       <div class='pokemon container'>
         <div class='pokemon container content-left'>
           <div>
-            <img class='pokemon sprite' src='static/icons/${id}.png'>
+            <img class='pokemon sprite' src='static/sprites/${id}.png'>
             <span class='pokemon links exclude'><a href='javascript:excludePokemon(${id})'>Exclude</a></span>
             <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
             <span class='pokemon links remove'><a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a></span>
@@ -751,7 +751,7 @@ function gymLabel(gym, includeMembers = true) {
                     <div class='raid container'>
                     <div class='raid container content-left'>
                         <div>
-                        <img class='gym sprite' src='static/icons/${raid.pokemon_id}.png'>
+                        <img class='gym sprite' src='static/sprites/${raid.pokemon_id}.png'>
                         </div>
                     </div>
                     <div class='raid container content-right'>
@@ -772,7 +772,7 @@ function gymLabel(gym, includeMembers = true) {
                 `
             }
         } else {
-            image = `<img class='gym sprite' src='static/images/gym/${gymTypes[gym.team_id]}_${getGymLevel(gym)}_${raid.level}.png'>`
+            image = `<img class='gym sprite' src='static/images/egg/${gymTypes[gym.team_id]}_${getGymLevel(gym)}_${raid.level}.png'>`
         }
 
         if (isUpcomingRaid) {
@@ -784,6 +784,8 @@ function gymLabel(gym, includeMembers = true) {
                   Raid in <span class='raid countdown label-countdown' disappears-at='${raid.start}'></span>
                 </div>`
         }
+    } else if (gym.is_in_battle == 1) {
+        image = `<img class='gym sprite' src='static/images/battle/B${gymTypes[gym.team_id]}_${getGymLevel(gym)}.png'>`
     } else {
         image = `<img class='gym sprite' src='static/images/gym/${teamName}_${getGymLevel(gym)}.png'>`
     }
@@ -877,7 +879,7 @@ function pokestopLabel(expireTime, latitude, longitude, deployer) {
                 Pokéstop
               </div>
               <div>
-                <img class='pokestop sprite' src='static/images/pokestop//Pokestop.png'>
+                <img class='pokestop sprite' src='static/images/pokestop/Pokestop.png'>
               </div>
               <div>
                 <span class='pokestop navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'; class='pokestop nolure'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
@@ -1181,7 +1183,7 @@ function updateGymMarker(item, marker) {
         }
         marker.setIcon({
             url: markerImage,
-            scaledSize: new google.maps.Size(48, 48)
+            scaledSize: new google.maps.Size(50, 50)
         })
         marker.setZIndex(google.maps.Marker.MAX_ZINDEX + 1)
     } else if (item.raid !== null && item.raid.end > Date.now() && Store.get('showRaids') && !Store.get('showActiveRaidsOnly') && raidLevel >= Store.get('showRaidMinLevel') && raidLevel <= Store.get('showRaidMaxLevel')) {
@@ -1192,7 +1194,7 @@ function updateGymMarker(item, marker) {
     } else if (item.is_in_battle == 1) {
           marker.setIcon({
               url: 'static/images/battle/B' + gymTypes[item.team_id] + '_' + getGymLevel(item) + '.png',
-              scaledSize: new google.maps.Size(48, 48)
+              scaledSize: new google.maps.Size(75, 75)
           })
     } else {
         marker.setIcon({
@@ -1225,10 +1227,17 @@ function setupPokestopMarker(item) {
         marker.rangeCircle = addRangeCircle(marker, map, 'pokestop')
     }
 
-    marker.infoWindow = new google.maps.InfoWindow({
-        content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['details']['deployer']),
-        disableAutoPan: true
-    })
+    if (item['lure_expiration']) {
+      marker.infoWindow = new google.maps.InfoWindow({
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['details']['deployer']),
+          disableAutoPan: true
+      })
+    } else {
+      marker.infoWindow = new google.maps.InfoWindow({
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+          disableAutoPan: true
+      })
+    }
 
     addListeners(marker)
     return marker
