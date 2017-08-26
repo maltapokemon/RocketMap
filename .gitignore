@@ -20,11 +20,11 @@ beehive.*
 static/images/battle/*.png
 static/sprites/*.png
 static/images/appicons/*.png
+static/images/appicons/*.ico
 static/images/egg/*.png
 static/images/gym/*.png
-static/images/pokestops/*.png
+static/images/pokestop/*.png
 static/images/raid/*.png
-!static/images/raid/*_unknown.png
 static/icons-sprite.png
 static/icons-large-sprite.png
 static/icons/*.png
