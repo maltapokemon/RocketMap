@@ -679,7 +679,7 @@ function isGymSatisfiesRaidMinMaxFilter(raid) {
 function gymLabel(gym, includeMembers = true) {
     const pokemonWithImages = [
         3, 6, 9, 59, 65, 68, 89, 94, 103, 110, 112, 125, 126, 129, 131, 134,
-        135, 136, 143, 144, 145, 146, 153, 156, 159, 248, 249
+        135, 136, 143, 144, 145, 146, 150, 153, 156, 159, 248, 249
     ]
 
     const raid = gym.raid
@@ -786,8 +786,10 @@ function gymLabel(gym, includeMembers = true) {
         }
     } else if (gym.is_in_battle == 1) {
         image = `<img class='gym sprite' src='static/images/battle/B${gymTypes[gym.team_id]}_${getGymLevel(gym)}.png'>`
+        imageLbl = `<font size="3"><b>In Battle</b></font>`
     } else {
         image = `<img class='gym sprite' src='static/images/gym/${teamName}_${getGymLevel(gym)}.png'>`
+        imageLbl = `<font size="3"><b>${teamName}</b></font>`
     }
 
 
@@ -1174,7 +1176,7 @@ function updateGymMarker(item, marker) {
     let raidLevel = getRaidLevel(item.raid)
     const pokemonWithImages = [
         3, 6, 9, 59, 65, 68, 89, 94, 103, 110, 112, 125, 126, 129, 131, 134,
-        135, 136, 143, 144, 145, 146, 153, 156, 159, 248, 249
+        135, 136, 143, 144, 145, 146, 150, 153, 156, 159, 248, 249
     ]
     if (item.raid !== null && isOngoingRaid(item.raid) && Store.get('showRaids') && raidLevel >= Store.get('showRaidMinLevel') && raidLevel <= Store.get('showRaidMaxLevel')) {
         let markerImage = 'static/images/raid/' + gymTypes[item.team_id] + '_' + item.raid.level + '_unknown.png'
@@ -1183,7 +1185,7 @@ function updateGymMarker(item, marker) {
         }
         marker.setIcon({
             url: markerImage,
-            scaledSize: new google.maps.Size(50, 50)
+            scaledSize: new google.maps.Size(75, 75)
         })
         marker.setZIndex(google.maps.Marker.MAX_ZINDEX + 1)
     } else if (item.raid !== null && item.raid.end > Date.now() && Store.get('showRaids') && !Store.get('showActiveRaidsOnly') && raidLevel >= Store.get('showRaidMinLevel') && raidLevel <= Store.get('showRaidMaxLevel')) {
@@ -2236,7 +2238,7 @@ function getSidebarGymMember(pokemon) {
     return `
                     <tr onclick=toggleGymPokemonDetails(this)>
                         <td width="30px">
-                            <img class="gym pokemon sprite" src="static/icons/${pokemon.pokemon_id}.png">
+                            <img class="gym pokemon sprite" src="static/sprites/${pokemon.pokemon_id}.png">
                         </td>
                         <td>
                             <div class="gym pokemon" style="line-height:0.5em;">${pokemon.pokemon_name}</div>
