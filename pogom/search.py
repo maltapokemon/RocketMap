@@ -1017,14 +1017,22 @@ def search_worker_thread(args, account_queue, account_sets,
                         break
 
                 # Let account rest if it got blind (although resting won't heal it unfortunately.)
-                if args.rotate_blind and pgacc.rareless_scans is not None and pgacc.rareless_scans >= args.rareless_scans_threshold:
-                    pgacc.shadowbanned = True
-                    status['message'] = (
-                        'Account {} has become blind. Rotating out.'.format(
-                            account['username']))
-                    log.info(status['message'])
-                    account_failed(args, account_failures, account, 'shadowbanned')
-                    break
+                if pgacc.rareless_scans is not None:
+                    prev_sbanned = pgacc.shadowbanned if pgacc.shadowbanned is not None else False
+                    pgacc.shadowbanned = pgacc.rareless_scans >= args.rareless_scans_threshold
+                    if not prev_sbanned and pgacc.shadowbanned:
+                        if args.rotate_blind:
+                            status['message'] = (
+                                'Account {} has become blind ({} rareless scans). Rotating out.'.format(
+                                    account['username'], pgacc.rareless_scans))
+                            log.info(status['message'])
+                            account_failed(args, account_failures, account, 'shadowbanned')
+                            break
+                        else:
+                            log.info("Account {} has become blind ({} rareless scans).".format(account['username'],
+                                                                                               pgacc.rareless_scans))
+                    elif prev_sbanned and not pgacc.shadowbanned:
+                        log.info("Account {} can see rares again! Hooray!.".format(account['username']))
 
                 # Grab the next thing to search (when available).
                 step, step_location, appears, leaves, messages, wait = (
