@@ -10,9 +10,9 @@ from timeit import default_timer
 from mrmime.pogoaccount import POGOAccount
 
 from pogom.pgpool import pgpool_request_accounts, pgpool_release_account
-from .proxy import get_new_proxy
-from .utils import (in_radius, equi_rect_distance,
+from .utils import (in_radius, distance,
                     clear_dict_response, now, get_pokemon_name)
+from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ def pokestop_spinnable(fort, step_location):
     if not fort.enabled:
         return False
 
-    spinning_radius = 0.038
+    spinning_radius = 38
     in_range = in_radius((fort.latitude, fort.longitude),
                          step_location, spinning_radius)
     now = time.time()
@@ -430,7 +430,6 @@ class AccountSet(object):
 
             # Loop all accounts for a good one.
             now = default_timer()
-            max_speed_kmph = self.kph
 
             for i in range(len(account_set)):
                 account = account_set[i]
@@ -450,10 +449,8 @@ class AccountSet(object):
                     seconds_passed = now - last_scanned
                     old_coords = account.get('last_coords', coords_to_scan)
 
-                    distance_km = equi_rect_distance(
-                        old_coords,
-                        coords_to_scan)
-                    cooldown_time_sec = distance_km / max_speed_kmph * 3600
+                    distance_m = distance(old_coords, coords_to_scan)
+                    cooldown_time_sec = distance_m / self.kph * 3.6
 
                     # Not enough time has passed for this one.
                     if seconds_passed < cooldown_time_sec:

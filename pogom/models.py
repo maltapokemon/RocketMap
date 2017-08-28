@@ -914,7 +914,7 @@ class ScannedLocation(BaseModel):
                         abs(sp['longitude'] - scan['loc'][1]) > deg_at_lat):
                     continue
                 if in_radius((sp['latitude'], sp['longitude']),
-                             scan['loc'], distance):
+                             scan['loc'], distance * 1000):
                     scan_spawn_point[cell + sp['id']] = {
                         'spawnpoint': sp['id'],
                         'scannedlocation': cell}
@@ -2384,7 +2384,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         if args.gain_xp:
             gxp_spin_stops(forts, pgacc, step_location)
             incubate_eggs(pgacc)
-        elif args.pokestop_spinning:
+        elif args.pokestop_spinning or pgacc.get_stats('level', 1):
             for f in forts:
                 # Spin Pokestop with 50% chance.
                 if f.type == 1 and pokestop_spinnable(f, step_location):
