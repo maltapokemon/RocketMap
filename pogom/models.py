@@ -133,6 +133,7 @@ class Pokemon(BaseModel):
     catch_prob_3 = DoubleField(null=True)
     rating_attack = CharField(null=True, max_length=2)
     rating_defense = CharField(null=True, max_length=2)
+    previous_id = SmallIntegerField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2120,7 +2121,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_2': None,
                 'catch_prob_3': None,
                 'rating_attack': None,
-                'rating_defense': None
+                'rating_defense': None,
+                'previous_id' : None
             }
 
             # Catch pokemon to check for Ditto if --gain-xp enabled
@@ -2131,6 +2133,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 if is_ditto(args, pgacc, p):
                     #log.info('++++++++++++++++++++++ %s', p)
                     pokemon[p.encounter_id]['pokemon_id'] = 132
+                    pokemon[p.encounter_id]['previous_id'] = p.pokemon_data.pokemon_id
+                    pokemon[p.encounter_id]['rating_attack'] = 'A'
+                    pokemon[p.encounter_id]['rating_defense'] = 'A'
+                    pokemon[p.encounter_id]['gender'] = 3
+                    pokemon[p.encounter_id]['move_1'] = 242
+                    pokemon[p.encounter_id]['move_2'] = 133
                     pokemon_id = 132
                     pokemon_info = None
             # Check for Unown's alphabetic character.
@@ -2184,7 +2192,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'seconds_until_despawn': seconds_until_despawn,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
-                        'player_level': encounter_level
+                        'player_level': encounter_level,
                     })
                     if wh_poke['cp_multiplier'] is not None:
                         wh_poke.update({

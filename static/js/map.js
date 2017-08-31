@@ -513,6 +513,30 @@ function scout(encounterId) { // eslint-disable-line no-unused-vars
     })
 }
 
+function build_ditto(previous_id) {
+  if (previous_id == 16) {
+    return `<span>(Pidgy)</span>`
+  }
+  if (previous_id == 19) {
+    return `<span>(Rattata)</span>`
+  }
+  if (previous_id == 41) {
+    return `<span>(Zubat)</span>`
+  }
+  if (previous_id == 129) {
+    return `<span>(Magikarp)</span>`
+  }
+  if (previous_id == 161) {
+    return `<span>(Sentret)</span>`
+  }
+  if (previous_id == 163) {
+    return `<span>(Hoothoot)</span>`
+  }
+  if (previous_id == 193) {
+    return `<span>(Yanma)</span>`
+  }
+}
+
 function pokemonLabel(item) {
     var name = item['pokemon_name']
     var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
@@ -539,6 +563,7 @@ function pokemonLabel(item) {
     var prob3 = item['catch_prob_3']
     var ratingAttack = item['rating_attack']
     var ratingDefense = item['rating_defense']
+    var previous_id = item['previous_id']
     var encounterIdLong = atob(encounterId)
 
     $.each(types, function (index, type) {
@@ -554,9 +579,15 @@ function pokemonLabel(item) {
         formString += `(${unownForm[item['form']]})`
     }
 
+    var dittoString = ''
+
+    if (id === 132 && previous_id != null) {
+        dittoString += build_ditto(previous_id)
+    }
+
     contentstring += `
     <div class='pokemon name'>
-      ${name} <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${genderType[gender - 1]} ${rarityDisplay}</span> ${typesDisplay}
+      <b>${dittoString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${genderType[gender - 1]} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
     var movesetRating = ''
