@@ -2392,7 +2392,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         if args.gain_xp:
             gxp_spin_stops(forts, pgacc, step_location)
             incubate_eggs(pgacc)
-        elif args.pokestop_spinning or pgacc.get_stats('level', 1):
+        elif args.pokestop_spinning or pgacc.get_stats('level', 1) == 1:
             for f in forts:
                 # Spin Pokestop with 50% chance.
                 if f.type == 1 and pokestop_spinnable(f, step_location):
