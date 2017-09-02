@@ -1262,7 +1262,7 @@ function setupPokestopMarker(item) {
 
     if (item['lure_expiration']) {
       marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['details']['deployer']),
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['deployer']),
           disableAutoPan: true
       })
     } else {
