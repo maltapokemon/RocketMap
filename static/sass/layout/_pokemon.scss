@@ -82,6 +82,13 @@
       margin-right: 3px;
       -webkit-font-smoothing: antialiased;
     }
+
+    &.snipe:before {
+      content: '\f060';
+      font-family: FontAwesome;
+      margin-right: 3px;
+      -webkit-font-smoothing: antialiased;
+    }
   }
 
   &.navigate {

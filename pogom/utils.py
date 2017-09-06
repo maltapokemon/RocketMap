@@ -482,7 +482,7 @@ def get_args():
                         help=('Enables the use of X-FORWARDED-FOR headers ' +
                               'to identify the IP of clients connecting ' +
                               'through these trusted proxies.'))
-    parser.add_argument('--api-version', default='0.69.1',
+    parser.add_argument('--api-version', default='0.73.1',
                         help=('API version currently in use.'))
     parser.add_argument('-sazl', '--show-all-zoom-level',
                         help=('Show all Pokemon, even excluded, at this map '

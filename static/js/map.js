@@ -630,6 +630,7 @@ function pokemonLabel(item) {
                 <span class='pokemon links exclude'><a href='javascript:excludePokemon(${id})'>Exclude</a></span>
                 <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
                 <span class='pokemon links remove'><a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a></span>
+                <span class='pokemon links snipe'><a href='pokesnipe2://${name}/${latitude},${longitude}'target='_blank' title='Snipe Link'>Snipe</a></span>
               </div>
           </div>
           <div class='pokemon container content-right'>
@@ -666,6 +667,7 @@ function pokemonLabel(item) {
             <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
             <span class='pokemon links remove'><a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a></span>
             <span class='pokemon links scout'><a href='javascript:scout("${encounterId}")'>Scout</a></span>
+            <span class='pokemon links snipe'><a href='pokesnipe2://${name}/${latitude},${longitude}'target='_blank' title='Snipe Link'>Snipe</a></span>
           </div>
       </div>
       <div class='pokemon container content-right'>
