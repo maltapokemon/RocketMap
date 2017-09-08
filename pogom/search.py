@@ -943,6 +943,8 @@ def search_worker_thread(args, account_queue, account_sets,
             status['skip'] = 0
             status['captcha'] = 0
 
+            stagger_thread(args)
+
             # Sleep when consecutive_fails reaches max_failures, overall fails
             # for stat purposes.
             consecutive_fails = 0
@@ -1341,6 +1343,15 @@ def gym_request(pgacc, position, gym):
     except Exception as e:
         log.exception('Exception while downloading gym details: %s.', repr(e))
         return False
+
+
+# Delay each thread start time so that logins occur after delay.
+def stagger_thread(args):
+    loginDelayLock.acquire()
+    delay = args.login_delay + ((random.random() - .5) / 2)
+    log.debug('Delaying thread startup for %.2f seconds', delay)
+    time.sleep(delay)
+    loginDelayLock.release()
 
 
 # The delta from last stat to current stat
