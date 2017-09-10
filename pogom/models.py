@@ -548,6 +548,7 @@ class Gym(BaseModel):
                            GymMember.deployment_time,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
+                           GymPokemon.num_upgrades,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
                        .join(Gym, on=(GymMember.gym_id == Gym.gym_id))
@@ -636,6 +637,7 @@ class Gym(BaseModel):
                            GymPokemon.iv_attack,
                            GymPokemon.iv_defense,
                            GymPokemon.iv_stamina,
+                           GymPokemon.num_upgrades,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
                    .join(Gym, on=(GymMember.gym_id == Gym.gym_id))

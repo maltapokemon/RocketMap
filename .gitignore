@@ -32,9 +32,12 @@ static/icons/*.png
 static/css/custom.css
 static/js/custom.js
 *.csv
+*.ini
 *.bat
 *.sh
 *.log
+*.txt
+*.old
 !docs/make.bat
 !Tools/Easy-Setup/easy-setup.sh
 !Tools/Easy-Setup/setup.bat
@@ -43,5 +46,4 @@ static/js/custom.js
 !static/data/*
 !static/icons/hsl*.png
 !static/app/settings.json
-*.txt
-*.old
+

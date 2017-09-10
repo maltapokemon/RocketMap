@@ -85,6 +85,83 @@
       }
     }
   }
+
+  &.cp {
+    display: block;
+    border-radius: 5px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: .85em;
+    
+    &.team-1 {
+      background-color: #4A8ACA;
+      color: #fff;
+    }
+
+    &.team-2 {
+      background-color: #F0443A;
+      color: #fff;
+    }
+
+    &.team-3 {
+      background-color: #FED928;
+      color: #000;
+    }
+  }
+
+  &.coin {
+    @media screen and (max-width: 320px) {
+      height: 9px !important;
+      width: 9px !important;
+    }
+    height: 10px;
+    width: 10px;
+    margin-right: -1px;
+  }
+
+  &.berry {
+    @media screen and (max-width: 320px) {
+      height: 9px !important;
+      width: 9px !important;
+    }
+    height: 10px;
+    width: 10px;
+    margin-right: -1px;
+  }
+
+  &.imgcircle {
+    width: 64px;
+    height: 64px;
+    background-size: cover;
+    display: block;
+    border-radius: 50px;
+    margin: auto;
+
+    &.team-1 {
+      border: 5px solid rgba(0,134,255,1);
+    }
+
+    &.team-2 {
+      border: 5px solid rgba(255,26,26,1);
+    }
+
+    &.team-3 {
+      border: 5px solid rgba(255,159,25,1);
+    }
+  }
+
+  &.countup {
+    font-size: 9px;
+    &:before {
+      content: '\f017';
+      display: inline-block;
+      font-family: FontAwesome;
+      margin: 0px 0px 0px 0px;
+      height: 5px;
+      width: 10px;
+      -webkit-font-smoothing: antialiased;
+    }
+  }
 }
 
 .raid {

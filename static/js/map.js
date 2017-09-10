@@ -468,6 +468,24 @@ function getDateStr(t) {
     return dateStr
 }
 
+// Converts timestamp to readable String
+function getlongDateStr(t) {
+    var ldateStr = 'Unknown'
+    if (t) {
+        ldateStr = moment(t).format('llll')
+    }
+    return ldateStr
+}
+
+// Converts timestamp to readable String
+function getshortDateStr(t) {
+    var sdateStr = 'Unknown'
+    if (t) {
+        sdateStr = moment(t).format('DD/HH:mm')
+    }
+    return sdateStr
+}
+
 function scout(encounterId) { // eslint-disable-line no-unused-vars
     var infoEl = $('#scoutInfo' + atob(encounterId))
 
@@ -636,7 +654,7 @@ function pokemonLabel(item) {
           <div class='pokemon container content-right'>
             <div>
               <div class='pokemon disappear'>
-                <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('HH:mm')})
+                <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('h:mm:ss a')})
               </div>
               <div class='pokemon'>
                 ${iv_circle}
@@ -673,7 +691,7 @@ function pokemonLabel(item) {
       <div class='pokemon container content-right'>
         <div>
           <div class='pokemon disappear'>
-            <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('HH:mm')})
+            <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('h:mm:ss a')})
           </div>
           <div class='pokemon'>
             <span class='pokemon no-encounter'>No IV/CP information</span>
@@ -743,6 +761,8 @@ function gymLabel(gym, includeMembers = true) {
     var subtitle = ''
     var image = ''
     var imageLbl = ''
+    var gymdes = ''
+    var gymImg = ''
     var navInfo = ''
     var memberStr = ''
 
@@ -750,7 +770,7 @@ function gymLabel(gym, includeMembers = true) {
     const titleText = gym.name ? gym.name : (gym.team_id === 0 ? teamName : 'Team ' + teamName)
     const title = `
       <div class='gym name' style='color:rgba(${teamColor[gym.team_id]})'>
-        ${titleText}
+        ${titleText} Gym
       </div>`
 
     if (gym.team_id !== 0) {
@@ -762,6 +782,14 @@ function gymLabel(gym, includeMembers = true) {
             </span>
         </div>`
     }
+
+    if (typeof gym.description !== 'undefined' && gym.description !== null) {
+      gymdes += `<span class='gym pokemon'>${gym.description}</span>`
+	  }
+
+    if (typeof gym.url !== 'undefined' && gym.url !== null) {
+  		gymImg += `<img class="gym imgcircle team-${gym.team_id}" src="${gym.url}"/>`
+  	}
 
     if ((isUpcomingRaid || isRaidStarted) && isRaidFilterOn && isGymSatisfiesRaidMinMaxFilter(raid)) {
         const raidColor = ['252,112,176', '255,158,22', '184,165,221']
@@ -775,7 +803,7 @@ function gymLabel(gym, includeMembers = true) {
                 <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
                 ${levelStr}
                 </span>
-                <span class='raid countdown label-countdown' disappears-at='${raid.end}'></span> left (${moment(raid.end).format('HH:mm')})
+                <span class='raid countdown label-countdown' disappears-at='${raid.end}'></span> left (${moment(raid.end).format('h:mm:ss a')})
                 </div>
             `
             // Use Pokémon-specific image if we have one.
@@ -800,7 +828,7 @@ function gymLabel(gym, includeMembers = true) {
                     <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
                     ${levelStr}
                     </span>
-                    <span class='raid countdown label-countdown' disappears-at='${raid.end}'></span> left (${moment(raid.end).format('HH:mm')})
+                    <span class='raid countdown label-countdown' disappears-at='${raid.end}'></span> left (${moment(raid.end).format('h:mm:ss a')})
                     </div>
                 `
             }
@@ -814,7 +842,7 @@ function gymLabel(gym, includeMembers = true) {
                   <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
                   ${levelStr}
                   </span>
-                  Raid in <span class='raid countdown label-countdown' disappears-at='${raid.start}'> (${moment(raid.start).format('HH:mm')})</span>
+                  Raid in <span class='raid countdown label-countdown' disappears-at='${raid.start}'> (${moment(raid.start).format('h:mm:ss a')})</span>
                 </div>`
         }
     } else if (gym.is_in_battle == 1) {
@@ -844,23 +872,73 @@ function gymLabel(gym, includeMembers = true) {
             </div>
         </div>`
 
-
     if (includeMembers) {
         memberStr = '<div>'
-
         gym.pokemon.forEach((member) => {
+            var deployStr = getDateStr(member.deployment_time)
+            var shortdeployStr = getshortDateStr(member.deployment_time)
+            var longdeployStr = getlongDateStr(member.deployment_time)
+            var berryImg = ''
+            if (member.cp_decayed < (member.pokemon_cp - 200) && member.cp_decayed >= (member.pokemon_cp - 800)) {
+              berryImg += `<img class='gym berry' src='static/images/gym/berry1.png'>`
+            } else if (member.cp_decayed < (member.pokemon_cp - 600) && member.cp_decayed >= (member.pokemon_cp - 1200)) {
+              berryImg += `<img class='gym berry' src='static/images/gym/berry2.png'>`
+            } else if (member.cp_decayed < (member.pokemon_cp - 1200) && member.cp_decayed >= (member.pokemon_cp - 1800)) {
+              berryImg += `<img class='gym berry' src='static/images/gym/berry3.png'>`
+            } else if (member.cp_decayed < (member.pokemon_cp - 1800)) {
+              berryImg += `<img class='gym berry' src='static/images/gym/berry4.png'>`
+            }
+
+            var dtimeStr = ''
+            var coinoutStr = ''
+            var deploycount = member.deployment_time
+
+            var timeDiff = Date.now() - member.deployment_time
+            var gseconds = Math.floor(timeDiff / 1000) % 60 ;
+            var gminutes = Math.floor((timeDiff / (1000*60)) % 60);
+            var ghours = Math.floor((timeDiff / (1000*60*60)) % 24);
+            var gdays = Math.floor((timeDiff / (1000*60*60*24)) % 7);
+            if (gdays > 0) {
+              dtimeStr += `${gdays}D${ghours}H${gminutes}M`
+            } else if (ghours > 0) {
+              dtimeStr += `${ghours}H${gminutes}M`
+            } else if (gminutes > 0) {
+              dtimeStr += `${gminutes}M`
+            }
+            if (ghours >= 8) {
+              coinoutStr += `<img class='gym coin' height='25px' src='static/images/gym/coin.png'>`
+            }
+
             memberStr += `
-            <span class='gym member'>
+            <span class='gym member' title='${member.pokemon_name} | ${member.trainer_name} (Lv: ${member.trainer_level}) | Stardust Use: ${member.num_upgrades}x | Deployed: ${longdeployStr}'>
               <center>
                 <div>
+                  <div>
+                    <span class='gym pokemon'>${member.trainer_name}</span>
+                  </div>
+                  <div>
+                    <span class='gym pokemon'>Lv: ${member.trainer_level}</span>
+                  </div>
                   <div>
                     <i class='pokemon-sprite n${member.pokemon_id}'></i>
                   </div>
                   <div>
-                    <span class='gym pokemon'>${member.pokemon_name}</span>
+                    <span class='gym pokemon'>${member.pokemon_name}X${member.num_upgrades}</span>
+                  </div>
+                  <div>
+                    <span class='gym cp team-${gym.team_id}'>${member.pokemon_cp}</span>
                   </div>
                   <div>
                     <img class='gym pokemon motivation heart' src='static/images/gym/Heart.png'> <span class='gym pokemon motivation'>${member.cp_decayed}</span>
+                  </div>
+                  <div>
+                    <span>${berryImg}</span> <span>${coinoutStr}</span>
+                  </div>
+                  <div>
+                    <span class='gym countup label-countup' count-up='${deploycount}'></span>
+                  </div>
+                  <div>
+                    <span class='gym pokemon'>${shortdeployStr}</span>
                   </div>
                 </div>
               </center>
@@ -874,7 +952,9 @@ function gymLabel(gym, includeMembers = true) {
         <div>
             <center>
                 ${title}
+                ${gymdes}
                 ${subtitle}
+                ${gymImg}
                 ${image}
                 ${imageLbl}
             </center>
@@ -885,44 +965,80 @@ function gymLabel(gym, includeMembers = true) {
         </div>`
 }
 
-function pokestopLabel(expireTime, latitude, longitude, deployer) {
+function pokestopLabel(expireTime, latitude, longitude, name, description, url, deployer) {
     var str
+    var pokestopIcn = ''
+    var pokestopName = ''
+    var pokestopDes = ''
+    var pokestopImg = ''
+    var pokestopDep = ''
+    if (expireTime) {
+      pokestopIcn += `<img class='pokestop stopicn' src='static/images/pokestop//PokestopLured.png'>`
+    } else {
+      pokestopIcn += `<img class='pokestop stopicn' src='static/images/pokestop/Pokestop.png'>`
+    }
+    if (typeof name !== 'undefined' && name !== null) {
+      pokestopName += `<center><span class='pokestop text1'>${name}</span></center>`
+	  }
+    if (typeof description !== 'undefined' && description !== null) {
+      pokestopDes += `<center><span class='pokestop text2'>${description}</span></center>`
+	  }
+    if (typeof url !== 'undefined' && url !== null && expireTime) {
+  		pokestopImg += `<img class='pokestop imgcircle lure' src='${url}'>`
+  	} else {
+      pokestopImg += `<img class='pokestop imgcircle nolure' src='${url}'>`
+    }
+    if (typeof deployer !== 'undefined' && deployer !== null) {
+      pokestopDep += `<center><span class='pokestop deploy'><b>${deployer}</b></span></center>`
+	  }
+    var pokestopNav = `<center><span class='pokestop text2'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps';'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span></center>`
     if (expireTime) {
         str = `
             <div>
+              <div>
+                ${pokestopName}
+              </div>
+              <div>
+                ${pokestopDep}
+              </div>
               <div class='pokestop lure'>
-                Lured Pokéstop
+                ${pokestopIcn} Lured Pokéstop
               </div>
               <div class='pokestop-expire'>
-                  <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('HH:mm')})
+                  <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('h:mm:ss a')})
               </div>
               <div>
-                <img class='pokestop sprite' src='static/images/pokestop//PokestopLured.png'>
+                ${pokestopImg}
               </div>
               <div>
-                Lure Provided By: <b>${deployer}</b>
+                ${pokestopDes}
               </div>
               <div>
-                <span class='pokestop navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'; class='pokestop lure'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
+                ${pokestopNav}
               </div>
             </div>
           </div>`
     } else {
         str = `
             <div>
+              <div>
+                ${pokestopName}
+              </div>
               <div class='pokestop nolure'>
-                Pokéstop
+                ${pokestopIcn} Pokéstop
               </div>
               <div>
-                <img class='pokestop sprite' src='static/images/pokestop/Pokestop.png'>
+                ${pokestopImg}
               </div>
               <div>
-                <span class='pokestop navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'; class='pokestop nolure'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
+                ${pokestopDes}
+              </div>
+              <div>
+                ${pokestopNav}
               </div>
             </div>
           </div>`
     }
-
     return str
 }
 
@@ -1061,13 +1177,33 @@ function getTimeUntil(time) {
     }
 }
 
+function getTimeCount(time) {
+    var now = +new Date()
+    var tdiff = now - time
+
+    var sec = Math.floor((tdiff / 1000) % 60)
+    var min = Math.floor((tdiff / 1000 / 60) % 60)
+    var hour = Math.floor((tdiff / (1000 * 60 * 60)) % 24)
+    var day = Math.floor((tdiff / (1000*60*60*24)) % 7);
+
+    return {
+        'total': tdiff,
+        'day': day,
+        'hour': hour,
+        'min': min,
+        'sec': sec,
+        'now': now,
+        'ttime': time
+    }
+}
+
 function getNotifyText(item) {
     var iv = getIv(item['individual_attack'], item['individual_defense'], item['individual_stamina'])
     var find = ['<prc>', '<pkm>', '<atk>', '<def>', '<sta>']
     var replace = [((iv) ? iv.toFixed(1) : ''), item['pokemon_name'], item['individual_attack'],
         item['individual_defense'], item['individual_stamina']]
     var ntitle = repArray(((iv) ? notifyIvTitle : notifyNoIvTitle), find, replace)
-    var dist = moment(item['disappear_time']).format('HH:mm:ss')
+    var dist = moment(item['disappear_time']).format('h:mm:ss a')
     var until = getTimeUntil(item['disappear_time'])
     var udist = (until.hour > 0) ? until.hour + ':' : ''
     udist += lpad(until.min, 2, 0) + 'm' + lpad(until.sec, 2, 0) + 's'
@@ -1190,6 +1326,7 @@ function setupGymMarker(item) {
                 marker.infoWindow.open(map, marker)
                 clearSelection()
                 updateLabelDiffTime()
+                updateLabelTime()
             })
         }
 
@@ -1264,12 +1401,12 @@ function setupPokestopMarker(item) {
 
     if (item['lure_expiration']) {
       marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['deployer']),
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url'], item['deployer']),
           disableAutoPan: true
       })
     } else {
       marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude']),
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url']),
           disableAutoPan: true
       })
     }
@@ -1406,6 +1543,7 @@ function addListeners(marker) {
             marker.infoWindow.open(map, marker)
             clearSelection()
             updateLabelDiffTime()
+            updateLabelTime()
             marker.persist = true
             marker.infoWindowIsOpen = true
         } else {
@@ -1424,6 +1562,7 @@ function addListeners(marker) {
             marker.infoWindow.open(map, marker)
             clearSelection()
             updateLabelDiffTime()
+            updateLabelTime()
         })
     }
 
@@ -1990,6 +2129,25 @@ var updateLabelDiffTime = function () {
             timestring = lpad(hours, 2, 0) + ':' + lpad(minutes, 2, 0) + ':' + lpad(seconds, 2, 0)
         }
 
+        $(element).text(timestring)
+    })
+}
+
+var updateLabelTime = function () {
+    $('.label-countup').each(function (index, element) {
+        var countUp = getTimeCount(parseInt(element.getAttribute('count-up')))
+        var days = countUp.day
+        var hours = countUp.hour
+        var minutes = countUp.min
+        var seconds = countUp.sec
+        var timestring = ''
+        if (days > 0) {
+          timestring += days + 'D'
+        }
+        if (hours > 0) {
+          timestring += hours + 'H'
+        }
+        timestring += minutes + 'M'
         $(element).text(timestring)
     })
 }
@@ -2709,6 +2867,7 @@ $(function () {
 
     // run interval timers to regularly update map and timediffs
     window.setInterval(updateLabelDiffTime, 1000)
+    window.setInterval(updateLabelTime, 1000)
     window.setInterval(updateMap, 5000)
     window.setInterval(updateGeoLocation, 1000)
 
