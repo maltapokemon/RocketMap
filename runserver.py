@@ -25,7 +25,8 @@ from pogom.altitude import get_gmaps_altitude
 
 from pogom.models import (init_database, create_tables, drop_tables,
                           PlayerLocale, SpawnPoint, db_updater, clean_db_loop,
-                          verify_table_encoding, verify_database_schema)
+                          verify_table_encoding, verify_database_schema,
+                          Gym, Pokestop)
 from pogom.webhook import wh_updater
 
 from pogom.proxy import load_proxies, check_proxies, proxies_refresher
@@ -400,7 +401,7 @@ def main():
 
         # Gather the Pokemon!
 
-        # Attempt to dump the spawn points (do this before starting threads of
+        # Attempt to dump the DB data (do this before starting threads of
         # endure the woe).
         if (args.spawnpoint_scanning and
                 args.spawnpoint_scanning != 'nofile' and
@@ -410,8 +411,32 @@ def main():
                     'Saving spawn points to %s', args.spawnpoint_scanning)
                 spawns = SpawnPoint.get_spawnpoints_in_hex(
                     position, args.step_limit)
-                file.write(json.dumps(spawns))
+                file.write(json.dumps(
+                    spawns, sort_keys=True, indent=4, separators=(',', ': ')))
                 log.info('Finished exporting spawn points')
+
+        if args.fort_scanning:
+            if args.fort_scanning != 'nofile':
+                if args.dump_gyms:
+                    with open(args.fort_scanning, 'w+') as file:
+                        log.info('Saving gyms to %s', args.fort_scanning)
+                        gyms = Gym.get_gyms_in_hex(
+                            position, args.step_limit)
+                        file.write(json.dumps(
+                            gyms, sort_keys=True, indent=4,
+                            separators=(',', ': ')))
+                        log.info('Finished exporting gyms')
+                if args.dump_pokestops:
+                    with open(args.fort_scanning, 'w+') as file:
+                        log.info('Saving pokestops to %s', args.fort_scanning)
+                        pokestops = Pokestop.get_stops_in_hex(
+                            position, args.step_limit)
+                        file.write(json.dumps(
+                            pokestops, sort_keys=True, indent=4,
+                            separators=(',', ': ')))
+                        log.info('Finished exporting Pokestops')
+            else:
+                log.warning('Output file must be provided for a dump.')
 
         argset = (args, new_location_queue, control_flags,
                   heartbeat, db_updates_queue, wh_updates_queue)

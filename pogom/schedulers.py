@@ -47,6 +47,7 @@ add it to __scheduler_classes
 import itertools
 import logging
 import math
+import geopy
 import json
 import time
 import sys
@@ -60,7 +61,7 @@ from operator import itemgetter
 from datetime import datetime, timedelta
 from .transform import get_new_coords
 from .models import (hex_bounds, SpawnPoint, ScannedLocation,
-                     ScanSpawnPoint, HashKeys)
+                     Pokestop, Gym, ScanSpawnPoint, HashKeys)
 from .utils import now, cur_sec, cellid, distance
 from .altitude import get_altitude
 from .geofence import Geofences
@@ -164,7 +165,9 @@ class HexSearch(BaseScheduler):
 
         # If we are only scanning for pokestops/gyms, the scan radius can be
         # 450m.  Otherwise 70m.
-        if self.args.no_pokemon:
+        if self.args.no_pokemon and self.args.no_gyms:
+            self.step_distance = 0.038
+        elif self.args.no_pokemon and self.args.no_pokestops:
             self.step_distance = 0.450
         else:
             self.step_distance = 0.070
@@ -338,6 +341,68 @@ class HexSearchSpawnpoint(HexSearch):
         return locations
 
 
+# Fort Only Hex Search works like Hex Search, but skips locations that
+# have no known forts.
+class HexSearchFort(HexSearch):
+
+    def _any_forts_in_range(self, coords, forts):
+        if self.args.no_pokemon and self.args.no_gyms:
+            return any(
+                geopy.distance.distance(coords, x).meters <= 38
+                for x in forts)
+        elif self.args.no_pokemon and self.args.no_pokestops:
+            return any(
+                geopy.distance.distance(coords, x).meters <= 450
+                for x in forts)
+        else:
+            return any(
+                geopy.distance.distance(coords, x).meters <= 70
+                for x in forts)
+
+
+    # Extend the generate_locations function to remove locations with no forts.
+    def _generate_locations(self):
+
+        fort_locations = {}
+        # Attempt to load forts from file.
+        if self.args.fort_scanning != 'nofile':
+            log.info('Loading forts from json file @ %s',
+                      self.args.fort_scanning)
+            try:
+                with open(self.args.fort_scanning) as file:
+                    fort_locations = json.load(file)
+            except ValueError as e:
+                log.error('JSON error: %s; will fallback to database', repr(e))
+            except IOError as e:
+                log.error(
+                    'Error opening json file: %s; will fallback to database',
+                    repr(e))
+        else:  # Load all forts in step limit from DB
+            if not self.args.no_pokestops:
+                fort_locations = Pokestop.get_stops_in_hex(
+                                    self.scan_location,
+                                    self.step_limit)
+            if not self.args.no_gyms:
+                fort_locations = fort_locations + (Gym.get_gyms_in_hex(
+                                    self.scan_location,
+                                    self.step_limit))
+
+        forts = set((d['lat'], d['lng']) for d in fort_locations)
+
+        if len(forts) == 0:
+            log.warning('No forts found in the specified area!  (Did ' +
+                        'you forget to run a normal scan in this area first?)')
+
+        # Call the original _generate_locations.
+        locations = super(HexSearchFort, self)._generate_locations()
+
+        # Remove items with no fort in range.
+        locations = [
+            coords for coords in locations
+            if self._any_forts_in_range(coords[1], forts)]
+        return locations
+
+
 # Spawn Scan searches known spawnpoints at the specific time they spawn.
 class SpawnScan(BaseScheduler):
 
@@ -346,7 +411,9 @@ class SpawnScan(BaseScheduler):
 
         # If we are only scanning for pokestops/gyms, the scan radius can be
         # 450m.  Otherwise 70m.
-        if self.args.no_pokemon:
+        if self.args.no_pokemon and self.args.no_gyms:
+            self.step_distance = 0.038
+        elif self.args.no_pokemon and self.args.no_pokestops:
             self.step_distance = 0.450
         else:
             self.step_distance = 0.070
@@ -1159,6 +1226,7 @@ class SchedulerFactory():
     __schedule_classes = {
         "hexsearch": HexSearch,
         "hexsearchspawnpoint": HexSearchSpawnpoint,
+        "hexsearchfort": HexSearchFort,
         "spawnscan": SpawnScan,
         "speedscan": SpeedScan,
     }
