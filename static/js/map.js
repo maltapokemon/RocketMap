@@ -759,6 +759,7 @@ function gymLabel(gym, includeMembers = true) {
     const isRaidFilterOn = Store.get('showRaids')
 
     var subtitle = ''
+    var rimage = ''
     var image = ''
     var imageLbl = ''
     var gymdes = ''
@@ -797,7 +798,7 @@ function gymLabel(gym, includeMembers = true) {
 
         if (isRaidStarted) {
             // Set default image.
-            image = `
+            rimage = `
                 <img class='gym sprite' src='static/images/raid/${gymTypes[gym.team_id]}_${raid.level}_unknown.png'>
                 <div class='raid'>
                 <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
@@ -808,7 +809,7 @@ function gymLabel(gym, includeMembers = true) {
             `
             // Use Pokémon-specific image if we have one.
             if (raid.pokemon_id !== null && pokemonWithImages.indexOf(raid.pokemon_id) !== -1) {
-                image = `
+                rimage = `
                     <div class='raid container'>
                     <div class='raid container content-left'>
                         <div>
@@ -832,24 +833,25 @@ function gymLabel(gym, includeMembers = true) {
                     </div>
                 `
             }
-        } else {
-            image = `<img class='gym sprite' src='static/images/egg/${gymTypes[gym.team_id]}_${getGymLevel(gym)}_${raid.level}.png'>`
         }
 
-        if (isUpcomingRaid) {
-            imageLbl = `
-                <div class='raid'>
-                  <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
-                  ${levelStr}
-                  </span>
-                  Raid in <span class='raid countdown label-countdown' disappears-at='${raid.start}'> (${moment(raid.start).format('h:mm:ss a')})</span>
-                </div>`
-        }
+    }
+    if ((isUpcomingRaid) && isRaidFilterOn && isGymSatisfiesRaidMinMaxFilter(raid)) {
+        const raidColor = ['252,112,176', '255,158,22', '184,165,221']
+        const levelStr = '★'.repeat(raid['level'])
+        image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='static/images/egg/${gymTypes[gym.team_id]}_${getGymLevel(gym)}_${raid.level}.png'> </span>`
+        imageLbl = `
+            <div class='raid'>
+              <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
+              ${levelStr}
+              </span>
+              Raid in <span class='raid countdown label-countdown' disappears-at='${raid.start}'> (${moment(raid.start).format('h:mm:ss a')})</span>
+            </div>`
     } else if (gym.is_in_battle == 1) {
-        image = `<img class='gym sprite' src='static/images/battle/B${gymTypes[gym.team_id]}_${getGymLevel(gym)}.png'>`
+        image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='static/images/battle/B${gymTypes[gym.team_id]}_${getGymLevel(gym)}.png'> </span>`
         imageLbl = `<font size="3"><b>In Battle</b></font>`
     } else {
-        image = `<img class='gym sprite' src='static/images/gym/${teamName}_${getGymLevel(gym)}.png'>`
+        image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='static/images/gym/${teamName}_${getGymLevel(gym)}.png'> </span>`
         imageLbl = `<font size="3"><b>${teamName}</b></font>`
     }
 
@@ -954,8 +956,8 @@ function gymLabel(gym, includeMembers = true) {
                 ${title}
                 ${gymdes}
                 ${subtitle}
-                ${gymImg}
                 ${image}
+                ${rimage}
                 ${imageLbl}
             </center>
             ${navInfo}
@@ -985,7 +987,7 @@ function pokestopLabel(expireTime, latitude, longitude, name, description, url, 
 	  }
     if (typeof url !== 'undefined' && url !== null && expireTime) {
   		pokestopImg += `<img class='pokestop imgcircle lure' src='${url}'>`
-  	} else {
+  	} else if (typeof url !== 'undefined' && url !== null) {
       pokestopImg += `<img class='pokestop imgcircle nolure' src='${url}'>`
     }
     if (typeof deployer !== 'undefined' && deployer !== null) {

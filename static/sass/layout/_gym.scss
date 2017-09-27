@@ -8,6 +8,21 @@
     justify-content: center;
   }
 
+  &.container2 {
+    display: flex;
+    justify-content: center;
+
+    &.content-left {
+      width:64px;
+      height: 64px;
+    }
+
+    &.content-right {
+      width:64px;
+      height: 64px;
+    }
+  }
+
   &.member {
     display: inline-block;
     margin-left: 1px;
@@ -92,7 +107,7 @@
     text-align: center;
     vertical-align: middle;
     font-size: .85em;
-    
+
     &.team-1 {
       background-color: #4A8ACA;
       color: #fff;
@@ -137,16 +152,20 @@
     border-radius: 50px;
     margin: auto;
 
+    &.team-0 {
+      border: 5px solid rgba(225,222,241,1);
+    }
+
     &.team-1 {
-      border: 5px solid rgba(0,134,255,1);
+      border: 5px solid rgba(6,119,238,1);
     }
 
     &.team-2 {
-      border: 5px solid rgba(255,26,26,1);
+      border: 5px solid rgba(255,0,0,1);
     }
 
     &.team-3 {
-      border: 5px solid rgba(255,159,25,1);
+      border: 5px solid rgba(251,210,8,1);
     }
   }
 
