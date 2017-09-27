@@ -1018,6 +1018,10 @@ var StoreOptions = {
         default: 100,
         type: StoreTypes.Number
     },
+    'mapServiceProvider': {
+        default: 'googlemaps',
+        type: StoreTypes.String
+    },
     'scaleByRarity': {
         default: true,
         type: StoreTypes.Boolean

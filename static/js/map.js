@@ -125,6 +125,15 @@ function removePokemonMarker(encounterId) { // eslint-disable-line no-unused-var
     mapData.pokemons[encounterId].hidden = true
 }
 
+function createServiceWorkerReceiver() {
+    navigator.serviceWorker.addEventListener('message', function (event) {
+        const data = JSON.parse(event.data)
+        if (data.action === 'centerMap' && data.lat && data.lon) {
+            centerMap(data.lat, data.lon, 20)
+        }
+    })
+}
+
 function initMap() { // eslint-disable-line no-unused-vars
     map = new google.maps.Map(document.getElementById('map'), {
         center: {
@@ -132,6 +141,7 @@ function initMap() { // eslint-disable-line no-unused-vars
             lng: Number(getParameterByName('lon')) || centerLng
         },
         zoom: Number(getParameterByName('zoom')) || Store.get('zoomLevel'),
+        gestureHandling: 'greedy',
         fullscreenControl: true,
         streetViewControl: false,
         mapTypeControl: false,
@@ -263,6 +273,10 @@ function initMap() { // eslint-disable-line no-unused-vars
             searchControl('on')
         }
     })
+
+    if (Push._agents.chrome.isSupported()) {
+        createServiceWorkerReceiver()
+    }
 }
 
 function updateLocationMarker(style) {
@@ -424,6 +438,7 @@ function initSidebar() {
     $('#sound-switch').prop('checked', Store.get('playSound'))
     $('#pokemoncries').toggle(Store.get('playSound'))
     $('#cries-switch').prop('checked', Store.get('playCries'))
+    $('#map-service-provider').val(Store.get('mapServiceProvider'))
 
     // Only create the Autocomplete element if it's enabled in template.
     var elSearchBox = document.getElementById('next-location')
@@ -455,8 +470,14 @@ function getTypeSpan(type) {
 }
 
 function openMapDirections(lat, lng) { // eslint-disable-line no-unused-vars
-    var url = 'https://www.google.com/maps/?daddr=' + lat + ',' + lng
-    window.open(url, '_blank')
+    var url = ''
+    if (Store.get('mapServiceProvider') === 'googlemaps') {
+        url = 'https://www.google.com/maps/?daddr=' + lat + ',' + lng
+        window.open(url, '_blank')
+    } else if (Store.get('mapServiceProvider') === 'applemaps') {
+        url = 'https://maps.apple.com/maps?daddr=' + lat + ',' + lng
+        window.open(url, '_self')
+    }
 }
 
 // Converts timestamp to readable String
@@ -644,11 +665,18 @@ function pokemonLabel(item) {
             <div class='pokemon container content-left'>
               <div>
                 <img class='pokemon sprite' src='static/sprites/${id}.png'>
-                <span class='pokemon'>CP: </span><span class='pokemon encounter'>${cp}</span>
-                <span class='pokemon links exclude'><a href='javascript:excludePokemon(${id})'>Exclude</a></span>
-                <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
-                <span class='pokemon links remove'><a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a></span>
-                <span class='pokemon links snipe'><a href='pokesnipe2://${name}/${latitude},${longitude}'target='_blank' title='Snipe Link'>Snipe</a></span>
+                <div class='pokemon cp big'>
+                  CP: <span class='pokemon encounter big'>${cp}</span>
+                </div>
+                <div class='pokemon links'>
+                  <i class='fa fa-lg fa-fw fa-eye-slash'></i> <a href='javascript:excludePokemon(${id})'>Hide</a>
+                </div>
+                <div class='pokemon links'>
+                  <i class='fa fa-lg fa-fw fa-bullhorn'></i> <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>
+                </div>
+                <div class='pokemon links'>
+                  <i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>
+                </div>
               </div>
           </div>
           <div class='pokemon container content-right'>
@@ -658,7 +686,7 @@ function pokemonLabel(item) {
               </div>
               <div class='pokemon'>
                 ${iv_circle}
-                (A <span class='pokemon encounter'>${atk}</span> | D <span class='pokemon encounter'>${def}</span> | S <span class='pokemon encounter'>${sta}</span>)
+                (A <span class='pokemon encounter'>${atk}</span> &nbsp;&nbsp; D <span class='pokemon encounter'>${def}</span> &nbsp;&nbsp; S <span class='pokemon encounter'>${sta}</span>)
                 ${level_circle}
               </div>
               <div class='pokemon'>
@@ -681,11 +709,15 @@ function pokemonLabel(item) {
         <div class='pokemon container content-left'>
           <div>
             <img class='pokemon sprite' src='static/sprites/${id}.png'>
-            <span class='pokemon links exclude'><a href='javascript:excludePokemon(${id})'>Exclude</a></span>
-            <span class='pokemon links notify'><a href='javascript:notifyAboutPokemon(${id})'>Notify</a></span>
-            <span class='pokemon links remove'><a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a></span>
-            <span class='pokemon links scout'><a href='javascript:scout("${encounterId}")'>Scout</a></span>
-            <span class='pokemon links snipe'><a href='pokesnipe2://${name}/${latitude},${longitude}'target='_blank' title='Snipe Link'>Snipe</a></span>
+            <div class='pokemon links'>
+              <i class='fa fa-lg fa-fw fa-eye-slash'></i> <a href='javascript:excludePokemon(${id})'>Hide</a>
+            </div>
+            <div class='pokemon links'>
+              <i class='fa fa-lg fa-fw fa-bullhorn'></i> <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>
+            </div>
+            <div class='pokemon links'>
+              <i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>
+            </div>
           </div>
       </div>
       <div class='pokemon container content-right'>
@@ -693,8 +725,8 @@ function pokemonLabel(item) {
           <div class='pokemon disappear'>
             <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('h:mm:ss a')})
           </div>
-          <div class='pokemon'>
-            <span class='pokemon no-encounter'>No IV/CP information</span>
+          <div class='pokemon links'>
+            <i class='fa fa-2x fa-binoculars'></i>&nbsp; <a href='javascript:scout("${encounterId}")'>Scout for IV / CP / Moves</a>
           </div>
           <div class='pokemon'>
             <span class='pokemon navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
@@ -1007,7 +1039,11 @@ function pokestopLabel(expireTime, latitude, longitude, name, description, url, 
                 ${pokestopIcn} Lured Pokéstop
               </div>
               <div class='pokestop-expire'>
+<<<<<<< HEAD
                   <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('h:mm:ss a')})
+=======
+                  <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('HH:mm')})
+>>>>>>> refs/remotes/sLoPPy/MIX_SCYTHER
               </div>
               <div>
                 ${pokestopImg}
@@ -2158,27 +2194,62 @@ function getPointDistance(pointA, pointB) {
     return google.maps.geometry.spherical.computeDistanceBetween(pointA, pointB)
 }
 
-function sendNotification(title, text, icon, lat, lng) {
-    if (!('Notification' in window)) {
-        return false // Notifications are not present in browser
-    }
-
-    if (Notification.permission !== 'granted') {
-        Notification.requestPermission()
-    } else {
-        var notification = new Notification(title, {
-            icon: icon,
-            body: text,
-            sound: 'sounds/ding.mp3'
-        })
-
-        notification.onclick = function () {
-            window.focus()
-            notification.close()
-
-            centerMap(lat, lng, 20)
+function sendNotification(title, text, icon, lat, lon) {
+    var notificationDetails = {
+        icon: icon,
+        body: text,
+        data: {
+            lat: lat,
+            lon: lon
         }
     }
+
+    if (Push._agents.desktop.isSupported()) {
+        /* This will only run in browsers which support the old
+         * Notifications API. Browsers supporting the newer Push API
+         * are handled by serviceWorker.js. */
+        notificationDetails.onClick = function (event) {
+            if (Push._agents.desktop.isSupported()) {
+                window.focus()
+                event.currentTarget.close()
+                centerMap(lat, lon, 20)
+            }
+        }
+    }
+
+    /* Push.js requests the Notification permission automatically if
+     * necessary. */
+    Push.create(title, notificationDetails).catch(function () {
+        /* Push.js doesn't fall back automatically if the user denies the
+         * Notifications permission. */
+        sendToastrPokemonNotification(title, text, icon, lat, lon)
+    })
+}
+
+function sendToastrPokemonNotification(title, text, icon, lat, lon) {
+    var notification = toastr.info(text, title, {
+        closeButton: true,
+        positionClass: 'toast-top-right',
+        preventDuplicates: true,
+        onclick: function () {
+            centerMap(lat, lon, 20)
+        },
+        showDuration: '300',
+        hideDuration: '500',
+        timeOut: '6000',
+        extendedTimeOut: '1500',
+        showEasing: 'swing',
+        hideEasing: 'linear',
+        showMethod: 'fadeIn',
+        hideMethod: 'fadeOut'
+    })
+    notification.removeClass('toast-info')
+    notification.css({
+        'padding-left': '74px',
+        'background-image': `url('./${icon}')`,
+        'background-size': '48px',
+        'background-color': '#0c5952'
+    })
 }
 
 function createMyLocationButton() {
@@ -2527,14 +2598,20 @@ function getParameterByName(name, url) {
 //
 
 $(function () {
-    if (!Notification) {
-        console.log('could not load notifications')
-        return
-    }
-
-    if (Notification.permission !== 'granted') {
-        Notification.requestPermission()
-    }
+    /* If push.js is unsupported or disabled, fall back to toastr
+     * notifications. */
+    Push.config({
+        serviceWorker: 'serviceWorker.min.js',
+        fallback: function (notification) {
+            sendToastrPokemonNotification(
+                notification.title,
+                notification.body,
+                notification.icon,
+                notification.data.lat,
+                notification.data.lon
+            )
+        }
+    })
 })
 
 $(function () {
@@ -2568,6 +2645,19 @@ $(function () {
 
         // recall saved mapstyle
         $selectStyle.val(Store.get('map_style')).trigger('change')
+    })
+
+    var mapServiceProvider = $('#map-service-provider')
+
+    mapServiceProvider.select2({
+        placeholder: 'Select map provider',
+        data: ['googlemaps', 'applemaps'],
+        minimumResultsForSearch: Infinity
+    })
+
+    mapServiceProvider.on('change', function (e) {
+        var selectedVal = mapServiceProvider.val()
+        Store.set('mapServiceProvider', selectedVal)
     })
 
     $selectIconSize = $('#pokemon-icon-size')
@@ -2939,11 +3029,29 @@ $(function () {
             }
         }
     }
+
+    function resetGymFilter() {
+        Store.set('showTeamGymsOnly', 0)
+        Store.set('minGymLevel', 0)
+        Store.set('maxGymLevel', 6)
+        Store.set('showOpenGymsOnly', false)
+
+        $('#team-gyms-only-switch').val(Store.get('showTeamGymsOnly'))
+        $('#open-gyms-only-switch').prop('checked', Store.get('showOpenGymsOnly'))
+        $('#min-level-gyms-filter-switch').val(Store.get('minGymLevel'))
+        $('#max-level-gyms-filter-switch').val(Store.get('maxGymLevel'))
+
+        $('#team-gyms-only-switch').trigger('change')
+        $('#min-level-gyms-filter-switch').trigger('change')
+        $('#max-level-gyms-filter-switch').trigger('change')
+    }
+
     // Setup UI element interactions
     $('#gyms-switch').change(function () {
         var options = {
             'duration': 500
         }
+        resetGymFilter()
         var wrapper = $('#gym-sidebar-wrapper')
         if (this.checked) {
             lastgyms = false

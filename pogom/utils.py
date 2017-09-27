@@ -21,7 +21,6 @@ from requests.adapters import HTTPAdapter
 from cHaversine import haversine
 
 from pogom.pgpool import pgpool_request_accounts
-from . import config
 
 log = logging.getLogger(__name__)
 
@@ -248,9 +247,8 @@ def get_args():
     parser.add_argument('-P', '--port', type=int,
                         help='Set web server listening port.', default=5000)
     parser.add_argument('-L', '--locale',
-                        help=('Locale for Pokemon names (default: {}, check ' +
-                              '{} for more).').format(config['LOCALE'],
-                                                      config['LOCALES_DIR']),
+                        help=('Locale for Pokemon names (check' +
+                              ' static/dist/locales for more).'),
                         default='en')
     parser.add_argument('-c', '--china',
                         help='Coordinates transformer for China.',
@@ -419,7 +417,7 @@ def get_args():
                         help=('Get all details about gyms (causes an ' +
                               'additional API hit for every gym).'),
                         action='store_true', default=False)
-    parser.add_argument('--disable-clean', help='Disable clean db loop.',
+    parser.add_argument('-DC', '--enable-clean', help='Enable DB cleaner.',
                         action='store_true', default=False)
     parser.add_argument(
         '--wh-types',
@@ -784,11 +782,6 @@ def get_args():
         # Prepare the IV/CP scanning filters.
         args.enc_whitelist = []
 
-        # IV/CP scanning.
-        if args.enc_whitelist_file:
-            with open(args.enc_whitelist_file) as f:
-                args.enc_whitelist = read_pokemon_ids_from_file(f)
-
         if args.pgpool_url is None:
             # Make max workers equal number of accounts if unspecified, and disable
             # account switching.
@@ -809,12 +802,6 @@ def get_args():
                       "--accountcsv to add accounts. Or use -pgpu/--pgpool-url to " +
                       "specify the URL of PGPool.")
                 sys.exit(1)
-
-        # Prepare webhook whitelist - empty list means no restrictions
-        args.webhook_whitelist = []
-        if args.webhook_whitelist_file:
-            with open(args.webhook_whitelist_file) as f:
-                args.webhook_whitelist = read_pokemon_ids_from_file(f)
 
         # create an empty set
         args.ignorelist = []
@@ -840,7 +827,22 @@ def get_args():
         else:
             args.wh_types = frozenset([i for i in args.wh_types])
 
+    args.locales_dir = 'static/dist/locales'
+    args.data_dir = 'static/dist/data'
     return args
+
+
+def post_init_args(args):
+    # IV/CP scanning.
+    if args.enc_whitelist_file:
+        with open(args.enc_whitelist_file) as f:
+            args.enc_whitelist = read_pokemon_ids_from_file(f)
+
+    # Prepare webhook whitelist - empty list means no restrictions
+    args.webhook_whitelist = []
+    if args.webhook_whitelist_file:
+        with open(args.webhook_whitelist_file) as f:
+            args.webhook_whitelist = read_pokemon_ids_from_file(f)
 
 
 def now():
@@ -881,34 +883,36 @@ def in_radius(loc1, loc2, radius):
 
 
 def i8ln(word):
-    if config['LOCALE'] == "en":
-        return word
     if not hasattr(i8ln, 'dictionary'):
+        args = get_args()
         file_path = os.path.join(
-            config['ROOT_PATH'],
-            config['LOCALES_DIR'],
-            '{}.min.json'.format(config['LOCALE']))
+            args.root_path,
+            args.locales_dir,
+            '{}.min.json'.format(args.locale))
         if os.path.isfile(file_path):
             with open(file_path, 'r') as f:
                 i8ln.dictionary = json.loads(f.read())
         else:
-            log.warning(
-                'Skipping translations - unable to find locale file: %s',
-                file_path)
-            return word
+            # If locale file is not found we set an empty dict to avoid
+            # checking the file every time, we skip the warning for English as
+            # it is not expected to exist.
+            if not args.locale == 'en':
+                log.warning(
+                    'Skipping translations - unable to find locale file: %s',
+                    file_path)
+            i8ln.dictionary = {}
     if word in i8ln.dictionary:
         return i8ln.dictionary[word]
     else:
-        log.debug('Unable to find translation for "%s" in locale %s!',
-                  word, config['LOCALE'])
         return word
 
 
 def get_pokemon_data(pokemon_id):
     if not hasattr(get_pokemon_data, 'pokemon'):
+        args = get_args()
         file_path = os.path.join(
-            config['ROOT_PATH'],
-            config['DATA_DIR'],
+            args.root_path,
+            args.data_dir,
             'pokemon.min.json')
 
         with open(file_path, 'r') as f:
@@ -945,9 +949,10 @@ def get_pokemon_types(pokemon_id):
 
 def get_moves_data(move_id):
     if not hasattr(get_moves_data, 'moves'):
+        args = get_args()
         file_path = os.path.join(
-            config['ROOT_PATH'],
-            config['DATA_DIR'],
+            args.root_path,
+            args.data_dir,
             'moves.min.json')
 
         with open(file_path, 'r') as f:
@@ -969,7 +974,7 @@ def get_move_energy(move_id):
 
 def get_move_type(move_id):
     move_type = get_moves_data(move_id)['type']
-    return {"type": i8ln(move_type), "type_en": move_type}
+    return {'type': i8ln(move_type), 'type_en': move_type}
 
 
 def dottedQuadToNum(ip):

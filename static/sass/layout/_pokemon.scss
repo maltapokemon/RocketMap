@@ -3,7 +3,7 @@
   margin-bottom: 0;
 
   &.content-left {
-    width:64px;
+    width: 72px;
   }
 
   &.content-right {
@@ -15,6 +15,16 @@
   color: rgb(93,109,126);
   font-size: 11px;
   margin-bottom: 2px;
+
+  &.cp {
+    display: block;
+    text-align: center;
+    margin-bottom: 5px;
+  }
+
+  &.big {
+    font-size: 13px;
+  }
 
   &.name {
     font-size: 13px;
@@ -54,41 +64,8 @@
 
   &.links {
     color: rgb(93,109,126);
-
-    &.exclude:before {
-      content: '\f056';
-      font-family: FontAwesome;
-      margin-right: 3px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    &.notify:before {
-      content: '\f055';
-      font-family: FontAwesome;
-      margin-right: 3px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    &.remove:before {
-      content: '\f057';
-      font-family: FontAwesome;
-      margin-right: 3px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    &.scout:before {
-      content: '\f1e5';
-      font-family: FontAwesome;
-      margin-right: 3px;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    &.snipe:before {
-      content: '\f060';
-      font-family: FontAwesome;
-      margin-right: 3px;
-      -webkit-font-smoothing: antialiased;
-    }
+    font-size: 12px;
+    margin-bottom: 4px;
   }
 
   &.navigate {
@@ -105,8 +82,9 @@
 
   &.sprite {
     display: block;
-    height: 48px;
-    width: 48px;
+    width: 64px;
+    -webkit-filter: drop-shadow(grey 3px 3px .2em);
+    margin-bottom: 6px;
   }
 
   &.ball {
