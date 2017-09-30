@@ -8,6 +8,7 @@ import time
 import re
 import ssl
 import json
+import requests
 
 from distutils.version import StrictVersion
 
@@ -572,12 +573,18 @@ def set_log_and_verbosity(log):
     logging.getLogger('pgoapi.rpc_api').setLevel(logging.INFO)
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
+    # This sneaky one calls log.warning() on every retry.
+    urllib3_logger = logging.getLogger(requests.packages.urllib3.__package__)
+    urllib3_logger.setLevel(logging.ERROR)
+
     # Turn these back up if debugging.
     if args.verbose == 2:
         logging.getLogger('pgoapi').setLevel(logging.DEBUG)
         logging.getLogger('pgoapi.pgoapi').setLevel(logging.DEBUG)
         logging.getLogger('requests').setLevel(logging.DEBUG)
-    elif args.verbose >= 3:
+        urllib3_logger.setLevel(logging.INFO)
+
+    if args.verbose >= 3:
         logging.getLogger('peewee').setLevel(logging.DEBUG)
         logging.getLogger('rpc_api').setLevel(logging.DEBUG)
         logging.getLogger('pgoapi.rpc_api').setLevel(logging.DEBUG)
