@@ -23,7 +23,7 @@ from colorlog import ColoredFormatter
 
 from pogom.app import Pogom
 from pogom.utils import (get_args, now, gmaps_reverse_geolocate,
-                         log_resource_usage_loop, post_init_args)
+                         log_resource_usage_loop, post_init_args, get_debug_dump_link)
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.models import (init_database, create_tables, drop_tables,
@@ -249,8 +249,9 @@ def main():
     args.root_path = os.path.dirname(os.path.abspath(__file__))
     post_init_args(args)
 
-    # Abort if only-server and no-server are used together
+    set_log_and_verbosity(log)
 
+    # Abort if only-server and no-server are used together
     if args.only_server and args.no_server:
         log.critical(
             "You can't use no-server and only-server at the same time, silly.")
@@ -262,7 +263,13 @@ def main():
         log.critical('Status name contains illegal characters.')
         sys.exit(1)
 
-    set_log_and_verbosity(log)
+    # Stop if we're just looking for a debug dump.
+    if args.dump:
+        log.info('Retrieving environment info...')
+        hastebin = get_debug_dump_link()
+        log.info('Done! Your debug link: https://hastebin.com/%s.txt',
+                 hastebin)
+        sys.exit(1)
 
     # Initialize Mr. Mime library
     mrmime_cfg = {
