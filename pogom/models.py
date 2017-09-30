@@ -319,7 +319,7 @@ class PokemonBaseModel(BaseModel):
         :return: list of Pokemon appearances over a selected period
         '''
         if timediff:
-            timediff = datetime.utcnow() - timediff
+            timediff = datetime.utcnow() - timedelta(hours=timediff)
         query = (cls
                  .select(cls.latitude,
                          cls.longitude,
@@ -340,16 +340,21 @@ class PokemonBaseModel(BaseModel):
     @cached(cache)
     def get_seen(cls, timediff):
         if timediff:
-            timediff = datetime.utcnow() - timediff
+            timediff = datetime.utcnow() - timedelta(hours=timediff)
+
+        # Note: pokemon_id+0 forces SQL to ignore the pokemon_id index
+        # and should use the disappear_time index and hopefully
+        # improve performance
         pokemon_count_query = (cls
-                               .select(cls.pokemon_id,
-                                       fn.COUNT(cls.pokemon_id).alias(
+                               .select((cls.pokemon_id+0).alias(
+                                           'pokemon_id'),
+                                       fn.COUNT((cls.pokemon_id+0)).alias(
                                            'count'),
                                        fn.MAX(cls.disappear_time).alias(
                                            'lastappeared')
                                        )
                                .where(cls.disappear_time > timediff)
-                               .group_by(cls.pokemon_id)
+                               .group_by((cls.pokemon_id+0))
                                .alias('counttable')
                                )
         query = (cls
@@ -400,7 +405,7 @@ class Pokemon(PokemonBaseModel):
         :return: list of time appearances over a selected period.
         '''
         if timediff:
-            timediff = datetime.utcnow() - timediff
+            timediff = datetime.utcnow() - timedelta(hours=timediff)
         query = (cls
                  .select(cls.disappear_time)
                  .where((cls.pokemon_id == pokemon_id) &
