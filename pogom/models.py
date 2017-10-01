@@ -2827,6 +2827,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'longitude': gym_state.pokemon_fort_proto.longitude,
                 'team': gym_state.pokemon_fort_proto.owned_by_team,
                 'slots_available': gym_state.pokemon_fort_proto.gym_display.slots_available,
+                'is_in_battle': gym_state.pokemon_fort_proto.is_in_battle,
                 'guard_pokemon_id': gym_state.pokemon_fort_proto.guard_pokemon_id,
                 'total_cp': gym_state.pokemon_fort_proto.gym_display.total_gym_cp,
                 'name': g.name,
