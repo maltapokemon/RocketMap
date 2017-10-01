@@ -2301,6 +2301,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
                 })
+                encounter_level = scout_result['scout_level']
             # We need to check if exist and is not false due to a request error
             elif pokemon_info:
                 pokemon[p.encounter_id].update({
