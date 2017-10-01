@@ -36,10 +36,10 @@ from .account import (encounter_pokemon_request,
                       incubate_eggs, fort_details_request, clear_pokemon)
 from .customLog import printPokemon
 from .transform import transform_from_wgs_to_gcj, get_new_coords
-from .utils import (get_pokemon_name, get_pokemon_rarity, get_pokemon_types,
+from .utils import (get_pokemon_name, get_pokemon_types,
                     get_args, cellid, in_radius, date_secs, clock_between,
                     get_move_name, get_move_damage, get_move_energy,
-                    get_move_type, calc_pokemon_level)
+                    get_move_type, calc_pokemon_level, i8ln)
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ class Pokemon(BaseModel):
         for p in list(query):
 
             p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
-            p['pokemon_rarity'] = get_pokemon_rarity(p['pokemon_id'])
+            p['pokemon_rarity'] = Pokemon.get_rarity(p['pokemon_id'])
             p['pokemon_types'] = get_pokemon_types(p['pokemon_id'])
             if args.china:
                 p['latitude'], p['longitude'] = \
@@ -232,7 +232,7 @@ class Pokemon(BaseModel):
         pokemon = []
         for p in query:
             p['pokemon_name'] = get_pokemon_name(p['pokemon_id'])
-            p['pokemon_rarity'] = get_pokemon_rarity(p['pokemon_id'])
+            p['pokemon_rarity'] = Pokemon.get_rarity(p['pokemon_id'])
             p['pokemon_types'] = get_pokemon_types(p['pokemon_id'])
             if args.china:
                 p['latitude'], p['longitude'] = \
@@ -337,6 +337,33 @@ class Pokemon(BaseModel):
                  )
 
         return list(itertools.chain(*query))
+
+
+    @staticmethod
+    def get_rarity(pokemon_id):
+        seen = Pokemon.get_seen(0)
+        total = seen['total']
+        found = 0
+        spawn_group = ''
+        for pokemon in seen['pokemon']:
+                if pokemon['pokemon_id'] == pokemon_id:
+                    found = 1
+                    pokemon_count = pokemon['count']
+        if found == 0:
+            pokemon_count = 0
+        spawn_rate = round(100 * pokemon_count / float(total), 4)
+        if spawn_rate > 1:
+            spawn_group = 'Common'
+        elif spawn_rate > 0.5 and spawn_rate < 1:
+            spawn_group = 'Uncommon'
+        elif spawn_rate > 0.03 and spawn_rate < 0.5:
+            spawn_group = 'Rare'
+        elif spawn_rate > 0.01 and spawn_rate < 0.03:
+            spawn_group = 'Very Rare'
+        elif spawn_rate < 0.01:
+            spawn_group = 'Ultra Rare'
+
+        return i8ln(spawn_group)
 
 
 class Pokestop(BaseModel):
@@ -2491,6 +2518,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             wh_raid.update({
                                 'gym_id': b64_gym_id,
                                 'team_id': f.owned_by_team,
+                                'slots_available':
+                                    gym_display.slots_available,
                                 'spawn': raid_info.raid_spawn_ms / 1000,
                                 'start': raid_info.raid_battle_ms / 1000,
                                 'end': raid_info.raid_end_ms / 1000,
