@@ -798,6 +798,16 @@ var pokemonSprites = {
     name: 'High-Res'
 }
 
+var pokemonSpritesMedal = {
+    columns: 16,
+    iconWidth: 128,
+    iconHeight: 128,
+    spriteWidth: 2048,
+    spriteHeight: 5888,
+    filename: 'static/icons-shuffle-sprite128x-medal.png',
+    name: 'High-Res'
+}
+
 //
 // LocalStorage helpers
 //
@@ -1088,7 +1098,7 @@ function getGoogleSprite(index, sprite, displayHeight) {
 
 function setupPokemonMarkerDetails(item, map, scaleByRarity) {
     const pokemonIndex = item['pokemon_id'] - 1
-    const sprite = pokemonSprites
+    const sprite = isMedalPokemonMap(item) ? pokemonSpritesMedal : pokemonSprites
 
     var markerDetails = {
         sprite: sprite

@@ -28,6 +28,7 @@ static/images/raid/*.png
 static/icons-sprite.png
 static/icons-large-sprite.png
 static/icons-shuffle-sprite128x.png
+static/icons-shuffle-sprite128x-medal.png
 static/icons/*.png
 static/css/custom.css
 static/js/custom.js
@@ -46,4 +47,3 @@ static/js/custom.js
 !static/data/*
 !static/icons/hsl*.png
 !static/app/settings.json
-

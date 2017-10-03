@@ -624,9 +624,18 @@ function pokemonLabel(item) {
         dittoString += build_ditto(previous_id)
     }
 
+    var medalString = ''
+
+    if (item['pokemon_id'] == 19 && item['weight'] <= 2.41) {
+      medalString += `<span>Tiny</span>`
+    }
+    if (item['pokemon_id'] == 129 && item['weight'] >= 13.13) {
+      medalString += `<span>Big</span>`
+    }
+
     contentstring += `
     <div class='pokemon name'>
-      <b>${dittoString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${genderType[gender - 1]} ${rarityDisplay}</span> ${typesDisplay}
+      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${genderType[gender - 1]} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
     var movesetRating = ''
@@ -1179,6 +1188,16 @@ function getRaidLevel(raid) {
     } else {
         return raid['level']
     }
+}
+
+function isMedalPokemonMap(item) {
+    if (item['height'] == null && item['weight'] == null) {
+        return false
+    }
+    if ((item['pokemon_id'] === 19 && item['weight'] <= 2.41) || (item['pokemon_id'] === 129 && item['weight'] >= 13.13)) {
+        return true
+    }
+    return false
 }
 
 function lpad(str, len, padstr) {
