@@ -576,6 +576,26 @@ function build_ditto(previous_id) {
   }
 }
 
+function sizeRatio(height, weight, baseHeight, baseWeight) {
+    var heightRatio = height / baseHeight
+    var weightRatio = weight / baseWeight
+
+    return heightRatio + weightRatio
+}
+
+function isMedalPokemonMap(item) {
+    if (item['height'] == null && item['weight'] == null) {
+        return false
+    }
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+    if ((item['pokemon_id'] === 19 && ratio < 1.5) || (item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
+        return true
+    }
+    return false
+}
+
 function pokemonLabel(item) {
     var name = item['pokemon_name']
     var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
@@ -626,10 +646,15 @@ function pokemonLabel(item) {
 
     var medalString = ''
 
-    if (item['pokemon_id'] == 19 && item['weight'] <= 2.41) {
+    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
+    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+
+    if (item['pokemon_id'] == 19 && ratio < 1.5) {
       medalString += `<span>Tiny</span>`
     }
-    if (item['pokemon_id'] == 129 && item['weight'] >= 13.13) {
+    
+    if (item['pokemon_id'] == 129 && ratio > 2.5 && item['weight'] >= 13.13) {
       medalString += `<span>Big</span>`
     }
 
@@ -1188,16 +1213,6 @@ function getRaidLevel(raid) {
     } else {
         return raid['level']
     }
-}
-
-function isMedalPokemonMap(item) {
-    if (item['height'] == null && item['weight'] == null) {
-        return false
-    }
-    if ((item['pokemon_id'] === 19 && item['weight'] <= 2.41) || (item['pokemon_id'] === 129 && item['weight'] >= 13.13)) {
-        return true
-    }
-    return false
 }
 
 function lpad(str, len, padstr) {
