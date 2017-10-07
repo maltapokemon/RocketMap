@@ -1035,6 +1035,18 @@ var StoreOptions = {
     'scaleByRarity': {
         default: true,
         type: StoreTypes.Boolean
+    },
+    'showMedal': {
+        default: false,
+        type: StoreTypes.Boolean
+    },
+    'showMedalRattata': {
+        default: true,
+        type: StoreTypes.Boolean
+    },
+    'showMedalMagikarp': {
+        default: true,
+        type: StoreTypes.Boolean
     }
 }
 
@@ -1105,8 +1117,7 @@ function setupPokemonMarkerDetails(item, map, scaleByRarity) {
     }
 
     var iconSize = (map.getZoom() - 3) * (map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
-    scaleByRarity = scaleByRarity && Store.get('scaleByRarity')
-    if (scaleByRarity !== false) {
+    if (Store.get('scaleByRarity') && scaleByRarity !== false) {
         const rarityValues = {
             'very rare': 30,
             'ultra rare': 40,

@@ -439,6 +439,10 @@ function initSidebar() {
     $('#pokemoncries').toggle(Store.get('playSound'))
     $('#cries-switch').prop('checked', Store.get('playCries'))
     $('#map-service-provider').val(Store.get('mapServiceProvider'))
+    $('#medal-wrapper').toggle(Store.get('showMedal'))
+    $('#medal-switch').prop('checked', Store.get('showMedal'))
+    $('#medal-rattata-switch').prop('checked', Store.get('showMedalRattata'))
+    $('#medal-magikarp-switch').prop('checked', Store.get('showMedalMagikarp'))
 
     // Only create the Autocomplete element if it's enabled in template.
     var elSearchBox = document.getElementById('next-location')
@@ -590,7 +594,8 @@ function isMedalPokemonMap(item) {
     var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
     var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
     var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
-    if ((item['pokemon_id'] === 19 && ratio < 1.5) || (item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
+    if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
+          (Store.get('showMedalMagikarp') && item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
         return true
     }
     return false
@@ -653,7 +658,7 @@ function pokemonLabel(item) {
     if (item['pokemon_id'] == 19 && ratio < 1.5) {
       medalString += `<span>Tiny</span>`
     }
-    
+
     if (item['pokemon_id'] == 129 && ratio > 2.5 && item['weight'] >= 13.13) {
       medalString += `<span>Big</span>`
     }
@@ -1342,10 +1347,28 @@ function customizePokemonMarker(marker, item, skipNotification) {
         disableAutoPan: true
     })
 
+    if (Store.get('showMedal')) {
+        if (isMedalPokemonMap(item)) {
+            if (!skipNotification) {
+                if (item['pokemon_id'] == 19) {
+                  playPokemonSound(item['pokemon_id'], cryFileTypes)
+                  sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+                }
+                if (item['pokemon_id'] == 129) {
+                  playPokemonSound(item['pokemon_id'], cryFileTypes)
+                  sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+                }
+            }
+            if (marker.animationDisabled !== true) {
+                marker.setAnimation(google.maps.Animation.BOUNCE)
+            }
+        }
+    }
+
     if (isNotifyPoke(item)) {
         if (!skipNotification) {
             playPokemonSound(item['pokemon_id'], cryFileTypes)
-            sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/icons/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+            sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
         }
         if (marker.animationDisabled !== true) {
             marker.setAnimation(google.maps.Animation.BOUNCE)
@@ -3176,6 +3199,23 @@ $(function () {
 
     $('#cries-switch').change(function () {
         Store.set('playCries', this.checked)
+    })
+
+    $('#medal-switch').change(function () {
+        var wrapper = $('#medal-wrapper')
+        wrapper.toggle(this.checked)
+        Store.set('showMedal', this.checked)
+        updateMap()
+    })
+
+    $('#medal-rattata-switch').change(function () {
+        Store.set('showMedalRattata', this.checked)
+        updateMap()
+    })
+
+    $('#medal-magikarp-switch').change(function () {
+        Store.set('showMedalMagikarp', this.checked)
+        updateMap()
     })
 
     $('#geoloc-switch').change(function () {

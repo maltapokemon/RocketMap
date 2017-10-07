@@ -2094,7 +2094,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             # a speed violation.
             log.warning('No nearby or wild Pokemon but there are visible '
                         'gyms or pokestops. Possible speed violation.')
-            if not (config['parse_pokestops'] or config['parse_gyms']):
+            if (args.no_pokestops or args.no_gyms):
                 # If we're not going to parse the forts, then we'll just
                 # exit here.
                 abandon_loc = True
