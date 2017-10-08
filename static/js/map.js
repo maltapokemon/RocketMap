@@ -594,9 +594,11 @@ function isMedalPokemonMap(item) {
     var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
     var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
     var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
-    if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
-          (Store.get('showMedalMagikarp') && item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
-        return true
+    if (Store.get('showMedal')) {
+      if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
+            (Store.get('showMedalMagikarp') && item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
+          return true
+      }
     }
     return false
 }
@@ -1347,6 +1349,16 @@ function customizePokemonMarker(marker, item, skipNotification) {
         disableAutoPan: true
     })
 
+    if (isNotifyPoke(item)) {
+        if (!skipNotification) {
+            playPokemonSound(item['pokemon_id'], cryFileTypes)
+            sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
+        }
+        if (marker.animationDisabled !== true) {
+            marker.setAnimation(google.maps.Animation.BOUNCE)
+        }
+    }
+
     if (Store.get('showMedal')) {
         if (isMedalPokemonMap(item)) {
             if (!skipNotification) {
@@ -1362,16 +1374,6 @@ function customizePokemonMarker(marker, item, skipNotification) {
             if (marker.animationDisabled !== true) {
                 marker.setAnimation(google.maps.Animation.BOUNCE)
             }
-        }
-    }
-
-    if (isNotifyPoke(item)) {
-        if (!skipNotification) {
-            playPokemonSound(item['pokemon_id'], cryFileTypes)
-            sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
-        }
-        if (marker.animationDisabled !== true) {
-            marker.setAnimation(google.maps.Animation.BOUNCE)
         }
     }
 
@@ -3211,17 +3213,65 @@ $(function () {
     $('#medal-switch').change(function () {
         var wrapper = $('#medal-wrapper')
         wrapper.toggle(this.checked)
+        // Change and store the flag
         Store.set('showMedal', this.checked)
+        // Remove all Pokemon markers from map
+        var oldPokeMarkers = []
+        $.each(mapData['pokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
+        markerCluster.removeMarkers(oldPokeMarkers)
+        mapData['pokemons'] = {}
+        // Reload all Pokemon
+        lastpokemon = false
         updateMap()
     })
 
     $('#medal-rattata-switch').change(function () {
+        // Change and store the flag
         Store.set('showMedalRattata', this.checked)
+        // Remove all Pokemon markers from map
+        var oldPokeMarkers = []
+        $.each(mapData['pokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
+        markerCluster.removeMarkers(oldPokeMarkers)
+        mapData['pokemons'] = {}
+        // Reload all Pokemon
+        lastpokemon = false
         updateMap()
     })
 
     $('#medal-magikarp-switch').change(function () {
+        // Change and store the flag
         Store.set('showMedalMagikarp', this.checked)
+        // Remove all Pokemon markers from map
+        var oldPokeMarkers = []
+        $.each(mapData['pokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
+        markerCluster.removeMarkers(oldPokeMarkers)
+        mapData['pokemons'] = {}
+        // Reload all Pokemon
+        lastpokemon = false
         updateMap()
     })
 
