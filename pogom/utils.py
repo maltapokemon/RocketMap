@@ -496,6 +496,9 @@ def get_args():
                         help=('Enables the use of X-FORWARDED-FOR headers ' +
                               'to identify the IP of clients connecting ' +
                               'through these trusted proxies.'))
+    parser.add_argument('-fss', '--fake-search-script', default='',
+                        help=('Get pokemon from script instead. See ' +
+                              '"pogom\sample_fake_scripts" for more info'))
     parser.add_argument('--api-version', default='0.75.1',
                         help=('API version currently in use.'))
     parser.add_argument('-sazl', '--show-all-zoom-level',
@@ -672,6 +675,17 @@ def get_args():
                         sys.exit(1)
 
         errors = []
+
+        if args.fake_search_script:
+            # args parser requires username/password
+            # but, they aren't really needed for fake_search_script mode
+            args.username = ['fake_search_script']
+            args.password = ['fake_search_script']
+            args.hash_key = 'fake_search_script'
+            if not os.path.isfile(args.fake_search_script):
+                errors.append(
+                    'Fake script "' + args.fake_search_script +
+                    '" not found.')
 
         if args.pgpool_url is None:
             num_auths = len(args.auth_service)

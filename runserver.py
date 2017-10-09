@@ -29,6 +29,7 @@ from pogom.models import (init_database, create_tables, drop_tables,
 from pogom.webhook import wh_updater
 
 from pogom.proxy import load_proxies, check_proxies, proxies_refresher
+from pogom.fakeSearcher import fake_search_thread
 from pogom.search import search_overseer_thread
 from time import strftime
 
@@ -440,12 +441,22 @@ def main():
             else:
                 log.warning('Output file must be provided for a dump.')
 
-        argset = (args, new_location_queue, control_flags,
-                  heartbeat, db_updates_queue, wh_updates_queue)
+        # Set To True For Fake Spawn Test Mode #
+        fake_pokemon_mode = False
+        ########################################
+        if fake_pokemon_mode:
+            log.info('** Starting a fake search **')
+            search_thread = Thread(target=fake_search_thread,
+                                   name='search-overseer',
+                                   args=(args, position, db_updates_queue,
+                                         wh_updates_queue))
+        else:
+            argset = (args, new_location_queue, control_flags,
+                      heartbeat, db_updates_queue, wh_updates_queue)
 
-        log.debug('Starting a %s search thread', args.scheduler)
-        search_thread = Thread(target=search_overseer_thread,
-                               name='search-overseer', args=argset)
+            log.debug('Starting a %s search thread', args.scheduler)
+            search_thread = Thread(target=search_overseer_thread,
+                                   name='search-overseer', args=argset)
         search_thread.daemon = True
         search_thread.start()
 
