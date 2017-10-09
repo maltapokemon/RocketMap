@@ -645,6 +645,12 @@ function pokemonLabel(item) {
         formString += `(${unownForm[item['form']]})`
     }
 
+    var pokeImg = ''
+    if (id === 201 && form !== null && form > 0) {
+      pokeImg += `<img class='pokemon sprite' src='static/sprites/${id}${unownForm[item['form']]}.png'>`
+    } else {
+      pokeImg += `<img class='pokemon sprite' src='static/sprites/${id}.png'>`
+    }
     var dittoString = ''
 
     if (id === 132 && previous_id != null) {
@@ -705,7 +711,7 @@ function pokemonLabel(item) {
           <div class='pokemon container'>
             <div class='pokemon container content-left'>
               <div>
-                <img class='pokemon sprite' src='static/sprites/${id}.png'>
+                ${pokeImg}
                 <div class='pokemon cp big'>
                   CP: <span class='pokemon encounter big'>${cp}</span>
                 </div>
@@ -749,7 +755,7 @@ function pokemonLabel(item) {
       <div class='pokemon container'>
         <div class='pokemon container content-left'>
           <div>
-            <img class='pokemon sprite' src='static/sprites/${id}.png'>
+            ${pokeImg}
             <div class='pokemon links'>
               <i class='fa fa-lg fa-fw fa-eye-slash'></i> <a href='javascript:excludePokemon(${id})'>Hide</a>
             </div>
