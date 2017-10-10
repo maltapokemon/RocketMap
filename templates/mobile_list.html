@@ -13,7 +13,7 @@
 
 	<ol>
 {% for pokemon in pokemon_list[:20] %}
-{% set img = 'icons/' ~ pokemon.id ~ '.png' -%}
+{% set img = 'sprites/' ~ pokemon.id ~ '.png' -%}
 		<li style="list-style-type: none; background-image: url('{{ url_for('static', filename=img).lstrip('/') }}');"
 				href='https://maps.google.com/?q={{pokemon.latitude}},{{pokemon.longitude}}&amp;ll={{pokemon.latitude}},{{pokemon.longitude}}'>
 				<p>
