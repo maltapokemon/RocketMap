@@ -896,10 +896,10 @@ function isValidRaid(raid) {
 }
 
 function isGymSatisfiesRaidMinMaxFilter(raid) {
-    if (raid === null) {
-        return 0
-    } else {
+    if (raid) {
         return (raid['level'] <= Store.get('showRaidMaxLevel') && raid['level'] >= Store.get('showRaidMinLevel')) ? 1 : 0
+    } else {
+        return 0
     }
 }
 
@@ -1351,11 +1351,7 @@ function getGymLevel(gym) {
 }
 
 function getRaidLevel(raid) {
-    if (raid === null) {
-        return 0
-    } else {
-        return raid['level']
-    }
+    return raid['level'] || 0
 }
 
 function lpad(str, len, padstr) {
