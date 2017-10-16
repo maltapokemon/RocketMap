@@ -1308,6 +1308,24 @@ class WorkerStatus(BaseModel):
 
         return result
 
+    @classmethod
+    def get_center_of_worker(cls, worker_name):
+        query = (WorkerStatus
+                 .select(fn.Avg(WorkerStatus.latitude).alias('lat'),
+                         fn.Avg(WorkerStatus.longitude).alias('lng'))
+                 .where((WorkerStatus.worker_name == worker_name))
+                 .group_by(WorkerStatus.worker_name)
+                 .dicts())
+        try:
+            if len(query):
+                return query[0]
+            else:
+                log.error("Area {} not found.".format(worker_name))
+        except Exception as e:
+            log.error("Could not determine center of area {}: {}".format(worker_name, repr(e)))
+
+        return None
+
 
 class SpawnPoint(BaseModel):
     id = Utf8mb4CharField(primary_key=True, max_length=50)
