@@ -1,9 +1,30 @@
 /// Sprites for Pokemon icons on map.
 .pokemon-large-sprite {
-  @include pokemon-sprites("icons-shuffle-sprite128x.png", 80px);
+  @include pokemon-sprites("icons-shuffle-sprite128x.png", 80px, 16, 721, 'n');
 }
 
 /// Sprites for Pokemon icons in gyms and statistics.
 .pokemon-sprite {
-  @include pokemon-sprites("icons-shuffle-sprite128x.png", 30px);
+  @include pokemon-sprites("icons-shuffle-sprite128x.png", 30px, 16, 721, 'n');
+}
+
+/// Sprites for Pokemon form icons on map.
+.pokemon-large-form-sprite {
+  @include pokemon-sprites("icons-forms-sprite.png", 80px, 16, 28, 'f');
+}
+
+/// Sprites for Pokemon form icons in gyms and statistics.
+.pokemon-form-sprite {
+  @include pokemon-sprites("icons-forms-sprite.png", 30px, 16, 28, 'f');
+}
+
+
+/// Sprites for Pokemon form icons on map.
+.pokemon-large-medal-sprite {
+  @include pokemon-sprites("icons-shuffle-sprite128x-medal.png", 80px, 16, 721, 'n');
+}
+
+/// Sprites for Pokemon form icons in gyms and statistics.
+.pokemon-medal-sprite {
+  @include pokemon-sprites("icons-shuffle-sprite128x-medal.png", 30px, 16, 721, 'n');
 }

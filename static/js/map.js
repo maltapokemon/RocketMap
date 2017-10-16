@@ -595,8 +595,8 @@ function isMedalPokemonMap(item) {
     var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
     var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
     if (Store.get('showMedal')) {
-      if ((Store.get('showMedalRattata') && item['pokemon_id'] === 19 && ratio < 1.5) ||
-            (Store.get('showMedalMagikarp') && item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
+      if ((item['pokemon_id'] === 19 && ratio < 1.5) ||
+            (item['pokemon_id'] === 129 && ratio > 2.5 && item['weight'] >= 13.13)) {
           return true
       }
     }
@@ -639,18 +639,13 @@ function pokemonLabel(item) {
     var details = ''
 
     var contentstring = ''
+
     var formString = ''
 
     if (id === 201 && form !== null && form > 0) {
         formString += `(${unownForm[item['form']]})`
     }
 
-    var pokeImg = ''
-    if (id === 201 && form !== null && form > 0) {
-      pokeImg += `<img class='pokemon sprite' src='static/sprites/${id}${unownForm[item['form']]}.png'>`
-    } else {
-      pokeImg += `<img class='pokemon sprite' src='static/sprites/${id}.png'>`
-    }
     var dittoString = ''
 
     if (id === 132 && previous_id != null) {
@@ -677,6 +672,7 @@ function pokemonLabel(item) {
     </div>`
 
     var movesetRating = ''
+
     if (ratingAttack !== null) {
         movesetRating = `
           <div class='pokemon'>
@@ -687,6 +683,7 @@ function pokemonLabel(item) {
     }
 
     var catchProbs = ''
+
     if (prob1 !== null) {
         catchProbs = `
           <div class='pokemon'>
@@ -711,7 +708,7 @@ function pokemonLabel(item) {
           <div class='pokemon container'>
             <div class='pokemon container content-left'>
               <div>
-                ${pokeImg}
+                <img class='pokemon sprite' src='${pokemonIcon(id, form)}'>
                 <div class='pokemon cp big'>
                   CP: <span class='pokemon encounter big'>${cp}</span>
                 </div>
@@ -755,7 +752,7 @@ function pokemonLabel(item) {
       <div class='pokemon container'>
         <div class='pokemon container content-left'>
           <div>
-            ${pokeImg}
+            <img class='pokemon sprite' src='${pokemonIcon(id, form)}'>
             <div class='pokemon links'>
               <i class='fa fa-lg fa-fw fa-eye-slash'></i> <a href='javascript:excludePokemon(${id})'>Hide</a>
             </div>
@@ -990,8 +987,13 @@ function gymLabel(gym, includeMembers = true) {
               coinoutStr += `<img class='gym coin' height='25px' src='static/images/gym/coin.png'>`
             }
 
+            var formString = ''
+            if (member.pokemon_id === 201 && member.form !== null && member.form > 0) {
+                formString += `(${unownForm[`${member.form}`]})`
+            }
+
             memberStr += `
-            <span class='gym member' title='${member.pokemon_name} | ${member.trainer_name} (Lv: ${member.trainer_level}) | Stardust Use: ${member.num_upgrades}x | Deployed: ${longdeployStr}'>
+            <span class='gym member' title='${member.trainer_name} Lv: ${member.trainer_level} | ${member.pokemon_name}${formString} | Stardust Use: ${member.num_upgrades}x | Deployed: ${longdeployStr}'>
               <center>
                 <div>
                   <div>
@@ -1001,10 +1003,10 @@ function gymLabel(gym, includeMembers = true) {
                     <span class='gym pokemon'>Lv: ${member.trainer_level}</span>
                   </div>
                   <div>
-                    <i class='pokemon-sprite n${member.pokemon_id}'></i>
+                    <i class='${pokemonSprite(member.pokemon_id, member.form)}'></i>
                   </div>
                   <div>
-                    <span class='gym pokemon'>${member.pokemon_name}X${member.num_upgrades}</span>
+                    <span class='gym pokemon'>${member.pokemon_name}${formString}X${member.num_upgrades}</span>
                   </div>
                   <div>
                     <span class='gym cp team-${gym.team_id}'>${member.pokemon_cp}</span>
@@ -1368,17 +1370,19 @@ function customizePokemonMarker(marker, item, skipNotification) {
     if (Store.get('showMedal')) {
         if (isMedalPokemonMap(item)) {
             if (!skipNotification) {
-                if (item['pokemon_id'] == 19) {
+                if (Store.get('showMedalRattata') && item['pokemon_id'] == 19) {
                   playPokemonSound(item['pokemon_id'], cryFileTypes)
                   sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
                 }
-                if (item['pokemon_id'] == 129) {
+                if (Store.get('showMedalMagikarp') && item['pokemon_id'] == 129) {
                   playPokemonSound(item['pokemon_id'], cryFileTypes)
                   sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
                 }
             }
-            if (marker.animationDisabled !== true) {
-                marker.setAnimation(google.maps.Animation.BOUNCE)
+            if (Store.get('showMedalRattata') || Store.get('showMedalMagikarp')) {
+              if (marker.animationDisabled !== true) {
+                  marker.setAnimation(google.maps.Animation.BOUNCE)
+              }
             }
         }
     }
@@ -2527,7 +2531,7 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
             pokemonHtml = `
                 <center>
                     Gym Leader:<br>
-                    <i class="pokemon-large-sprite n${result.guard_pokemon_id}"></i><br>
+                    <i class="${pokemonSprite(result.guard_pokemon_id, 0, true)}"></i><br>
                     <b>${result.guard_pokemon_name}</b>
 
                     <p style="font-size: .75em; margin: 5px;">
@@ -2558,20 +2562,25 @@ function showGymDetails(id) { // eslint-disable-line no-unused-vars
 function getSidebarGymMember(pokemon) {
     var perfectPercent = getIv(pokemon.iv_attack, pokemon.iv_defense, pokemon.iv_stamina)
     var moveEnergy = Math.round(100 / pokemon.move_2_energy)
+    var formString = ''
 
+    if (pokemon.pokemon_id === 201 && pokemon.form !== null && pokemon.form > 0) {
+        formString += `(<b>${unownForm[`${pokemon.form}`]}</b>)`
+    }
 
     return `
                     <tr onclick=toggleGymPokemonDetails(this)>
-                        <td width="30px">
-                            <img class="gym pokemon sprite" src="static/sprites/${pokemon.pokemon_id}.png">
+                        <td width="35px">
+                            <i class="${pokemonSprite(pokemon.pokemon_id, pokemon.form, true)}" >
                         </td>
                         <td>
-                            <div class="gym pokemon" style="line-height:0.5em;">${pokemon.pokemon_name}</div>
+                            <div class="gym pokemon" style="line-height:0.5em;"><b>${pokemon.pokemon_name}</b>${formString}X${pokemon.num_upgrades}</div>
                             <div><img class="gym pokemon motivation heart" src="static/images/gym/Heart.png"> <span class="gym pokemon motivation">${pokemon.cp_decayed}</span></div>
                         </td>
                         <td width="190" align="center">
-                            <div class="gym pokemon" style="line-height:1em;">${pokemon.trainer_name} (${pokemon.trainer_level})</div>
-                            <div class="gym pokemon">Deployed ${getDateStr(pokemon.deployment_time)}</div>
+                            <div class="gym pokemon" style="line-height:1em;"><b>${pokemon.trainer_name}</b></div>
+                            <div class="gym pokemon" style="line-height:1em;">Lv: <b>${pokemon.trainer_level}</b></div>
+                            <div class="gym pokemon"><b>${getDateStr(pokemon.deployment_time)}</b></div>
                         </td>
                         <td width="10">
                             <!--<a href="#" onclick="toggleGymPokemonDetails(this)">-->
@@ -2612,24 +2621,24 @@ function getSidebarGymMember(pokemon) {
                             <div class="moves">
                                 <div class="move">
                                     <div class="name">
-                                        ${pokemon.move_1_name}
+                                        <b>${pokemon.move_1_name}</b>
                                         <div class="type ${pokemon.move_1_type['type_en'].toLowerCase()}">${pokemon.move_1_type['type']}</div>
                                     </div>
                                     <div class="damage">
-                                        ${pokemon.move_1_damage}
+                                        <b>${pokemon.move_1_damage}</b>
                                     </div>
                                 </div>
                                 <br>
                                 <div class="move">
                                     <div class="name">
-                                        ${pokemon.move_2_name}
+                                        <b>${pokemon.move_2_name}</b>
                                         <div class="type ${pokemon.move_2_type['type_en'].toLowerCase()}">${pokemon.move_2_type['type']}</div>
                                         <div>
                                             <i class="move-bar-sprite move-bar-sprite-${moveEnergy}"></i>
                                         </div>
                                     </div>
                                     <div class="damage">
-                                        ${pokemon.move_2_damage}
+                                        <b>${pokemon.move_2_damage}</b>
                                     </div>
                                 </div>
                             </div>
@@ -2921,9 +2930,7 @@ $(function () {
         if (!state.id) {
             return state.text
         }
-        var $state = $(
-            '<span><i class="pokemon-sprite n' + state.element.value.toString() + '"></i> ' + state.text + '</span>'
-        )
+        var $state = $(`<span><i class="${pokemonSprite(state.element.value)}"></i> ${state.text}</span>`)
         return $state
     }
 

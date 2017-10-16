@@ -47,7 +47,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 23
+db_schema_version = 24
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -301,7 +301,8 @@ class Pokemon(BaseModel):
         if timediff:
             timediff = datetime.utcnow() - timediff
         query = (Pokemon
-                 .select(Pokemon.latitude, Pokemon.longitude,
+                 .select(Pokemon.latitude,
+                         Pokemon.longitude,
                          Pokemon.pokemon_id,
                          fn.Count(Pokemon.spawnpoint_id).alias('count'),
                          Pokemon.spawnpoint_id)
@@ -611,6 +612,7 @@ class Gym(BaseModel):
                            GymMember.deployment_time,
                            GymMember.last_scanned,
                            GymPokemon.pokemon_id,
+                           GymPokemon.form,
                            GymPokemon.num_upgrades,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
@@ -700,6 +702,7 @@ class Gym(BaseModel):
                            GymPokemon.iv_attack,
                            GymPokemon.iv_defense,
                            GymPokemon.iv_stamina,
+                           GymPokemon.form,
                            GymPokemon.num_upgrades,
                            Trainer.name.alias('trainer_name'),
                            Trainer.level.alias('trainer_level'))
@@ -1893,6 +1896,7 @@ class GymPokemon(BaseModel):
     iv_defense = SmallIntegerField(null=True)
     iv_stamina = SmallIntegerField(null=True)
     iv_attack = SmallIntegerField(null=True)
+    form = SmallIntegerField(null=True)
     last_seen = DateTimeField(default=datetime.utcnow)
 
 
@@ -2869,6 +2873,7 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
                 'iv_defense': pokemon.individual_defense,
                 'iv_stamina': pokemon.individual_stamina,
                 'iv_attack': pokemon.individual_attack,
+                'form': pokemon.pokemon_display.form,
                 'last_seen': datetime.utcnow(),
             }
 
@@ -3429,6 +3434,12 @@ def database_migrate(db, old_ver):
         migrate(
             migrator.add_column(
                 'scannedlocation', 'radius', SmallIntegerField(default=70))
+        )
+
+    if old_ver < 24:
+        migrate(
+            migrator.add_column('gympokemon', 'form',
+                                SmallIntegerField(null=True, default=0))
         )
 
     # Always log that we're done.

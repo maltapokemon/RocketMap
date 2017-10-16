@@ -798,7 +798,17 @@ var pokemonSprites = {
     name: 'High-Res'
 }
 
-var pokemonSpritesMedal = {
+var pokemonFormSprites = {
+    columns: 16,
+    iconWidth: 128,
+    iconHeight: 128,
+    spriteWidth: 2048,
+    spriteHeight: 255,
+    filename: 'static/icons-large-forms-sprite.png',
+    name: 'High-Res'
+}
+
+var pokemonMedalSprites = {
     columns: 16,
     iconWidth: 128,
     iconHeight: 128,
@@ -1116,19 +1126,51 @@ function getGoogleSprite(index, sprite, displayHeight) {
     }
 }
 
-function setupPokemonMarkerDetails(item, map, scaleByRarity = true, isNotifyPkmn = false) {
-    const pokemonIndex = item['pokemon_id'] - 1
-    const sprite = isMedalPokemonMap(item) ? pokemonSpritesMedal : pokemonSprites
+function pokemonIcon(pokemonId, pokemonForm = 0) {
+    const id = parseInt(pokemonId)
+    const form = parseInt(pokemonForm)
 
-    var markerDetails = {
-        sprite: sprite
+    if (id === 201 && form > 0) {
+        return `static/sprites/${id}${unownForm[`${form}`]}.png`
     }
+
+    return `static/sprites/${id}.png`
+}
+
+function pokemonSprite(pokemonId, pokemonForm = 0, useLargeSprite = false) {
+    const id = parseInt(pokemonId)
+    const form = parseInt(pokemonForm)
+    const spriteSize = `pokemon${useLargeSprite ? '-large' : ''}`
+
+    if (id === 201 && form > 0) {
+        return `${spriteSize}-form-sprite f${form}`
+    }
+
+    return `${spriteSize}-sprite n${id}`
+}
+
+function pokemonMarkerSprite(item, pokemonId, pokemonForm = 0, height) {
+    const id = parseInt(pokemonId)
+    const form = parseInt(pokemonForm)
+
+    if (id === 201 && form > 0) {
+        return getGoogleSprite(form - 1, pokemonFormSprites, height)
+    }
+
+    if (isMedalPokemonMap(item)) {
+      return getGoogleSprite(id - 1, pokemonMedalSprites, height)
+    }
+
+    return getGoogleSprite(id - 1, pokemonSprites, height)
+}
+
+function setupPokemonMarkerDetails(item, map, scaleByRarity = true, isNotifyPkmn = false) {
     var iconSize = (map.getZoom() - 3) * (map.getZoom() - 3) * 0.2 + Store.get('iconSizeModifier')
-    rarityValue = 2
+    var rarityValue = 2
 
     if (Store.get('upscalePokemon')) {
         const upscaledPokemon = Store.get('upscaledPokemon')
-        var rarityValue = isNotifyPkmn || (upscaledPokemon.indexOf(item['pokemon_id']) !== -1) ? 29 : 2
+        rarityValue = isNotifyPkmn || (upscaledPokemon.indexOf(item['pokemon_id']) !== -1) ? 29 : 2
     }
 
     if (scaleByRarity) {
@@ -1149,11 +1191,11 @@ function setupPokemonMarkerDetails(item, map, scaleByRarity = true, isNotifyPkmn
     }
 
     iconSize += rarityValue
-    markerDetails.rarityValue = rarityValue
-    markerDetails.icon = getGoogleSprite(pokemonIndex, sprite, iconSize)
-    markerDetails.iconSize = iconSize
-
-    return markerDetails
+    return {
+        icon: pokemonMarkerSprite(item, item.pokemon_id, item.form, iconSize),
+        iconSize: iconSize,
+        rarityValue: rarityValue
+    }
 }
 
 function setupPokemonMarker(item, map, isBounceDisabled, scaleByRarity, isNotifyPkmn = false) {
