@@ -544,6 +544,9 @@ def get_args():
     parser.add_argument('-lus', '--lure-stop',
                         help='Lure up Pokestops Automatically.',
                         action='store_true', default=False)
+    parser.add_argument('-lp', '--lured-pokemon',
+                        help=('Add Pokemon From Lures To The Map.'),
+                        action='store_true', default=False)
     parser.add_argument('-lf', '--lureFence',
                         help='Choose area for Pokestop luring')
     parser.add_argument('-nlf', '--nolureFence',

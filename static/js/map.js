@@ -630,6 +630,7 @@ function pokemonLabel(item) {
     var ratingAttack = item['rating_attack']
     var ratingDefense = item['rating_defense']
     var previous_id = item['previous_id']
+    var spawnpoint_id = item['spawnpoint_id']
     var encounterIdLong = atob(encounterId)
 
     $.each(types, function (index, type) {
@@ -666,11 +667,23 @@ function pokemonLabel(item) {
       medalString += `<span>Big</span>`
     }
 
+    if (gender != null) {
+      gender = genderType[gender - 1]
+    } else {
+      gender = ''
+    }
+
     contentstring += `
     <div class='pokemon name'>
-      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${genderType[gender - 1]} ${rarityDisplay}</span> ${typesDisplay}
+      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
+    if (spawnpoint_id === 'lured_pokemon') {  // spawnpoint_id was filled with fort_id which is by far longer
+        contentstring += `
+        <div>
+            <b>Lured Pokemon</b>
+        </div>`
+    }
     var movesetRating = ''
 
     if (ratingAttack !== null) {
