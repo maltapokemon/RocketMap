@@ -804,7 +804,7 @@ var pokemonFormSprites = {
     iconHeight: 128,
     spriteWidth: 2048,
     spriteHeight: 255,
-    filename: 'static/icons-large-forms-sprite.png',
+    filename: 'static/icons-forms-sprite.png',
     name: 'High-Res'
 }
 
