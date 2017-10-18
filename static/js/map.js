@@ -1392,7 +1392,12 @@ function customizePokemonMarker(marker, item, skipNotification) {
                   sendNotification(notifyText.fav_title, notifyText.fav_text, 'static/sprites/' + item['pokemon_id'] + '.png', item['latitude'], item['longitude'])
                 }
             }
-            if (Store.get('showMedalRattata') || Store.get('showMedalMagikarp')) {
+            if (Store.get('showMedalRattata') && item['pokemon_id'] == 19) {
+              if (marker.animationDisabled !== true) {
+                  marker.setAnimation(google.maps.Animation.BOUNCE)
+              }
+            }
+            if (Store.get('showMedalMagikarp') && item['pokemon_id'] == 129) {
               if (marker.animationDisabled !== true) {
                   marker.setAnimation(google.maps.Animation.BOUNCE)
               }
