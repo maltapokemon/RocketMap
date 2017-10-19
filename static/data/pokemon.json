@@ -3273,8 +3273,6 @@
     "name": "Delcatty"
   },
   "302": {
-    "name": "Sableye",
-    "rarity": "",
     "types": [
       {
         "type": "Dark",
@@ -3285,7 +3283,7 @@
         "color": "#705898"
       }
     ],
-    "spawn_rate": ""
+    "name": "Sableye"
   },
   "303": {
     "types": [
@@ -3846,48 +3844,40 @@
     "name": "Kecleon"
   },
   "353": {
-    "name": "Shuppet",
-    "rarity": "",
     "types": [
       {
         "type": "Ghost",
         "color": "#705898"
       }
     ],
-    "spawn_rate": ""
+    "name": "Shuppet"
   },
   "354": {
-    "name": "Banette",
-    "rarity": "",
     "types": [
       {
         "type": "Ghost",
         "color": "#705898"
       }
     ],
-    "spawn_rate": ""
+    "name": "Banette"
   },
   "355": {
-    "name": "Duskull",
-    "rarity": "",
     "types": [
       {
         "type": "Ghost",
         "color": "#705898"
       }
     ],
-    "spawn_rate": ""
+    "name": "Duskull"
   },
   "356": {
-    "name": "Dusclops",
-    "rarity": "",
     "types": [
       {
         "type": "Ghost",
         "color": "#705898"
       }
     ],
-    "spawn_rate": ""
+    "name": "Dusclops"
   },
   "357": {
     "types": [
