@@ -3273,19 +3273,6 @@
     "name": "Delcatty"
   },
   "302": {
-<<<<<<< HEAD
-    "types": [
-      {
-      "type": "Dark",
-      "color": "#707070"
-      },
-      {
-      "type": "Ghost",
-      "color": "#705898"
-      }
-    ],
-    "name": "Sableye"
-=======
     "name": "Sableye",
     "rarity": "",
     "types": [
@@ -3299,7 +3286,6 @@
       }
     ],
     "spawn_rate": ""
->>>>>>> refs/remotes/sLoPPy/MIX_SCYTHER
   },
   "303": {
     "types": [
