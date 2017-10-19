@@ -258,3 +258,11 @@
 -Lugia
 -HoOh
 -Celebi
+# ================
+# = Generation 3
+# ================
+Sableye
+Shuppet
+Banette
+Duskull
+Dusclops

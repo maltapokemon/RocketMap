@@ -3273,6 +3273,7 @@
     "name": "Delcatty"
   },
   "302": {
+<<<<<<< HEAD
     "types": [
       {
       "type": "Dark",
@@ -3284,6 +3285,21 @@
       }
     ],
     "name": "Sableye"
+=======
+    "name": "Sableye",
+    "rarity": "",
+    "types": [
+      {
+        "type": "Dark",
+        "color": "#707070"
+      },
+      {
+        "type": "Ghost",
+        "color": "#705898"
+      }
+    ],
+    "spawn_rate": ""
+>>>>>>> refs/remotes/sLoPPy/MIX_SCYTHER
   },
   "303": {
     "types": [
@@ -3844,40 +3860,48 @@
     "name": "Kecleon"
   },
   "353": {
+    "name": "Shuppet",
+    "rarity": "",
     "types": [
       {
-      "type": "Ghost",
-      "color": "#705898"
+        "type": "Ghost",
+        "color": "#705898"
       }
     ],
-    "name": "Shuppet"
+    "spawn_rate": ""
   },
   "354": {
+    "name": "Banette",
+    "rarity": "",
     "types": [
       {
-      "type": "Ghost",
-      "color": "#705898"
+        "type": "Ghost",
+        "color": "#705898"
       }
     ],
-    "name": "Banette"
+    "spawn_rate": ""
   },
   "355": {
+    "name": "Duskull",
+    "rarity": "",
     "types": [
       {
-      "type": "Ghost",
-      "color": "#705898"
+        "type": "Ghost",
+        "color": "#705898"
       }
     ],
-    "name": "Duskull"
+    "spawn_rate": ""
   },
   "356": {
+    "name": "Dusclops",
+    "rarity": "",
     "types": [
       {
-      "type": "Ghost",
-      "color": "#705898"
+        "type": "Ghost",
+        "color": "#705898"
       }
     ],
-    "name": "Dusclops"
+    "spawn_rate": ""
   },
   "357": {
     "types": [
