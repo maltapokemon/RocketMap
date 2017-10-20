@@ -3248,7 +3248,7 @@ $(function () {
         return $state
     }
 
-    if (Store.get('startAtUserLocation')) {
+    if (Store.get('startAtUserLocation') && getParameterByName('lat') == null && getParameterByName('lon') == null) {
         centerMapOnLocation()
     }
 
