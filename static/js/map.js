@@ -70,7 +70,7 @@ const gymTypes = ['Uncontested', 'Mystic', 'Valor', 'Instinct']
 const audio = new Audio('static/sounds/pokewho.mp3')
 const cryFileTypes = ['wav', 'mp3', 'ogg']
 
-const genderType = ['♂', '♀', '⚲']
+const genderType = ['L', '♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
 
 
@@ -123,6 +123,15 @@ function removePokemonMarker(encounterId) { // eslint-disable-line no-unused-var
     }
     mapData.pokemons[encounterId].marker.setMap(null)
     mapData.pokemons[encounterId].hidden = true
+}
+
+function removelurePokemonMarker(encounterId) { // eslint-disable-line no-unused-vars
+    if (mapData.lurePokemons[encounterId].marker.rangeCircle) {
+        mapData.lurePokemons[encounterId].marker.rangeCircle.setMap(null)
+        delete mapData.lurePokemons[encounterId].marker.rangeCircle
+    }
+    mapData.lurePokemons[encounterId].marker.setMap(null)
+    mapData.lurePokemons[encounterId].hidden = true
 }
 
 function createServiceWorkerReceiver() {
@@ -421,6 +430,7 @@ function initSidebar() {
     $('#max-level-gyms-filter-switch').val(Store.get('maxGymLevel'))
     $('#last-update-gyms-switch').val(Store.get('showLastUpdatedGymsOnly'))
     $('#pokemon-switch').prop('checked', Store.get('showPokemon'))
+    $('#lure-pokemon-switch').prop('checked', Store.get('showLurePokemon'))
     $('#pokemon-settings-wrapper').toggle(Store.get('showPokemon'))
     $('#pokemon-scale-by-rarity-switch').prop('checked', Store.get('scaleByRarity'))
     $('#pokestops-switch').prop('checked', Store.get('showPokestops'))
@@ -668,9 +678,16 @@ function pokemonLabel(item) {
     }
 
     if (gender != null) {
-      gender = genderType[gender - 1]
+      gender = genderType[gender]
     } else {
       gender = ''
+    }
+
+    var removestring = ''
+    if (gender == 'L') {
+        removestring += `<i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removelurePokemonMarker("${encounterId}")'>Remove</a>`
+    } else {
+        removestring += `<i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>`
     }
 
     contentstring += `
@@ -678,7 +695,7 @@ function pokemonLabel(item) {
       <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
-    if (spawnpoint_id === 'lured_pokemon') {  // spawnpoint_id was filled with fort_id which is by far longer
+    if (gender == 'L') {
         contentstring += `
         <div>
             <b>Lured Pokemon</b>
@@ -732,7 +749,7 @@ function pokemonLabel(item) {
                   <i class='fa fa-lg fa-fw fa-bullhorn'></i> <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>
                 </div>
                 <div class='pokemon links'>
-                  <i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>
+                ${removestring}
                 </div>
               </div>
           </div>
@@ -773,7 +790,7 @@ function pokemonLabel(item) {
               <i class='fa fa-lg fa-fw fa-bullhorn'></i> <a href='javascript:notifyAboutPokemon(${id})'>Notify</a>
             </div>
             <div class='pokemon links'>
-              <i class='fa fa-lg fa-fw fa-trash-o'></i> <a href='javascript:removePokemonMarker("${encounterId}")'>Remove</a>
+              ${removestring}
             </div>
           </div>
       </div>
@@ -1061,7 +1078,7 @@ function gymLabel(gym, includeMembers = true) {
         </div>`
 }
 
-function pokestopLabel(expireTime, latitude, longitude, name, description, url, deployer) {
+function pokestopLabel(expireTime, latitude, longitude, name, description, url, deployer, lureInfo) {
     var str
     var pokestopIcn = ''
     var pokestopName = ''
@@ -1089,6 +1106,22 @@ function pokestopLabel(expireTime, latitude, longitude, name, description, url, 
 	  }
     var pokestopNav = `<center><span class='pokestop text2'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps';'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span></center>`
     if (expireTime) {
+
+    var luredPokemonStr = ''
+    if (lureInfo) {
+      var activePokemonName = lureInfo['pokemon_name']
+      var activePokemonId = lureInfo['pokemon_id']
+      var rarityDisplay = lureInfo['pokemon_rarity'] ? '(' + lureInfo['pokemon_rarity'] + ')' : ''
+      var typesDisplay = ''
+      $.each(lureInfo['pokemon_types'], function (index, type) {
+        typesDisplay += getTypeSpan(type)
+      })
+      luredPokemonStr = `
+            <div class='pokemon name'>
+              <b>${activePokemonName}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${activePokemonId}' target='_blank' title='View in Pokédex'>#${activePokemonId}</a></span> <span class='pokemon gender rarity'> ${rarityDisplay}</span> ${typesDisplay}
+            </div>
+      `
+    }
         str = `
             <div>
               <div>
@@ -1100,6 +1133,7 @@ function pokestopLabel(expireTime, latitude, longitude, name, description, url, 
               <div class='pokestop lure'>
                 ${pokestopIcn} Lured Pokéstop
               </div>
+              ${luredPokemonStr}
               <div class='pokestop-expire'>
                   <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('h:mm:ss a')})
               </div>
@@ -1364,7 +1398,9 @@ function customizePokemonMarker(marker, item, skipNotification) {
     if (!marker.rangeCircle && isRangeActive(map)) {
         marker.rangeCircle = addRangeCircle(marker, map, 'pokemon')
     }
-
+    if (!marker.rangeCircle && isRangeActive(map)) {
+        marker.rangeCircle = addRangeCircle(marker, map, 'LuredPokemon')
+    }
     marker.infoWindow = new google.maps.InfoWindow({
         content: pokemonLabel(item),
         disableAutoPan: true
@@ -1522,7 +1558,7 @@ function setupPokestopMarker(item) {
 
     if (item['lure_expiration']) {
       marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url'], item['deployer']),
+          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url'], item['deployer'], item['lure_pokemon']),
           disableAutoPan: true
       })
     } else {
@@ -1725,7 +1761,7 @@ function clearStaleMarkers() {
     markerCluster.removeMarkers(oldPokeMarkers, true)
 
     $.each(mapData.lurePokemons, function (key, value) {
-        if (mapData.lurePokemons[key]['lure_expiration'] < new Date().getTime() ||
+        if (mapData.lurePokemons[key]['disappear_time'] < new Date().getTime() ||
             getExcludedPokemon().indexOf(mapData.lurePokemons[key]['pokemon_id']) >= 0) {
             mapData.lurePokemons[key].marker.setMap(null)
             delete mapData.lurePokemons[key]
@@ -1796,6 +1832,7 @@ function showInBoundsMarkers(markers, type) {
 
 function loadRawData() {
     var loadPokemon = Store.get('showPokemon')
+    var loadLurePokemon = Store.get('showLurePokemon')
     var loadGyms = (Store.get('showGyms') || Store.get('showRaids'))
     var loadPokestops = Store.get('showPokestops')
     var loadScanned = Store.get('showScanned')
@@ -1816,6 +1853,7 @@ function loadRawData() {
         data: {
             'timestamp': timestamp,
             'pokemon': loadPokemon,
+            'lurePokemon': loadLurePokemon,
             'lastpokemon': lastpokemon,
             'pokestops': loadPokestops,
             'lastpokestops': lastpokestops,
@@ -1972,6 +2010,35 @@ function processPokemon(item) {
     return [newMarker, oldMarker]
 }
 
+function processLurePokemons (i, item) {
+  if (!Store.get('showLurePokemon')) {
+    return false // in case the checkbox was unchecked in the meantime.
+  }
+
+  if (!(item['encounter_id'] in mapData.lurePokemons) &&
+    excludedPokemon.indexOf(item['pokemon_id']) < 0) {
+    // add marker to map and item to dict
+    if (item.marker) {
+      item.marker.setMap(null)
+    }
+    if (!item.hidden) {
+      const isBounceDisabled = Store.get('isBounceDisabled')
+      const scaleByRarity = Store.get('scaleByRarity')
+      const isNotifyPkmn = isNotifyPoke(item)
+
+      if (item.marker) {
+          updatePokemonMarker(item.marker, map, scaleByRarity, isNotifyPkmn)
+      } else {
+          item.marker = setupPokemonMarker(item, map, isBounceDisabled, scaleByRarity, isNotifyPkmn)
+          customizePokemonMarker(item.marker, item)
+      }
+      //item.marker = setupPokemonMarker(item, map, isBounceDisabled, scaleByRarity, isNotifyPkmn)
+      //customizePokemonMarker(item.marker, item)
+      mapData.lurePokemons[item['encounter_id']] = item
+    }
+  }
+}
+
 function processPokestop(i, item) {
     if (!Store.get('showPokestops')) {
         return false
@@ -1991,8 +2058,24 @@ function processPokestop(i, item) {
         item.marker = setupPokestopMarker(item)
         mapData.pokestops[item['pokestop_id']] = item
     } else { // change existing pokestop marker to unlured/lured
+        var redraw = false
         var item2 = mapData.pokestops[item['pokestop_id']]
         if (!!item['lure_expiration'] !== !!item2['lure_expiration']) {
+          redraw = true
+        } else if ('lure_pokemon' in item) {
+          if ('lure_pokemon' in item2) {
+            var lurePokemon1 = item['lure_pokemon']
+            var lurePokemon2 = item2['lure_pokemon']
+            if (lurePokemon1['encounter_id'] !== lurePokemon2['encounter_id']) {
+              redraw = true
+            }
+          } else {
+            redraw = true
+          }
+        } else if ('lure_pokemon' in item2) {
+          redraw = true
+        }
+        if (redraw) {
             if (item2.marker && item2.marker.rangeCircle) {
                 item2.marker.rangeCircle.setMap(null)
             }
@@ -2183,13 +2266,25 @@ function updateSpawnPoints() {
 
 function updateMap() {
     loadRawData().done(function (result) {
+        var lurePokemons = {}
+        $.each(result.lurePokemons, function (i, item) {
+          var pokestopId = item['pokestop_id']
+          lurePokemons[pokestopId] = item
+        })
+        $.each(result.pokestops, function (i, item) {
+          var pokestopId = item['pokestop_id']
+          if (pokestopId in lurePokemons) {
+            item['lure_pokemon'] = lurePokemons[pokestopId]
+          }
+        })
         processPokemons(result.pokemons)
+        $.each(result.lurePokemons, processLurePokemons)
         $.each(result.pokestops, processPokestop)
         $.each(result.gyms, processGym)
         $.each(result.scanned, processScanned)
         $.each(result.spawnpoints, processSpawnpoint)
         // showInBoundsMarkers(mapData.pokemons, 'pokemon')
-        showInBoundsMarkers(mapData.lurePokemons, 'pokemon')
+        showInBoundsMarkers(mapData.lurePokemons, 'lurePokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')
         showInBoundsMarkers(mapData.pokestops, 'pokestop')
         showInBoundsMarkers(mapData.scanned, 'scanned')
@@ -3181,6 +3276,10 @@ $(function () {
         buildSwitchChangeListener(mapData, ['pokemons'], 'showPokemon').bind(this)()
         markerCluster.repaint()
     })
+    $('#lure-pokemon-switch').change(function () {
+        buildSwitchChangeListener(mapData, ['lurePokemons'], 'showLurePokemon').bind(this)()
+        markerCluster.repaint()
+    })
     $('#pokemon-scale-by-rarity-switch').change(function () {
         // Change and store the flag
         Store.set('scaleByRarity', this.checked)
@@ -3195,8 +3294,18 @@ $(function () {
             pkm.marker.setMap(null)
             oldPokeMarkers.push(pkm.marker)
         })
+        $.each(mapData['lurePokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
         markerCluster.removeMarkers(oldPokeMarkers)
         mapData['pokemons'] = {}
+        mapData['lurePokemons'] = {}
         // Reload all Pokemon
         lastpokemon = false
         updateMap()
@@ -3257,8 +3366,18 @@ $(function () {
             pkm.marker.setMap(null)
             oldPokeMarkers.push(pkm.marker)
         })
+        $.each(mapData['lurePokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
         markerCluster.removeMarkers(oldPokeMarkers)
         mapData['pokemons'] = {}
+        mapData['lurePokemons'] = {}
         // Reload all Pokemon
         lastpokemon = false
         updateMap()
@@ -3278,8 +3397,18 @@ $(function () {
             pkm.marker.setMap(null)
             oldPokeMarkers.push(pkm.marker)
         })
+        $.each(mapData['lurePokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
         markerCluster.removeMarkers(oldPokeMarkers)
         mapData['pokemons'] = {}
+        mapData['lurePokemons'] = {}
         // Reload all Pokemon
         lastpokemon = false
         updateMap()
@@ -3299,8 +3428,18 @@ $(function () {
             pkm.marker.setMap(null)
             oldPokeMarkers.push(pkm.marker)
         })
+        $.each(mapData['lurePokemons'], function (key, pkm) {
+            // for any marker you're turning off, you'll want to wipe off the range
+            if (pkm.marker.rangeCircle) {
+                pkm.marker.rangeCircle.setMap(null)
+                delete pkm.marker.rangeCircle
+            }
+            pkm.marker.setMap(null)
+            oldPokeMarkers.push(pkm.marker)
+        })
         markerCluster.removeMarkers(oldPokeMarkers)
         mapData['pokemons'] = {}
+        mapData['lurePokemons'] = {}
         // Reload all Pokemon
         lastpokemon = false
         updateMap()

@@ -17,7 +17,7 @@ from datetime import timedelta
 from collections import OrderedDict
 from bisect import bisect_left
 
-from .models import (Pokemon, Gym, Pokestop, ScannedLocation,
+from .models import (Pokemon, LurePokemon, Gym, Pokestop, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint)
 from .utils import now, dottedQuadToNum, get_blacklist
@@ -375,6 +375,14 @@ class Pogom(Flask):
                     Pokemon.get_active_by_id(reids, swLat, swLng,
                                              neLat, neLng))
                 d['reids'] = reids
+
+        if request.args.get('lurePokemon', 'true') == 'true':
+            if request.args.get('ids'):
+                ids = [int(x) for x in request.args.get('ids').split(',')]
+                d['lurePokemons'] = LurePokemon.get_active_by_id(ids, swLat, swLng,
+                                                                 neLat, neLng)
+            else:
+                d['lurePokemons'] = LurePokemon.get_active(swLat, swLng, neLat, neLng)
 
         if (request.args.get('pokestops', 'true') == 'true' and
                 not args.no_pokestops):
