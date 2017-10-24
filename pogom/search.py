@@ -131,6 +131,9 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
         # all at once to reduce flicker.
         status_text = []
 
+        # Initialize to prevent UnboundLocalError
+        total_pages = 1
+
         if display_type[0] == 'workers':
 
             # Get the terminal size.
@@ -308,9 +311,9 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:>8} | {:10} | {:6}' \
-                                            ' | {:8} | {:13} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'XP', 'Encounters',
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:9} | {:>8} | {:10} | {:6}' \
+                                            ' | {:8} | {:17} | {:5} | {:>10}'
+    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'Team', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
                                 'Walked'))
 
@@ -341,10 +344,25 @@ def print_account_stats(rows, thread_status, account_queue,
         # Inventory
         inv_str = ''
         if pgacc and pgacc.inventory:
+            pokemons = len(pgacc.pokemon)
             balls = pgacc.inventory_balls
             lures = pgacc.inventory_lures
             total = pgacc.inventory_total
-            inv_str = '{}B/{}L/{}T'.format(balls, lures, total)
+            inv_str = '{}P-{}B/{}L/{}T'.format(pokemons, balls, lures, total)
+
+        # Team
+        team_str = ''
+        if pgacc:
+            teams = pgacc.inbox.get('TEAM')
+            if teams == 'UNSET':
+                teams = 'None'
+            elif teams == 'TEAM_YELLOW':
+                teams = 'Instinct'
+            elif teams == 'TEAM_BLUE':
+                teams = 'Mystic'
+            elif teams == 'TEAM_RED':
+                teams = 'Valor'
+            team_str = '{}'.format(teams)
 
         warning = pgacc.is_warned() if pgacc else None
         warning = '' if warning is None else ('Yes' if warning else 'No')
@@ -372,6 +390,7 @@ def print_account_stats(rows, thread_status, account_queue,
             warning,
             blind,
             pgacc.get_stats('level', '') if pgacc else '',
+            team_str,
             pgacc.get_stats('experience', '') if pgacc else '',
             pgacc.get_stats('pokemons_encountered', '') if pgacc else '',
             pgacc.get_stats('pokeballs_thrown', '') if pgacc else '',
