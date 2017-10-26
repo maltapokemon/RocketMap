@@ -867,7 +867,7 @@ var StoreTypes = {
 // set the default parameters for you map here
 var StoreOptions = {
     'map_style': {
-        default: 'roadmap', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
+        default: 'style_pgo_dynamic', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
         type: StoreTypes.String
     },
     'remember_select_exclude': {
@@ -875,19 +875,19 @@ var StoreOptions = {
         type: StoreTypes.JSON
     },
     'remember_select_notify': {
-        default: [],
+        default: [201],
         type: StoreTypes.JSON
     },
     'remember_select_rarity_notify': {
-        default: [], // Common, Uncommon, Rare, Very Rare, Ultra Rare
+        default: ['Very Rare', 'Ultra Rare'], // Common, Uncommon, Rare, Very Rare, Ultra Rare
         type: StoreTypes.JSON
     },
     'remember_text_perfection_notify': {
-        default: '',
+        default: '90',
         type: StoreTypes.Number
     },
     'showRaids': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'showActiveRaidsOnly': {
@@ -903,7 +903,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showGyms': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'useGymSidebar': {
@@ -943,7 +943,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showLuredPokestopsOnly': {
-        default: 0,
+        default: 1,
         type: StoreTypes.Number
     },
     'showScanned': {
@@ -975,7 +975,7 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'startAtUserLocation': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'followMyLocation': {
