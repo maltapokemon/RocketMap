@@ -1506,10 +1506,6 @@ function updateGymMarker(item, marker) {
     var opacity = (timeDelta < Store.get('obsoletion1')) ? 1.0 : (timeDelta < Store.get('obsoletion2')) ? Store.get('opacity1') : (timeDelta < Store.get('obsoletion3')) ? Store.get('opacity2') : Store.get('opacity3')
 
     var gymSize = getGymLevel(item) <= 1 ? 60 : getGymLevel(item) <= 2 ? 55 : getGymLevel(item) <= 3 ? 50 : getGymLevel(item) <= 4 ? 45 : getGymLevel(item) <= 5 ? 40 : 30
-    const pokemonWithImages = [
-        3, 6, 9, 59, 65, 68, 89, 94, 103, 110, 112, 125, 126, 129, 131, 134,
-        135, 136, 143, 144, 145, 146, 150, 153, 156, 159, 243, 244, 245, 248, 249
-    ]
     if (item.raid !== null && isOngoingRaid(item.raid) && Store.get('showRaids') && raidLevel >= Store.get('showRaidMinLevel') && raidLevel <= Store.get('showRaidMaxLevel')) {
         let markerImage = 'static/images/raid/' + gymTypes[item.team_id] + '_' + item.raid.level + '_unknown.png'
         if (pokemonWithImages.indexOf(item.raid.pokemon_id) !== -1) {
