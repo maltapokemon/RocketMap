@@ -72,7 +72,10 @@ const cryFileTypes = ['wav', 'mp3', 'ogg']
 
 const genderType = ['L', '♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
-
+const pokemonWithImages = [
+    3, 6, 9, 59, 65, 68, 89, 94, 103, 110, 112, 125, 126, 129, 131, 134,
+    135, 136, 143, 144, 145, 146, 150, 153, 156, 159, 243, 244, 245, 248, 249
+]
 
 /*
  text place holders:
@@ -834,10 +837,7 @@ function isGymSatisfiesRaidMinMaxFilter(raid) {
 }
 
 function gymLabel(gym, includeMembers = true) {
-    const pokemonWithImages = [
-        3, 6, 9, 59, 65, 68, 89, 94, 103, 110, 112, 125, 126, 129, 131, 134,
-        135, 136, 143, 144, 145, 146, 150, 153, 156, 159, 243, 244, 245, 248, 249
-    ]
+
 
     const raid = gym.raid
     var raidStr = ''
