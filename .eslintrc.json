@@ -31,6 +31,7 @@
     "ga": true,
     "google": true,
     "moment": false,
+    "randomColor": false,
     "MarkerClusterer": true,
 
     "noLabelsStyle": true,
