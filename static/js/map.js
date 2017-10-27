@@ -1531,9 +1531,9 @@ function updateGymMarker(item, marker) {
             url: 'static/images/gym/' + gymTypes[item.team_id] + '_' + getGymLevel(item) + '.png',
             scaledSize: new google.maps.Size(gymSize, gymSize)
         })
-        marker.setOpacity(opacity)
         marker.setZIndex(1)
     }
+    marker.setOpacity(opacity)
     marker.infoWindow.setContent(gymLabel(item))
     return marker
 }
