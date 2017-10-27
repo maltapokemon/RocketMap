@@ -1069,6 +1069,34 @@ var StoreOptions = {
     'showMedalMagikarp': {
         default: true,
         type: StoreTypes.Boolean
+    },
+    'gymMarkerSize': {
+        default: 48,
+        type: StoreTypes.Number
+    },
+    'opacity3': {
+        default: 0.17,
+        type: StoreTypes.Number
+    },
+    'opacity2': {
+        default: 0.33,
+        type: StoreTypes.Number
+    },
+    'opacity1': {
+        default: 0.75,
+        type: StoreTypes.Number
+    },
+    'obsoletion3': {
+        default: 1440,
+        type: StoreTypes.Number
+    },
+    'obsoletion2': {
+        default: 720,
+        type: StoreTypes.Number
+    },
+    'obsoletion1': {
+        default: 120,
+        type: StoreTypes.Number
     }
 }
 
