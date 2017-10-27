@@ -133,7 +133,6 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
 
         # Initialize to prevent UnboundLocalError
         total_pages = 1
-
         if display_type[0] == 'workers':
 
             # Get the terminal size.
