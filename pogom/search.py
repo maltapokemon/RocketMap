@@ -311,9 +311,9 @@ def print_account_stats(rows, thread_status, account_queue,
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:9} | {:>8} | {:10} | {:6}' \
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:2} | {:>8} | {:10} | {:6}' \
                                             ' | {:8} | {:17} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'Team', 'XP', 'Encounters',
+    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'TM', 'XP', 'Encounters',
                                 'Throws', 'Captures', 'Inventory', 'Spins',
                                 'Walked'))
 
@@ -352,17 +352,16 @@ def print_account_stats(rows, thread_status, account_queue,
 
         # Team
         team_str = ''
-        if pgacc:
-            teams = pgacc.inbox.get('TEAM')
-            if teams == 'UNSET':
-                teams = 'None'
-            elif teams == 'TEAM_YELLOW':
-                teams = 'Instinct'
-            elif teams == 'TEAM_BLUE':
-                teams = 'Mystic'
-            elif teams == 'TEAM_RED':
-                teams = 'Valor'
-            team_str = '{}'.format(teams)
+        if pgacc and pgacc.inbox:
+            team_str = pgacc.inbox.get('TEAM')
+            if team_str == 'UNSET':
+                team_str = 'N'
+            elif team_str == 'TEAM_YELLOW':
+                team_str = 'I'
+            elif team_str == 'TEAM_BLUE':
+                team_str = 'M'
+            elif team_str == 'TEAM_RED':
+                team_str = 'V'
 
         warning = pgacc.is_warned() if pgacc else None
         warning = '' if warning is None else ('Yes' if warning else 'No')
