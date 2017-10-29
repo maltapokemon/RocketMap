@@ -28,7 +28,7 @@ import threading
 import traceback
 
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 from distutils.version import StrictVersion
 from sets import Set
 from threading import Thread, Lock
@@ -47,8 +47,8 @@ import terminalsize
 from .account import (AccountSet,
                       setup_mrmime_account, get_account, account_failed, account_revive)
 from .captcha import captcha_overseer_thread, handle_captcha
-from .models import (parse_map, GymDetails, parse_gyms, MainWorker,
-                     WorkerStatus, HashKeys)
+from .models import (parse_map, GymDetails, parse_gyms, PokestopDetails, parse_pokestop,
+                     MainWorker, WorkerStatus, HashKeys)
 from .proxy import get_new_proxy
 from .transform import get_new_coords
 from .utils import now, clear_dict_response, get_args, distance
@@ -57,6 +57,7 @@ log = logging.getLogger(__name__)
 
 loginDelayLock = Lock()
 gym_cache_lock = threading.Lock()
+pokestop_cache_lock = threading.Lock()
 
 
 # Thread to handle user input.
@@ -503,9 +504,12 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
     hashkeys_last_upsert = timeit.default_timer()
     hashkeys_upsert_min_delay = 5.0
     gym_cache = None
+    pokestop_cache = None
 
     if args.gym_info:
         gym_cache = TTLCache(maxsize=10000, ttl=60)
+    if args.pokestop_info:
+        pokestop_cache = TTLCache(maxsize=10000, ttl=60)
 
     '''
     Create a queue of accounts for workers to pull from. When a worker has
@@ -623,7 +627,8 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
         argset = (
             args, account_queue, account_sets, account_failures,
             account_captchas, control_flags, threadStatus[workerId],
-            db_updates_queue, wh_queue, scheduler, key_scheduler, gym_cache)
+            db_updates_queue, wh_queue, scheduler, key_scheduler, gym_cache,
+            pokestop_cache)
 
         t = Thread(target=search_worker_thread,
                    name='search-worker-{}'.format(i),
@@ -922,7 +927,7 @@ def generate_hive_locations(current_location, step_distance,
 
 def search_worker_thread(args, account_queue, account_sets, account_failures,
                          account_captchas, control_flags, status, dbq, whq,
-                         scheduler, key_scheduler, gym_cache):
+                         scheduler, key_scheduler, gym_cache, pokestop_cache):
 
     log.debug('Search worker thread starting...')
 
@@ -1015,6 +1020,16 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     # Exit this loop to get a new account and have the API
                     # recreated.
                     break
+
+                if args.fort_scanning:
+                    if account['lures'] == 0:
+                        status['message'] = (
+                            'Account {} returned 0 lures ').format(account['username'])
+                        log.warning(status['message'])
+                        account_failed(args, account_failures, account, 'no lures')
+                        # Exit this loop to get a new account and have the API
+                        # recreated.
+                        break
 
                 # If used proxy disappears from "live list" after background
                 # checking - switch account but do not freeze it (it's not an
@@ -1291,7 +1306,79 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                             parse_gyms(args, gym_responses,
                                        whq, dbq)
                             del gym_responses
+                # seems like there issnt a range limit on scanning pokestops
+                if args.pokestop_info and parsed:
+                    # build up a list of pokestops to update
+                    pokestops_to_update = {}
+                    for pokestop in parsed['pokestops'].values():
+                        with pokestop_cache_lock:
+                            if pokestop['pokestop_id'] in pokestop_cache:
+                                log.debug(
+                                    ('Skipping update of pokestop @ %f/%f, ' +
+                                     'already in progress.'),
+                                    pokestop['latitude'], pokestop['longitude'])
+                                continue
+                            else:
+                                # Set the pokestop as in progress it will just be
+                                # locked for 60 seconds due to TTL eviction.
+                                pokestop_cache[pokestop['pokestop_id']] = True
+                        # check if we already have details on this pokestop (if not, get them)
+                        try:
+                            record = PokestopDetails.get(pokestop_id=pokestop['pokestop_id'])
+                        except PokestopDetails.DoesNotExist:
+                            pokestops_to_update[pokestop['pokestop_id']] = pokestop
+                            continue
 
+                        if args.pokestop_info_expire and args.pokestop_info_expire > 0:
+                            log.debug('[Pokestop Current] Time now: %s /Expire time: %s',
+                                    datetime.utcnow(), (record.last_scanned +
+                                    timedelta(minutes=args.pokestop_info_expire)))
+                            if datetime.utcnow() > (record.last_scanned +
+                                    timedelta(minutes=args.pokestop_info_expire)):
+                                log.info('[Updating Pokestop] Time now: %s /Expire time: %s',
+                                    datetime.utcnow(), (record.last_scanned +
+                                    timedelta(minutes=args.pokestop_info_expire)))
+                                pokestops_to_update[pokestop['pokestop_id']] = pokestop
+                                continue
+                        log.debug(
+                            ('Skipping update of pokestop @ %f/%f,' +
+                             ' up to date'),
+                            pokestop['latitude'], pokestop['longitude'])
+                        continue
+
+                    if len(pokestops_to_update):
+                        pokestop_responses = {}
+                        current_pokestop = 1
+                        status['message'] = (
+                            'Updating {} pokestops for location {},{}...').format(
+                                len(pokestops_to_update), step_location[0],
+                                step_location[1])
+                        log.debug(status['message'])
+
+                        for pokestop in pokestops_to_update.values():
+                            status['message'] = (
+                                'Getting details for pokestop {} of {} for ' +
+                                'location {:6f},{:6f}...').format(
+                                    current_pokestop, len(pokestops_to_update),
+                                    step_location[0], step_location[1])
+                            time.sleep(random.random() + 2)
+                            response = pokestop_request(pgacc, step_location, pokestop)
+
+                            pokestop_responses[pokestop['pokestop_id']] = response['FORT_DETAILS']
+
+                            # increment which pokestop we're on (for status messages)
+                            current_pokestop += 1
+
+                        status['message'] = (
+                            'Processing details of {} pokestop for location '+
+                            '{:6f},{:6f}...').format(len(pokestops_to_update),
+                                                     step_location[0],
+                                                     step_location[1])
+                        log.debug(status['message'])
+
+                        if pokestop_responses:
+                            parse_pokestop(args, pokestop_responses, dbq)
+                        del pokestop_responses
                 # Update hashing key stats in the database based on the values
                 # reported back by the hashing server.
                 if args.hash_key:
@@ -1378,6 +1465,21 @@ def gym_request(pgacc, position, gym):
 
     except Exception as e:
         log.exception('Exception while downloading gym details: %s.', repr(e))
+        return False
+
+def pokestop_request(pgacc, position, pokestop):
+    try:
+        log.info('Getting details for pokestop @ %f/%f (%fkm away)',
+         pokestop['latitude'], pokestop['longitude'],
+         distance(position, [pokestop['latitude'], pokestop['longitude']]))
+        response = pgacc.req_fort_details(pokestop['pokestop_id'],
+                                          pokestop['latitude'],
+                                          pokestop['longitude'],)
+        response = clear_dict_response(response)
+        return response
+
+    except Exception as e:
+        log.warning('Exception while downloading pokestop details: %s', repr(e))
         return False
 
 

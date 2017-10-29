@@ -538,9 +538,15 @@ def get_args():
     parser.add_argument('-pgpu', '--pgpool-url', default=None,
                         help='URL of PGPool account manager.')
     parser.add_argument('-pi', '--pokestop-info',
-                        help=('Get all details about pokestops (causes an ' +
-                              'additional API hit for every pokestop).'),
+                        help=('Get all details about pokestops '
+                            '(name, image, description) '
+                            '(causes an additional API hit for every pokestop)'),
                         action='store_true', default=False)
+    parser.add_argument('-pie', '--pokestop-info-expire',
+                        help=('Expiry time for pokestop infos. Will request '
+                            'new info if we see that stop after that time. '
+                            '(in minutes, 0=disabled))'),
+                        type=int, default=0)
     parser.add_argument('-lus', '--lure-stop',
                         help='Lure up Pokestops Automatically.',
                         action='store_true', default=False)

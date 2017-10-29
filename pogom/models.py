@@ -2385,6 +2385,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             elif pokemon_id == 201:
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
+            #elif pokemon_id == 25:
+                #pokemon[p.encounter_id]['form'] = (p.pokemon_data
+                #                                    .pokemon_display.form)
+                #log.info('Pikachu Costume: %s', p.pokemon_data.pokemon_display.costume)
+
+            #log.info('Pokemon %s Shiny: %s', pokemon_id, p.pokemon_data.pokemon_display.shiny)
 
             # Updating Pokemon data from PGScout result
             if scout_result and scout_result['success']:
@@ -2456,13 +2462,11 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         for f in forts:
             if not args.no_pokestops and f.type == 1:  # Pokestops.
-                get_details = False
                 if len(f.active_fort_modifier) > 0:
                     lure_expiration = (datetime.utcfromtimestamp(
                         f.last_modified_timestamp_ms / 1000.0) +
                         timedelta(minutes=args.lure_duration))
                     active_fort_modifier = f.active_fort_modifier[0]
-                    get_details = True
                 else:
                     lure_expiration, active_fort_modifier = None, None
 
@@ -2517,20 +2521,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         }
 
                 wh_pokestop = pokestops[f.id].copy()
-                # Get detailed informations about Pokestops
-                if args.pokestop_info:
-                    if not get_details:
-                        try:  # No need to get known info
-                            PokestopDetails.get(pokestop_id=f.id)
-                            get_details = False
-                        except PokestopDetails.DoesNotExist:  # Let's get it
-                            get_details = True
 
-                    if get_details:
+                # Get Lured detailed informations about Pokestops.
+                if len(f.active_fort_modifier) > 0:
                         time.sleep(random.random() + 2)
                         fort_details_response = fort_details_request(pgacc, f)
                         if fort_details_response:
-                            pokestop_details = parse_pokestop_details(args,
+                            pokestop_details_lure = parse_pokestop_lure(args,
                                 fort_details_response, wh_update_queue, db_update_queue, wh_pokestop)
 
                 # Send all pokestops to webhooks.
@@ -2758,6 +2755,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         return {
             'count': wild_pokemon_count + forts_count,
             'gyms': gyms,
+            'pokestops': pokestops,
             'sp_id_list': sp_id_list,
             'bad_scan': True,
             'scan_secs': now_secs
@@ -2766,6 +2764,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     return {
         'count': wild_pokemon_count + forts_count,
         'gyms': gyms,
+        'pokestops': pokestops,
         'sp_id_list': sp_id_list,
         'bad_scan': False,
         'scan_secs': now_secs
@@ -2894,28 +2893,63 @@ def encounter_pokemon(args, pokemon, account, pgacc, account_sets, status,
     return result
 
 
-def parse_pokestop_details(args, fort_details_response, wh_update_queue, db_update_queue, wh_pokestop):
+def parse_pokestop(args, pokestop_responses, db_update_queue):
     pokestop_details = {}
+
+    # Process pokestop details
+    for p in pokestop_responses.values():
+        pokestop_id = p.fort_id
+        pokestop_details[pokestop_id] = {
+            'pokestop_id': pokestop_id,
+            'name': p.name,
+            'description': p.description,
+            'url': p.image_urls[0],
+            'last_scanned': datetime.utcnow()
+        }
+
+    # All this database stuff is synchronous (not using the upsert queue) on
+    # purpose.  Since the search workers load the Pokestop model from the
+    # database to determine if a pokestop needs to be rescanned, we need to be sure
+    # the Pokestop get fully committed to the database before moving on.
+    #
+    # We _could_ synchronously upsert Pokestop, then queue the other tables
+    # for upsert, but that would put that Pokestops's overall information in a weird
+    # non-atomic state.
+
+    # Upsert all the models.
+    if pokestop_details:
+        db_update_queue.put((PokestopDetails, pokestop_details))
+
+    log.info('Upserted %d pokestop details',
+             len(pokestop_details))
+
+
+def parse_pokestop_lure(args, fort_details_response, wh_update_queue, db_update_queue, wh_pokestop):
+    pokestop_details_lure = {}
     fort_details = fort_details_response['FORT_DETAILS']
     pokestop_id = fort_details.fort_id
 
-    pokestop_details[pokestop_id] = {
+    # Since were grabbing lure deployer from pokestop details
+    # process a details update on the stop as well.
+    pokestop_details_lure[pokestop_id] = {
         'pokestop_id': pokestop_id,
         'name': fort_details.name,
         'description': fort_details.description,
         'url': fort_details.image_urls[0]
     }
 
+    # Check for modifiers then grab itemid, deployer_player_codename,
+    # and expiration_timestamp_ms.
     if fort_details.modifiers:
-        #log.info('========== LURE PROVIDER %s =========', fort_details.modifiers[0].deployer_player_codename)
-        pokestop_details[pokestop_id].update({
+        log.debug('LURE PROVIDER: %s ', fort_details.modifiers[0].deployer_player_codename)
+        pokestop_details_lure[pokestop_id].update({
             'item_id': fort_details.modifiers[0].item_id,
             'deployer': fort_details.modifiers[0].deployer_player_codename,
             'expires': datetime.utcfromtimestamp(
                 fort_details.modifiers[0].expiration_timestamp_ms / 1000.0)
         })
 
-    # Send all pokestops to webhooks.
+    # Send all pokestop details to webhooks.
     if 'pokestop' in args.wh_types or 'lure' in args.wh_types:
         wh_pokestop.update({
             'name': fort_details.name,
@@ -2927,19 +2961,34 @@ def parse_pokestop_details(args, fort_details_response, wh_update_queue, db_upda
                 'deployer': fort_details.modifiers[0].deployer_player_codename,
             })
 
-    # Upsert all the models.
-    if pokestop_details:
-        db_update_queue.put((PokestopDetails, pokestop_details))
+    # All this database stuff is synchronous (not using the upsert queue) on
+    # purpose.  Since the search workers load the PokestopDetails model from the
+    # database to determine if a pokestop needs to be rescanned, we need to be sure
+    # the PokestopDetails get fully committed to the database before moving on.
+    #
+    # We _could_ synchronously upsert PokestopDetails, then queue the other tables
+    # for upsert, but that would put that Pokestops's overall information in a weird
+    # non-atomic state.
 
+    # Upsert all the models.
+    if pokestop_details_lure:
+        db_update_queue.put((PokestopDetails, pokestop_details_lure))
+
+    # This needs to be completed in a transaction, because we don't wany any
+    # other thread or process to mess with the pokestops we're
+    # updating while we're updating the bridge table.
     with flaskDb.database.transaction():
-        # Get rid of all the forts, we're going to insert new records.
-        if pokestop_details:
+        # Get rid of all the pokestops, we're going to insert new records.
+        if pokestop_details_lure:
             DeleteQuery(PokestopDetails).where(
                 PokestopDetails.pokestop_id <<
-                pokestop_details.keys()).execute()
+                pokestop_details_lure.keys()).execute()
 
-    log.info('Upserted forts: %d', len(pokestop_details))
-    return pokestop_details, wh_pokestop
+    log.info('Upserted %d lured pokestop details',
+             len(pokestop_details_lure))
+
+    # Return values to main function
+    return pokestop_details_lure, wh_pokestop
 
 
 def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
@@ -2948,6 +2997,8 @@ def parse_gyms(args, gym_responses, wh_update_queue, db_update_queue):
     gym_pokemon = {}
     trainers = {}
     i = 0
+
+    # Process gym details
     for g in gym_responses.values():
         gym_state = g.gym_status_and_defenders
         gym_id = gym_state.pokemon_fort_proto.id
@@ -3130,6 +3181,12 @@ def clean_db_loop(args):
             query = (Pokestop
                      .update(lure_expiration=None, active_fort_modifier=None)
                      .where(Pokestop.lure_expiration < datetime.utcnow()))
+            query.execute()
+
+            # Remove item_id, deployer from expired lured pokestops.
+            query = (PokestopDetails
+                     .update(item_id=None, deployer=None, expires=None)
+                     .where(PokestopDetails.expires < datetime.utcnow()))
             query.execute()
 
             # Remove old (unusable) captcha tokens
