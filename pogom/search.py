@@ -1021,16 +1021,6 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                     # recreated.
                     break
 
-                if args.fort_scanning:
-                    if account['lures'] == 0:
-                        status['message'] = (
-                            'Account {} returned 0 lures ').format(account['username'])
-                        log.warning(status['message'])
-                        account_failed(args, account_failures, account, 'no lures')
-                        # Exit this loop to get a new account and have the API
-                        # recreated.
-                        break
-
                 # If used proxy disappears from "live list" after background
                 # checking - switch account but do not freeze it (it's not an
                 # account failure).
