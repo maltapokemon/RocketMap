@@ -620,34 +620,34 @@ function isMedalPokemonMap(item) {
     return false
 }
 
-function pokemonLabel(item) {
-    var name = item['pokemon_name']
-    var rarityDisplay = item['pokemon_rarity'] ? '(' + item['pokemon_rarity'] + ')' : ''
-    var types = item['pokemon_types']
+function pokemonLabel(pokemon) {
+    var name = pokemon.pokemon_name
+    var rarityDisplay = pokemon.pokemon_rarity ? '(' + pokemon.pokemon_rarity + ')' : ''
+    var types = pokemon.pokemon_types
     var typesDisplay = ''
-    var encounterId = item['encounter_id']
-    var id = item['pokemon_id']
-    var latitude = item['latitude']
-    var longitude = item['longitude']
-    var disappearTime = item['disappear_time']
-    var atk = item['individual_attack']
-    var def = item['individual_defense']
-    var sta = item['individual_stamina']
-    var pMove1 = (moves[item['move_1']] !== undefined) ? i8ln(moves[item['move_1']]['name']) : 'gen/unknown'
-    var pMove2 = (moves[item['move_2']] !== undefined) ? i8ln(moves[item['move_2']]['name']) : 'gen/unknown'
-    var weight = item['weight']
-    var height = item['height']
-    var gender = item['gender']
-    var form = item['form']
-    var cp = item['cp']
-    var cpMultiplier = item['cp_multiplier']
-    var prob1 = item['catch_prob_1']
-    var prob2 = item['catch_prob_2']
-    var prob3 = item['catch_prob_3']
-    var ratingAttack = item['rating_attack']
-    var ratingDefense = item['rating_defense']
-    var previous_id = item['previous_id']
-    var spawnpoint_id = item['spawnpoint_id']
+    var encounterId = pokemon.encounter_id
+    var id = pokemon.pokemon_id
+    var latitude = pokemon.latitude
+    var longitude = pokemon.longitude
+    var disappearTime = pokemon.disappear_time
+    var atk = pokemon.individual_attack
+    var def = pokemon.individual_defense
+    var sta = pokemon.individual_stamina
+    var pMove1 = (moves[pokemon.move_1] !== undefined) ? i8ln(moves[pokemon.move_1]['name']) : 'gen/unknown'
+    var pMove2 = (moves[pokemon.move_2] !== undefined) ? i8ln(moves[pokemon.move_2]['name']) : 'gen/unknown'
+    var weight = pokemon.weight
+    var height = pokemon.height
+    var gender = pokemon.gender
+    var form = pokemon.form
+    var cp = pokemon.cp
+    var cpMultiplier = pokemon.cp_multiplier
+    var prob1 = pokemon.catch_prob_1
+    var prob2 = pokemon.catch_prob_2
+    var prob3 = pokemon.catch_prob_3
+    var ratingAttack = pokemon.rating_attack
+    var ratingDefense = pokemon.rating_defense
+    var previous_id = pokemon.previous_id
+    var spawnpoint_id = pokemon.spawnpoint_id
     var encounterIdLong = atob(encounterId)
 
     $.each(types, function (index, type) {
@@ -661,7 +661,7 @@ function pokemonLabel(item) {
     var formString = ''
 
     if (id === 201 && form !== null && form > 0) {
-        formString += `(${unownForm[item['form']]})`
+        formString += `(${unownForm[form]})`
     }
 
     var dittoString = ''
@@ -672,15 +672,15 @@ function pokemonLabel(item) {
 
     var medalString = ''
 
-    var baseHeight = (item['pokemon_id'] === 19) ? 0.30 : 0.90
-    var baseWeight = (item['pokemon_id'] === 129) ? 3.50 : 10.00
-    var ratio = sizeRatio(item['height'], item['weight'], baseHeight, baseWeight)
+    var baseHeight = (pokemon.pokemon_id === 19) ? 0.30 : 0.90
+    var baseWeight = (pokemon.pokemon_id === 129) ? 3.50 : 10.00
+    var ratio = sizeRatio(pokemon.height, pokemon.weight, baseHeight, baseWeight)
 
-    if (item['pokemon_id'] == 19 && ratio < 1.5) {
+    if (pokemon.pokemon_id == 19 && ratio < 1.5) {
       medalString += `<span>Tiny</span>`
     }
 
-    if (item['pokemon_id'] == 129 && ratio > 2.5 && item['weight'] >= 13.13) {
+    if (pokemon.pokemon_id == 129 && ratio > 2.5 && pokemon.weight >= 13.13) {
       medalString += `<span>Big</span>`
     }
 
@@ -1082,48 +1082,48 @@ function gymLabel(gym, includeMembers = true) {
         </div>`
 }
 
-function pokestopLabel(expireTime, latitude, longitude, name, description, url, deployer, lureInfo) {
+function pokestopLabel(pokestop) {
     var str
     var pokestopIcn = ''
     var pokestopName = ''
     var pokestopDes = ''
     var pokestopImg = ''
     var pokestopDep = ''
-    if (expireTime) {
+    if (pokestop.lure_expiration) {
       pokestopIcn += `<img class='pokestop stopicn' src='static/images/pokestop//PokestopLured.png'>`
     } else {
       pokestopIcn += `<img class='pokestop stopicn' src='static/images/pokestop/Pokestop.png'>`
     }
-    if (typeof name !== 'undefined' && name !== null) {
-      pokestopName += `<center><span class='pokestop text1'>${name}</span></center>`
+    if (typeof pokestop.name !== 'undefined' && pokestop.name !== null) {
+      pokestopName += `<center><span class='pokestop text1'>${pokestop.name}</span></center>`
 	  }
-    if (typeof description !== 'undefined' && description !== null) {
-      pokestopDes += `<center><span class='pokestop text2'>${description}</span></center>`
+    if (typeof pokestop.description !== 'undefined' && pokestop.description !== null) {
+      pokestopDes += `<center><span class='pokestop text2'>${pokestop.description}</span></center>`
 	  }
-    if (typeof url !== 'undefined' && url !== null && expireTime) {
-  		pokestopImg += `<img class='pokestop imgcircle lure' src='${url}'>`
-  	} else if (typeof url !== 'undefined' && url !== null) {
-      pokestopImg += `<img class='pokestop imgcircle nolure' src='${url}'>`
+    if (typeof pokestop.url !== 'undefined' && pokestop.url !== null && pokestop.lure_expiration) {
+  		pokestopImg += `<img class='pokestop imgcircle lure' src='${pokestop.url}'>`
+  	} else if (typeof pokestop.url !== 'undefined' && pokestop.url !== null) {
+      pokestopImg += `<img class='pokestop imgcircle nolure' src='${pokestop.url}'>`
     }
-    if (typeof deployer !== 'undefined' && deployer !== null) {
-      pokestopDep += `<center><span class='pokestop deploy'><b>${deployer}</b></span></center>`
+    if (typeof pokestop.deployer !== 'undefined' && pokestop.deployer !== null) {
+      pokestopDep += `<center><span class='pokestop deploy'><b>${pokestop.deployer}</b></span></center>`
 	  }
-    var pokestopNav = `<center><span class='pokestop text2'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps';'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span></center>`
-    if (expireTime) {
+    var pokestopNav = `<center><span class='pokestop text2'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${pokestop.latitude},${pokestop.longitude});' title='Open in Google Maps';'>${pokestop.latitude.toFixed(6)}, ${pokestop.longitude.toFixed(7)}</a></span></center>`
+    if (pokestop.lure_expiration) {
 
     var luredPokemonStr = ''
-    if (lureInfo) {
-      var activePokemonName = lureInfo['pokemon_name']
-      var activePokemonId = lureInfo['pokemon_id']
-      var rarityDisplay = lureInfo['pokemon_rarity'] ? '(' + lureInfo['pokemon_rarity'] + ')' : ''
+    if (pokestop.lure_pokemon) {
+      var activePokemonName = pokestop.lure_pokemon.pokemon_name
+      var activePokemonId = pokestop.lure_pokemon.pokemon_id
+      var rarityDisplay = pokestop.lure_pokemon.pokemon_rarity ? '(' + pokestop.lure_pokemon.pokemon_rarity + ')' : ''
       var typesDisplay = ''
-      $.each(lureInfo['pokemon_types'], function (index, type) {
+      $.each(pokestop.lure_pokemon.pokemon_types, function (index, type) {
         typesDisplay += getTypeSpan(type)
       })
       luredPokemonStr = `
-            <div class='pokemon name'>
+            <center><div class='pokemon name'>
               <b>${activePokemonName}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${activePokemonId}' target='_blank' title='View in Pokédex'>#${activePokemonId}</a></span> <span class='pokemon gender rarity'> ${rarityDisplay}</span> ${typesDisplay}
-            </div>
+            </div></center>
       `
     }
         str = `
@@ -1139,7 +1139,7 @@ function pokestopLabel(expireTime, latitude, longitude, name, description, url, 
               </div>
               ${luredPokemonStr}
               <div class='pokestop-expire'>
-                  <span class='label-countdown' disappears-at='${expireTime}'>00m00s</span> left (${moment(expireTime).format('h:mm:ss a')})
+                  <span class='label-countdown' disappears-at='${pokestop.lure_expiration}'>00m00s</span> left (${moment(pokestop.lure_expiration).format('h:mm:ss a')})
               </div>
               <div>
                 ${pokestopImg}
@@ -1584,17 +1584,10 @@ function setupPokestopMarker(item) {
         marker.rangeCircle = addRangeCircle(marker, map, 'pokestop')
     }
 
-    if (item['lure_expiration']) {
-      marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url'], item['deployer'], item['lure_pokemon']),
-          disableAutoPan: true
-      })
-    } else {
-      marker.infoWindow = new google.maps.InfoWindow({
-          content: pokestopLabel(item['lure_expiration'], item['latitude'], item['longitude'], item['name'], item['description'], item['url']),
-          disableAutoPan: true
-      })
-    }
+    marker.infoWindow = new google.maps.InfoWindow({
+        content: pokestopLabel(item),
+        disableAutoPan: true
+    })
 
     addListeners(marker)
     return marker
