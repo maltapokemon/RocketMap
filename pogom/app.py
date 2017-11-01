@@ -186,12 +186,14 @@ class Pogom(Flask):
             scout_result = pgscout_encounter(p)
             if scout_result['success']:
                 self.update_scouted_pokemon(p, scout_result)
+                if scout_result['weather_id'] == None:
+                    scout_result['weather_id'] = 0
                 log.info(
                     u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP {} Bonus"
                     u" (scout level {}).".format(
                         scout_result['iv_percent'], scout_result['level'],
                         pokemon_name, scout_result['cp'],
-                        GameplayWeather.WeatherCondition.Name(scout_result.get('weather_id', 0)),
+                        GameplayWeather.WeatherCondition.Name(scout_result['weather_id']),
                         scout_result['scout_level']))
             else:
                 log.warning(u"Failed PGScouting {}: {}".format(pokemon_name,
