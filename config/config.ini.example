@@ -5,6 +5,11 @@
 # When your configuration is done, rename this file by removing the ".example" extension
 # A different config-files can be included directly in processes by "--config-file" or "-cf" and path
 
+# Automation
+############
+#gain-xp                        # Spin Pokestop and Ditto check.
+#lure-stop                      # Lure Pokestop.
+
 
 # Required settings
 ###################
@@ -28,12 +33,15 @@
 #scan-delay:                    # Time delay between requests in scan threads. (default=12)
 #no-gyms                        # Disables gym scanning (default=False)
 #no-pokemon                     # Disables pokemon scanning. (default=False)
+#nolured-pokemon                # Disables lured pokemon scanning. (default=False)
 #no-pokestops                   # Disables pokestop scanning. (default=False)
 #no-raids                       # Disables raid scanning (default=False)
 #print-status                   # Enable ENTER to switch between log view and a status view.
                                 # Optionally add ": status" to start in status view and ": logs" to start in log view. (default=False)
 #status-page-password:          # Enables and protects the /status page to view status of all workers. (default=None)
 #captcha-solving                # Enables captcha solving. (default=False)
+#rareless-scans-threshold: 10   # Number of rareless scans before considered softbanded.
+#rotate-blind                   # Rotate Blind Accounts.
 
 
 # Database settings
@@ -53,13 +61,19 @@
 # Scan method (speed-scan preferable, (default is hex-scan)
 #############
 
+#speed-scan                     # Use speed scanning (instead of hex grid).
 #beehive                        # Use beehive configuration for multiple accounts, one account per hex.
                                 # Make sure to keep -st under 5, and -w under the total amount of accounts available.
 #spawnpoint-scanning            # Use spawnpoint scanning (instead of hex grid).
                                 # Scans in a circle based on step_limit when on DB.
                                 # A spawnpoint-file can be added optinal as value for "spawnpoint-scanning".
-#dump-spawnpoints               # Dump the spawnpoints from the db to json (only for use with -ss).
-
+#fort-scanning: nofile          # Fort only scanning, nofile uses database forts
+                                # If Used inconjunction with no-gyms, and no-pokemon
+                                # Lure only scanning activates with a 38m stop scan radius.
+                                # defaults to 450m if only no-pokemon and 70m normal radius otherwise
+#dump-pokestops:                # Dump the pokestops from the db to json (only for use with -fort-scanning).
+#dump-gyms:                     # Dump the gyms from the db to json (only for use with -fort-scanning).
+#dump-spawnpoints               # Dump the spawnpoints from the db to json (only for use with -spawnpoint-scanning).
 
 # Geofence settings
 ###################
@@ -85,9 +99,17 @@
 #skip-empty                     # Enables skipping of empty cells in normal scans - requires previously populated database. (not to be used with -ss)
 #min-seconds-left:              # Time that must be left on a spawn before considering it too late and skipping it. (default=0)
 #gym-info                       # Enables detailed gym info collection. (default=False)
+#pokestop-info                  # Enables detailed Pokestop info collection. (default=False)
+#pokestop-info-expire:          # Number of minutes for Pokestop information to expire and be rescanned.
 #pokestop-spinning              # Spin Pokestops with "50%" Chance (default=False)
 #account-max-spins              # Maximum number of Pokestop spins per hour (default=80)
 #on-demand_timeout:             # Pause searching while web UI is inactive for this timeout (in seconds). (default=0)
+
+
+# Scout
+############
+
+#pgscout-url:                   #PGScout URL ie: http://127.0.0.1:9000/iv
 
 
 # Account rotation
