@@ -17,11 +17,11 @@ src/
 _build
 _build_html
 beehive.*
-static/images/battle/*.png
+static/*.ttf
 static/sprites/*.png
 static/images/appicons/*.png
 static/images/appicons/*.ico
-static/images/egg/*.png
+static/images/generated/*.png
 static/images/gym/*.png
 static/images/pokestop/*.png
 static/images/raid/*.png

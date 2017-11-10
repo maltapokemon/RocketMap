@@ -3,14 +3,19 @@
 
 import calendar
 import logging
+import os
 
-from flask import Flask, abort, jsonify, render_template, request,\
-    make_response, send_from_directory
+import subprocess
+
+import errno
+from flask import Flask, abort, jsonify, render_template, request, \
+    make_response, send_from_directory, send_file
 from flask.json import JSONEncoder
 from flask_compress import Compress
 from datetime import datetime
 from s2sphere import LatLng
 
+from pogom.dyn_img import get_gym_icon
 from pogom.pgscout import scout_error, pgscout_encounter
 from pogom.utils import get_args, get_pokemon_name
 from datetime import timedelta
@@ -69,7 +74,16 @@ class Pogom(Flask):
         self.route("/serviceWorker.min.js", methods=['GET'])(
             self.render_service_worker_js)
         self.route("/scout", methods=['GET'])(self.scout_pokemon)
+        self.route("/gym_img", methods=['GET'])(self.gym_img)
         self.route("/<statusname>", methods=['GET'])(self.fullmap)
+
+    def gym_img(self):
+        team = request.args.get('team')
+        level = request.args.get('level')
+        raidlevel = request.args.get('raidlevel')
+        pkm = request.args.get('pkm')
+        battle = request.args.get('battle')
+        return send_file(get_gym_icon(team, level, raidlevel, pkm, battle), mimetype='image/png')
 
     def scout_pokemon(self):
         args = get_args()
