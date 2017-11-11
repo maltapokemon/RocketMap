@@ -5,10 +5,7 @@ import calendar
 import logging
 import os
 
-import subprocess
-
-import errno
-from flask import Flask, abort, jsonify, render_template, request, \
+from flask import Flask, abort, jsonify, render_template, request,\
     make_response, send_from_directory, send_file
 from flask.json import JSONEncoder
 from flask_compress import Compress
