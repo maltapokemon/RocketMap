@@ -837,8 +837,6 @@ function isGymSatisfiesRaidMinMaxFilter(raid) {
 }
 
 function gymLabel(gym, includeMembers = true) {
-
-
     const raid = gym.raid
     var raidStr = ''
     if (raid && raid.end > Date.now()) {
@@ -935,7 +933,11 @@ function gymLabel(gym, includeMembers = true) {
     if ((isUpcomingRaid) && isRaidFilterOn && isGymSatisfiesRaidMinMaxFilter(raid)) {
         const raidColor = ['252,112,176', '255,158,22', '184,165,221']
         const levelStr = '★'.repeat(raid['level'])
-        image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='gym_img?team=${gymTypes[gym.team_id]}&level=${getGymLevel(gym)}&raidlevel=${raid.level}'> </span>`
+        if (gym.is_in_battle == 1) {
+          image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='gym_img?team=${gymTypes[gym.team_id]}&level=${getGymLevel(gym)}&raidlevel=${raid.level}&battle=1'> </span>`
+        } else {
+          image = `<span class='gym container2 content-right'> ${gymImg} <img class='gym container2 content-left' src='gym_img?team=${gymTypes[gym.team_id]}&level=${getGymLevel(gym)}&raidlevel=${raid.level}'> </span>`
+        }
         imageLbl = `
             <div class='raid'>
               <span style='color:rgb(${raidColor[Math.floor((raid.level - 1) / 2)]})'>
@@ -1514,6 +1516,7 @@ function setupGymMarker(item) {
 function updateGymMarker(item, marker) {
     let raidLevel = getRaidLevel(item.raid)
     let markerImage = ''
+    let scaleNumber = ''
     console.log("not null:" + (item.raid !== null) + " ongoing: ")
     var timeDelta = (Date.now() - item.last_scanned) / 1000 / 2 // minutes since last scan
     var opacity = (timeDelta < Store.get('obsoletion1')) ? 1.0 : (timeDelta < Store.get('obsoletion2')) ? Store.get('opacity1') : (timeDelta < Store.get('obsoletion3')) ? Store.get('opacity2') : Store.get('opacity3')
@@ -1527,10 +1530,16 @@ function updateGymMarker(item, marker) {
         })
         marker.setZIndex(google.maps.Marker.MAX_ZINDEX + 1)
     } else if (item.raid !== null && item.raid.end > Date.now() && Store.get('showRaids') && !Store.get('showActiveRaidsOnly') && raidLevel >= Store.get('showRaidMinLevel') && raidLevel <= Store.get('showRaidMaxLevel')) {
-        markerImage = 'gym_img?team=' + gymTypes[item.team_id] + '&level=' + getGymLevel(item) + '&raidlevel=' + item['raid']['level']
+        if (item.is_in_battle == 1) {
+          markerImage = 'gym_img?team=' + gymTypes[item.team_id] + '&level=' + getGymLevel(item) + '&raidlevel=' + item['raid']['level'] + '&battle=' + '1'
+          scaleNumber = 75
+        } else {
+          markerImage = 'gym_img?team=' + gymTypes[item.team_id] + '&level=' + getGymLevel(item) + '&raidlevel=' + item['raid']['level']
+          scaleNumber = 60
+        }
         marker.setIcon({
             url: markerImage,
-            scaledSize: new google.maps.Size(60, 60)
+            scaledSize: new google.maps.Size(scaleNumber, scaleNumber)
         })
     } else if (item.is_in_battle == 1) {
           markerImage = 'gym_img?team=' + gymTypes[item.team_id] + '&level=' + getGymLevel(item) + '&battle=' + '1'

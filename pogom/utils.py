@@ -557,6 +557,9 @@ def get_args():
                         help='Choose area for Pokestop luring')
     parser.add_argument('-nlf', '--nolureFence',
                         help='Choose area that CANNOT have Pokestop luring')
+    parser.add_argument('-gen', '--generate-images',
+                        help='Use ImageMagick to generate gym images on demand.',
+                        action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
