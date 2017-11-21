@@ -3631,7 +3631,9 @@ def database_migrate(db, old_ver):
     if old_ver < 24:
         migrate(
             migrator.add_column('gympokemon', 'form',
-                                SmallIntegerField(null=True, default=0))
+                                SmallIntegerField(null=True, default=0)),
+            migrator.add_column('pokemon', 'previous_id',
+                                SmallIntegerField(null=True))
         )
 
     # Always log that we're done.
