@@ -2522,13 +2522,26 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
                 wh_pokestop = pokestops[f.id].copy()
 
-                # Get Lured detailed informations about Pokestops.
-                if len(f.active_fort_modifier) > 0:
-                        time.sleep(random.random() + 2)
-                        fort_details_response = fort_details_request(pgacc, f)
-                        if fort_details_response:
-                            pokestop_details_lure = parse_pokestop_lure(args,
-                                fort_details_response, wh_update_queue, db_update_queue, wh_pokestop)
+                # Pokestop Details Update And Lure Deployer Info Check 
+                # (Only Triggered On A Lured Stop And No Deployer Info)
+                dbpokestop = False
+                # Check The Pokestop Details DB Table For Lured Stops
+                Query = PokestopDetails.select().where(PokestopDetails.item_id == '501').dicts()
+                dbpokestop_id = None
+                for stop in list(Query):
+                    dbpokestop_id = stop['pokestop_id']
+                    # Check If Current Pokestop Is The Same As The Detailed Lured One
+                    if f.id == dbpokestop_id:
+                        dbpokestop = True
+                # Check To See If Its In The DB And If Stop Has A Lure.
+                if dbpokestop == False and len(f.active_fort_modifier) > 0:
+                    # Get Lure Deployer And Detailed Update.
+                    log.debug('Getting Detailed Pokestop Info And Deployer... %s - %s', f.id, dbpokestop_id)
+                    time.sleep(random.random() + 2)
+                    fort_details_response = fort_details_request(pgacc, f)
+                    if fort_details_response:
+                        pokestop_details_lure = parse_pokestop_lure(args,
+                            fort_details_response, wh_update_queue, db_update_queue, wh_pokestop)
 
                 # Send all pokestops to webhooks.
                 if 'pokestop' in args.wh_types or (
