@@ -499,7 +499,7 @@ def get_args():
     parser.add_argument('-fss', '--fake-search-script', default='',
                         help=('Get pokemon from script instead. See ' +
                               '"pogom\sample_fake_scripts" for more info'))
-    parser.add_argument('--api-version', default='0.79.4',
+    parser.add_argument('--api-version', default='0.83.0',
                         help=('API version currently in use.'))
     parser.add_argument('-sazl', '--show-all-zoom-level',
                         help=('Show all Pokemon, even excluded, at this map '
@@ -1055,15 +1055,15 @@ def gmaps_reverse_geolocate(gmaps_key, locale, location):
     geolocator = GoogleV3(api_key=gmaps_key)
 
     player_locale = {
-        'country': 'US',
+        'country': 'CA',
         'language': locale,
-        'timezone': 'America/Denver'
+        'timezone': 'Canada/Toronto'
     }
 
     try:
         reverse = geolocator.reverse(location)
         address = reverse[-1].raw['address_components']
-        country_code = 'US'
+        country_code = 'CA'
 
         # Find country component.
         for component in address:
