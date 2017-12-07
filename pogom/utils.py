@@ -499,7 +499,7 @@ def get_args():
     parser.add_argument('-fss', '--fake-search-script', default='',
                         help=('Get pokemon from script instead. See ' +
                               '"pogom\sample_fake_scripts" for more info'))
-    parser.add_argument('--api-version', default='0.85.2',
+    parser.add_argument('--api-version', default='0.83.2',
                         help=('API version currently in use.'))
     parser.add_argument('-sazl', '--show-all-zoom-level',
                         help=('Show all Pokemon, even excluded, at this map '

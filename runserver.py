@@ -221,7 +221,7 @@ def can_start_scanning(args):
     # to the correct one.
     api_version_int = int(args.api_version.replace('.', '0'))
     api_version_map = {
-        8502: 8500
+        8302: 8500
     }
     mapped_version_int = api_version_map.get(api_version_int, api_version_int)
 
