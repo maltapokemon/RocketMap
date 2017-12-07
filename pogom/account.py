@@ -32,8 +32,8 @@ def get_account(args, account_queue, status):
         else:
             account = None
             while not account:
-                account = pgpool_request_accounts(args, count=1)
-                if not account:
+                accounts = pgpool_request_accounts(args, count=1)
+                if not accounts:
                     msg = "Could not request account from PGPool (none left?). Retrying in 30 seconds."
                     status['message'] = msg
                     log.warning(msg)
