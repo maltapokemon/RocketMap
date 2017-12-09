@@ -246,8 +246,6 @@ def main():
     sys.excepthook = handle_exception
 
     args = get_args()
-    args.root_path = os.path.dirname(os.path.abspath(__file__))
-    init_args(args)
 
     set_log_and_verbosity(log)
 
@@ -270,6 +268,9 @@ def main():
         log.info('Done! Your debug link: https://hastebin.com/%s.txt',
                  hastebin)
         sys.exit(1)
+
+    args.root_path = os.path.dirname(os.path.abspath(__file__))
+    init_args(args)
 
     # Initialize Mr. Mime library
     mrmime_cfg = {
