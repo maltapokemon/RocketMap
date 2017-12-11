@@ -47,7 +47,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 24
+db_schema_version = 25
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -203,6 +203,7 @@ class PokemonBaseModel(BaseModel):
     rating_attack = CharField(null=True, max_length=2)
     rating_defense = CharField(null=True, max_length=2)
     previous_id = SmallIntegerField(null=True)
+    weather_id = SmallIntegerField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2050,6 +2051,21 @@ class Token(flaskDb.Model):
         return tokens
 
 
+class Weather(BaseModel):
+    s2_cell_id = Utf8mb4CharField(primary_key=True, max_length=50)
+    cloud_level = SmallIntegerField(null=True, index=True)
+    rain_level = SmallIntegerField(null=True, index=True)
+    wind_level = SmallIntegerField(null=True, index=True)
+    snow_level = SmallIntegerField(null=True, index=True)
+    fog_level = SmallIntegerField(null=True, index=True)
+    wind_direction = SmallIntegerField(null=True, index=True)
+    gameplay_weather = SmallIntegerField(null=True, index=True)
+    severity = SmallIntegerField(null=True, index=True)
+    warn_weather = SmallIntegerField(null=True, index=True)
+    last_updated = DateTimeField(default=datetime.utcnow, null=True, index=True)
+    world_time = SmallIntegerField(null=True, index=True)
+
+
 class HashKeys(BaseModel):
     key = Utf8mb4CharField(primary_key=True, max_length=20)
     maximum = SmallIntegerField(default=0)
@@ -2157,14 +2173,24 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     sightings = {}
     new_spawn_points = []
     sp_id_list = []
+    s2_cell_id = {}
+    weather_alert = []
+    display_weather = {}
+    gameplay_weather = {}
+    weather = {}
 
     # Consolidate the individual lists in each cell into two lists of Pokemon
     # and a list of forts.
     cells = map_dict['GET_MAP_OBJECTS'].map_cells
+    cellweathers = map_dict['GET_MAP_OBJECTS'].client_weather
+    worldtime = map_dict['GET_MAP_OBJECTS'].time_of_day
     # Get the level for the pokestop spin, and to send to webhook.
     level = pgacc.get_stats('level')
     # Use separate level indicator for our L30 encounters.
     encounter_level = level
+
+    log.debug(cellweathers)
+    log.debug(worldtime)
 
     for i, cell in enumerate(cells):
         # If we have map responses then use the time from the request
@@ -2186,9 +2212,79 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         wild_pokemon_count += len(cell.wild_pokemons)
         forts_count += len(cell.forts)
 
+    # 0.85.1 Map Weather
+    for i, cell in enumerate(cellweathers):
+        # Parse Map Weather Information
+        s2_cell_id = cell.s2_cell_id
+        display_weather = cell.display_weather
+        gameplay_weather = cell.gameplay_weather
+        weather_alert = cell.alerts
+
     now_secs = date_secs(now_date)
 
     del map_dict['GET_MAP_OBJECTS']
+
+    # Severe Weather Alerts
+    severity = None
+    warn = None
+    if weather_alert:
+        for w in weather_alert:
+            if w.severity == 1:
+                severity = 'MODERATE'
+            elif w.severity == 2:
+                severity = 'EXTREME'
+            log.warning('Weather Alerts Active: %s, Severity Level: %s',
+                            w.warn_weather, severity)
+            severity = w.severity
+            warn = w.warn_weather
+
+    # Hourly Weather Update (On The Hour)
+    if display_weather:
+        gameplayweather = gameplay_weather.gameplay_condition
+        # Weather Table Database Update
+        weather[s2_cell_id] = {
+            's2_cell_id': s2_cell_id,
+            'cloud_level': display_weather.cloud_level,
+            'rain_level': display_weather.rain_level,
+            'wind_level': display_weather.wind_level,
+            'snow_level': display_weather.snow_level,
+            'fog_level': display_weather.fog_level,
+            'wind_direction': display_weather.wind_direction,
+            'gameplay_weather': gameplayweather,
+            'severity': severity,
+            'warn_weather': warn,
+            'world_time': worldtime,
+        }
+        # Weather Information Log
+        log.info('Weather Info: Cloud Level: %s, Rain Level: %s, ' +
+            'Wind Level: %s, Snow Level: %s, Fog Level: %s, ' +
+            'Wind Direction: %s Degreese.', display_weather.cloud_level,
+            display_weather.rain_level, display_weather.wind_level,
+            display_weather.snow_level, display_weather.fog_level,
+            display_weather.wind_direction)
+        # GamePlay Condition Log
+        if gameplayweather == 1:
+            gameplayweather = 'CLEAR'
+        elif gameplayweather == 2:
+            gameplayweather = 'RAINY'
+        elif gameplayweather == 3:
+            gameplayweather = 'PARTLY CLOUDY'
+        elif gameplayweather == 4:
+            gameplayweather = 'OVERCAST'
+        elif gameplayweather == 5:
+            gameplayweather = 'WINDY'
+        elif gameplayweather == 6:
+            gameplayweather = 'SNOW'
+        elif gameplayweather == 7:
+            gameplayweather = 'FOG'
+        if worldtime == 1:
+            worldtime = 'DAY'
+        elif worldtime == 2:
+            worldtime =  'NIGHT'
+        log.info('GamePlay Condition: %s - %s.', worldtime, gameplayweather)
+
+    log.info('Upserted %d weather details',
+             len(weather))
 
     # If there are no wild or nearby Pokemon...
     if not wild_pokemon and not nearby_pokemon:
@@ -2367,9 +2463,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'catch_prob_3': None,
                 'rating_attack': None,
                 'rating_defense': None,
-                'previous_id' : None
+                'previous_id' : None,
+                'weather_id' : None
             }
-
+            # Weather Pokemon Bonus
+            weather = p.pokemon_data.pokemon_display.weather_boosted_condition
+            if weather >= 1:
+                pokemon[p.encounter_id]['weather_id'] = (weather)
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
             have_balls = pgacc.inventory_balls > 0
@@ -2445,6 +2545,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                         'spawn_start': start_end[0],
                         'spawn_end': start_end[1],
                         'player_level': encounter_level,
+                        'weather': p.pokemon_data.pokemon_display.weather_boosted_condition
                     })
                     if wh_poke['cp_multiplier'] is not None:
                         wh_poke.update({
@@ -2766,7 +2867,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         db_update_queue.put((ScanSpawnPoint, scan_spawn_points))
         if sightings:
             db_update_queue.put((SpawnpointDetectionData, sightings))
-
+    if weather:
+        db_update_queue.put((Weather, weather))
     if not nearby_pokemon and not wild_pokemon:
         # After parsing the forts, we'll mark this scan as bad due to
         # a possible speed violation.
@@ -3529,7 +3631,7 @@ def create_tables(db):
               Gym, Raid, ScannedLocation, GymDetails, GymMember,
               GymPokemon, Trainer, MainWorker, WorkerStatus,
               SpawnPoint, ScanSpawnPoint, SpawnpointDetectionData,
-              Token, LocationAltitude, PlayerLocale, HashKeys]
+              Token, LocationAltitude, PlayerLocale, HashKeys, Weather]
     for table in tables:
         if not table.table_exists():
             log.info('Creating table: %s', table.__name__)
@@ -3545,7 +3647,7 @@ def drop_tables(db):
               GymMember, GymPokemon, Trainer, MainWorker,
               WorkerStatus, SpawnPoint, ScanSpawnPoint,
               SpawnpointDetectionData, LocationAltitude, PlayerLocale,
-              Token, HashKeys]
+              Token, HashKeys, Weather]
     db.connect()
     db.execute_sql('SET FOREIGN_KEY_CHECKS=0;')
     for table in tables:
@@ -3882,6 +3984,14 @@ def database_migrate(db, old_ver):
             migrator.add_column('gympokemon', 'form',
                                 SmallIntegerField(null=True, default=0)),
             migrator.add_column('pokemon', 'previous_id',
+                                SmallIntegerField(null=True))
+        )
+
+    if old_ver < 25:
+        migrate(
+            migrator.add_column('pokemon', 'weather_id',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('lurepokemon', 'weather_id',
                                 SmallIntegerField(null=True))
         )
 

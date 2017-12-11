@@ -599,6 +599,30 @@ function build_ditto(previous_id) {
   }
 }
 
+function build_weather(weather_id) {
+  if (weather_id == 1) {
+    return `<span>(CLEAR)</span>`
+  }
+  if (weather_id == 2) {
+    return `<span>(RAINY)</span>`
+  }
+  if (weather_id == 3) {
+    return `<span>(PARTLY CLOUDY)</span>`
+  }
+  if (weather_id == 4) {
+    return `<span>(OVERCAST)</span>`
+  }
+  if (weather_id == 5) {
+    return `<span>(WINDY)</span>`
+  }
+  if (weather_id == 6) {
+    return `<span>(SNOW)</span>`
+  }
+  if (weather_id == 7) {
+    return `<span>(FOG)</span>`
+  }
+}
+
 function sizeRatio(height, weight, baseHeight, baseWeight) {
     var heightRatio = height / baseHeight
     var weightRatio = weight / baseWeight
@@ -649,6 +673,7 @@ function pokemonLabel(pokemon) {
     var ratingAttack = pokemon.rating_attack
     var ratingDefense = pokemon.rating_defense
     var previous_id = pokemon.previous_id
+    var weather_id = pokemon.weather_id
     var spawnpoint_id = pokemon.spawnpoint_id
     var encounterIdLong = atob(encounterId)
 
@@ -670,6 +695,12 @@ function pokemonLabel(pokemon) {
 
     if (id === 132 && previous_id != null) {
         dittoString += build_ditto(previous_id)
+    }
+
+    var weatherString = ''
+
+    if (weather_id >= 1 && weather_id != null) {
+        weatherString += build_weather(weather_id)
     }
 
     var medalString = ''
@@ -701,7 +732,7 @@ function pokemonLabel(pokemon) {
 
     contentstring += `
     <div class='pokemon name'>
-      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
+      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay} ${weatherString}
     </div>`
 
     if (gender == 'L') {
