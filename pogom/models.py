@@ -2283,8 +2283,12 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             worldtime =  'NIGHT'
         log.info('GamePlay Condition: %s - %s.', worldtime, gameplayweather)
 
-    log.info('Upserted %d weather details',
+    log.debug(weather)
+    log.info('Upserted %d weather details.',
              len(weather))
+
+    if weather:
+        db_update_queue.put((Weather, weather))
 
     # If there are no wild or nearby Pokemon...
     if not wild_pokemon and not nearby_pokemon:
@@ -2867,8 +2871,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         db_update_queue.put((ScanSpawnPoint, scan_spawn_points))
         if sightings:
             db_update_queue.put((SpawnpointDetectionData, sightings))
-    if weather:
-        db_update_queue.put((Weather, weather))
     if not nearby_pokemon and not wild_pokemon:
         # After parsing the forts, we'll mark this scan as bad due to
         # a possible speed violation.
@@ -3319,6 +3321,13 @@ def clean_db_loop(args):
                      .delete()
                      .where((Token.last_updated <
                              (datetime.utcnow() - timedelta(minutes=2)))))
+            query.execute()
+
+            # Remove old weather
+            query = (Weather
+                     .delete()
+                     .where((Weather.last_updated <
+                             (datetime.utcnow() - timedelta(minutes=15)))))
             query.execute()
 
             if cycle % 10 != 0:
