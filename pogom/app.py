@@ -21,7 +21,7 @@ from bisect import bisect_left
 
 from .models import (Geofence, Pokemon, LurePokemon, Gym, Pokestop, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
-                     SpawnPoint)
+                     SpawnPoint, Weather)
 from .utils import now, dottedQuadToNum
 from .blacklist import fingerprints, get_ip_blacklist
 
@@ -75,6 +75,11 @@ class Pogom(Flask):
         self.route("/scout", methods=['GET'])(self.scout_pokemon)
         self.route("/gym_img", methods=['GET'])(self.gym_img)
         self.route("/<statusname>", methods=['GET'])(self.fullmap)
+        self.route("/weather", methods=['GET'])(self.get_weather)
+
+    def get_weather(self):
+        db_weathers = Weather.get_weathers()
+        return jsonify(db_weathers)
 
     def gym_img(self):
         team = request.args.get('team')

@@ -2065,6 +2065,15 @@ class Weather(BaseModel):
     last_updated = DateTimeField(default=datetime.utcnow, null=True, index=True)
     world_time = SmallIntegerField(null=True, index=True)
 
+    @staticmethod
+    def get_weathers():
+        query = Weather.select().dicts()
+
+        weathers = []
+        for w in query:
+            weathers.append(w)
+
+        return weathers
 
 class HashKeys(BaseModel):
     key = Utf8mb4CharField(primary_key=True, max_length=20)
