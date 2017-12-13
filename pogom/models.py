@@ -2075,6 +2075,7 @@ class Weather(BaseModel):
 
         return weathers
 
+
 class HashKeys(BaseModel):
     key = Utf8mb4CharField(primary_key=True, max_length=20)
     maximum = SmallIntegerField(default=0)
@@ -2527,6 +2528,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'catch_prob_3': scout_result['catch_prob_3'],
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
+                    'previous_id' : scout_result['previous_id'],
+                    'weather_id' : scout_result['weather_id'],
                 })
                 encounter_level = scout_result['scout_level']
             # We need to check if exist and is not false due to a request error
@@ -2637,6 +2640,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             'rating_attack': None,
                             'rating_defense': None,
                             'previous_id': None,
+                            'weather_id' : None
                         }
 
                 wh_pokestop = pokestops[f.id].copy()

@@ -567,6 +567,8 @@ function scout(encounterId) { // eslint-disable-line no-unused-vars
                 pkm['catch_prob_3'] = data.catch_prob_3
                 pkm['rating_attack'] = data.rating_attack
                 pkm['rating_defense'] = data.rating_defense
+                pkm['previous_id'] = data.previous_id
+                pkm['weather_id'] = data.weather_id
                 pkm.marker.infoWindow.setContent(pokemonLabel(pkm))
             } else {
                 infoEl.text(data.error)
@@ -790,6 +792,9 @@ function pokemonLabel(pokemon) {
                 </div>
                 <div class='pokemon links'>
                 ${removestring}
+                </div>
+                <div class='pokemon links'>
+                  <i class='fa fa-lg fa-fw fa-binoculars'></i> <a href='javascript:scout("${encounterId}")'>Scout</a>
                 </div>
               </div>
           </div>
