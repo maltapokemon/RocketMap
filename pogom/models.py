@@ -2531,6 +2531,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'previous_id' : scout_result['previous_id'],
                     'weather_id' : scout_result['weather_id'],
                 })
+                # Weather Pokemon Bonus
+                if scout_result['weather_id'] >= 1:
+                    pokemon[p.encounter_id]['weather_id'] = scout_result['weather_id']
                 encounter_level = scout_result['scout_level']
             # We need to check if exist and is not false due to a request error
             elif pokemon_info:
