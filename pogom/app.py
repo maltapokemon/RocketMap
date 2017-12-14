@@ -103,10 +103,10 @@ class Pogom(Flask):
             if scout_result['success']:
                 self.update_scouted_pokemon(p, scout_result)
                 log.info(
-                    u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP {} WeatherID"
+                    u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP {} Bonus"
                     u" (scout level {}).".format(
                         scout_result['iv_percent'], scout_result['level'],
-                        pokemon_name, scout_result['cp'], scout_result['weather_id'],
+                        pokemon_name, scout_result['cp'], scout_result.get('weather_id', None),
                         scout_result['scout_level']))
             else:
                 log.warning(u"Failed PGScouting {}: {}".format(pokemon_name,
@@ -142,8 +142,8 @@ class Pogom(Flask):
                 'catch_prob_3': response['catch_prob_3'],
                 'rating_attack': response['rating_attack'],
                 'rating_defense': response['rating_defense'],
-                'previous_id': response['previous_id'],
-                'weather_id': response['weather_id']
+                'previous_id': response.get('previous_id', None),
+                'weather_id': response.get('weather_id', None)
             }
         }
         self.db_updates_queue.put((Pokemon, update_data))

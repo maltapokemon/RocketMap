@@ -2274,7 +2274,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             display_weather.snow_level, display_weather.fog_level,
             display_weather.wind_direction)
 
-        log.info('GamePlay Conditions: %s - %s.',
+        log.info('GamePlay Conditions: %s - %s Bonus.',
                     GetMapObjectsResponse.TimeOfDay.Name(worldtime),
                     GameplayWeather.WeatherCondition.Name(gameplayweather))
 
@@ -2514,10 +2514,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
                     'previous_id' : scout_result['previous_id'],
+                    'weather_id' : scout_result['weather_id'],
                 })
-                # Weather Pokemon Bonus
-                if scout_result['weather_id'] >= 1:
-                    pokemon[p.encounter_id]['weather_id'] = scout_result['weather_id']
                 encounter_level = scout_result['scout_level']
             # We need to check if exist and is not false due to a request error
             elif pokemon_info:
