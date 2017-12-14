@@ -25,6 +25,8 @@ from .models import (Geofence, Pokemon, LurePokemon, Gym, Pokestop, ScannedLocat
 from .utils import now, dottedQuadToNum
 from .blacklist import fingerprints, get_ip_blacklist
 
+from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
+
 log = logging.getLogger(__name__)
 compress = Compress()
 
@@ -106,7 +108,8 @@ class Pogom(Flask):
                     u"Successfully PGScouted a {:.1f}% lvl {} {} with {} CP {} Bonus"
                     u" (scout level {}).".format(
                         scout_result['iv_percent'], scout_result['level'],
-                        pokemon_name, scout_result['cp'], scout_result.get('weather_id', None),
+                        pokemon_name, scout_result['cp'],
+                        GameplayWeather.WeatherCondition.Name(scout_result.get('weather_id', None)),
                         scout_result['scout_level']))
             else:
                 log.warning(u"Failed PGScouting {}: {}".format(pokemon_name,
