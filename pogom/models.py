@@ -41,6 +41,10 @@ from .utils import (get_pokemon_name, get_pokemon_types,
                     get_move_name, get_move_damage, get_move_energy,
                     get_move_type, calc_pokemon_level, i8ln)
 
+from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
+from pgoapi.protos.pogoprotos.map.weather.weather_alert_pb2 import *
+from pgoapi.protos.pogoprotos.networking.responses.get_map_objects_response_pb2 import *
+
 log = logging.getLogger(__name__)
 
 args = get_args()
@@ -2239,12 +2243,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     warn = None
     if weather_alert:
         for w in weather_alert:
-            if w.severity == 1:
-                severity = 'MODERATE'
-            elif w.severity == 2:
-                severity = 'EXTREME'
             log.warning('Weather Alerts Active: %s, Severity Level: %s',
-                            w.warn_weather, severity)
+                            w.warn_weather,
+                            WeatherAlert.Severity.Name(w.severity))
             severity = w.severity
             warn = w.warn_weather
 
@@ -2272,26 +2273,10 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             display_weather.rain_level, display_weather.wind_level,
             display_weather.snow_level, display_weather.fog_level,
             display_weather.wind_direction)
-        # GamePlay Condition Log
-        if gameplayweather == 1:
-            gameplayweather = 'CLEAR'
-        elif gameplayweather == 2:
-            gameplayweather = 'RAINY'
-        elif gameplayweather == 3:
-            gameplayweather = 'PARTLY CLOUDY'
-        elif gameplayweather == 4:
-            gameplayweather = 'OVERCAST'
-        elif gameplayweather == 5:
-            gameplayweather = 'WINDY'
-        elif gameplayweather == 6:
-            gameplayweather = 'SNOW'
-        elif gameplayweather == 7:
-            gameplayweather = 'FOG'
-        if worldtime == 1:
-            worldtime = 'DAY'
-        elif worldtime == 2:
-            worldtime =  'NIGHT'
-        log.info('GamePlay Condition: %s - %s.', worldtime, gameplayweather)
+
+        log.info('GamePlay Conditions: %s - %s.',
+                    GetMapObjectsResponse.TimeOfDay.Name(worldtime),
+                    GameplayWeather.WeatherCondition.Name(gameplayweather))
 
     log.debug(weather)
     log.info('Upserted %d weather details.',
@@ -2529,7 +2514,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                     'rating_attack': scout_result['rating_attack'],
                     'rating_defense': scout_result['rating_defense'],
                     'previous_id' : scout_result['previous_id'],
-                    'weather_id' : scout_result['weather_id'],
                 })
                 # Weather Pokemon Bonus
                 if scout_result['weather_id'] >= 1:
