@@ -2466,9 +2466,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'weather_id' : None
             }
             # Weather Pokemon Bonus
-            weather = p.pokemon_data.pokemon_display.weather_boosted_condition
-            if weather >= 1:
-                pokemon[p.encounter_id]['weather_id'] = (weather)
+            weather_boosted_condition = p.pokemon_data.pokemon_display.weather_boosted_condition
+            if weather_boosted_condition:
+                pokemon[p.encounter_id]['weather_id'] = weather_boosted_condition
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
             have_balls = pgacc.inventory_balls > 0

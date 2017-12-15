@@ -76,6 +76,16 @@ const cryFileTypes = ['wav', 'mp3', 'ogg']
 const genderType = ['L', '♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
 
+const weatherImages = {
+    1: 'weather_sunny.png',
+    2: 'weather_rain.png',
+    3: 'weather_partlycloudy_day.png',
+    4: 'weather_cloudy.png',
+    5: 'weather_windy.png',
+    6: 'weather_snow.png',
+    7: 'weather_fog.png'
+}
+
 /*
  text place holders:
  <pkm> - pokemon name
@@ -737,6 +747,13 @@ function pokemonLabel(pokemon) {
       <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay} ${weatherString}
     </div>`
 
+    var weatherBoost = ''
+    if (weather_id) {
+        weatherBoost = `<div class='pokemon big'>Boosted by:
+            <img src='static/images/weather/${weatherImages[weather_id]}' style="width: 24px; vertical-align: middle;">
+            </div>`
+    }
+
     if (gender == 'L') {
         contentstring += `
         <div>
@@ -803,6 +820,7 @@ function pokemonLabel(pokemon) {
               <div class='pokemon disappear'>
                 <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('h:mm:ss a')})
               </div>
+              ${weatherBoost}
               <div class='pokemon'>
                 ${iv_circle}
                 (A <span class='pokemon encounter'>${atk}</span> &nbsp;&nbsp; D <span class='pokemon encounter'>${def}</span> &nbsp;&nbsp; S <span class='pokemon encounter'>${sta}</span>)
@@ -844,6 +862,7 @@ function pokemonLabel(pokemon) {
           <div class='pokemon disappear'>
             <span class='label-countdown' disappears-at='${disappearTime}'>00m00s</span> left (${moment(disappearTime).format('h:mm:ss a')})
           </div>
+          ${weatherBoost}
           <div class='pokemon links'>
             <i class='fa fa-2x fa-binoculars'></i>&nbsp; <a href='javascript:scout("${encounterId}")'>Scout for IV / CP / Moves</a>
           </div>

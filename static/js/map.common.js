@@ -1142,6 +1142,26 @@ var mapData = {
     spawnpoints: {}
 }
 
+
+function getPokemonIcon(item, sprite, displayHeight) {
+    displayHeight = Math.max(displayHeight, 3)
+    var scale = displayHeight / sprite.iconHeight
+    var scaledIconSize = new google.maps.Size(scale * sprite.iconWidth, scale * sprite.iconHeight)
+    var scaledIconOffset = new google.maps.Point(0, 0)
+    var scaledIconCenterOffset = new google.maps.Point(scale * sprite.iconWidth / 2, scale * sprite.iconHeight / 2)
+
+    let weather_param = item['weather_id'] ? `&weather=${item['weather_id']}` : ''
+    let icon_url = `pkm_img?pkm=${item['pokemon_id']}${weather_param}`
+
+    return {
+        url: icon_url,
+        size: scaledIconSize,
+        scaledSize: scaledIconSize,
+        origin: scaledIconOffset,
+        anchor: scaledIconCenterOffset
+    }
+}
+
 function getGoogleSprite(index, sprite, displayHeight) {
     displayHeight = Math.max(displayHeight, 3)
     var scale = displayHeight / sprite.iconHeight
@@ -1190,14 +1210,25 @@ function pokemonMarkerSprite(item, pokemonId, pokemonForm = 0, height) {
     const form = parseInt(pokemonForm)
 
     if (id === 201 && form > 0) {
-        return getGoogleSprite(form - 1, pokemonFormSprites, height)
-    }
 
-    if (isMedalPokemonMap(item)) {
+      return getGoogleSprite(form - 1, pokemonFormSprites, height)
+
+    } else if (isMedalPokemonMap(item)) {
+
       return getGoogleSprite(id - 1, pokemonMedalSprites, height)
-    }
 
-    return getGoogleSprite(id - 1, pokemonSprites, height)
+    } else {
+
+      if (generateImages) {
+
+        return getPokemonIcon(item, pokemonSprites, height)
+
+      } else {
+
+        return getGoogleSprite(id - 1, pokemonSprites, height)
+
+      }
+    }
 }
 
 function setupPokemonMarkerDetails(item, map, scaleByRarity = true, isNotifyPkmn = false) {
@@ -1208,6 +1239,8 @@ function setupPokemonMarkerDetails(item, map, scaleByRarity = true, isNotifyPkmn
         const upscaledPokemon = Store.get('upscaledPokemon')
         rarityValue = isNotifyPkmn || (upscaledPokemon.indexOf(item['pokemon_id']) !== -1) ? 29 : 2
     }
+
+  //  console.log(item)
 
     if (scaleByRarity) {
         const rarityValues = {

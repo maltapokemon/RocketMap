@@ -547,6 +547,8 @@ def get_args():
                         action='store_true', default=False)
     parser.add_argument('-pgpu', '--pgpool-url', default=None,
                         help='URL of PGPool account manager.')
+    parser.add_argument('-au', '--assets-url', default=None,
+                        help='Local or remote URL pointing to optional PogoAssets root directory.')
     parser.add_argument('-pi', '--pokestop-info',
                         help=('Get all details about pokestops '
                             '(name, image, description) '
