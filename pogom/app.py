@@ -188,7 +188,7 @@ class Pogom(Flask):
                     u" (scout level {}).".format(
                         scout_result['iv_percent'], scout_result['level'],
                         pokemon_name, scout_result['cp'],
-                        GameplayWeather.WeatherCondition.Name(scout_result.get('weather_id', None)),
+                        GameplayWeather.WeatherCondition.Name(scout_result.get('weather_id', 0)),
                         scout_result['scout_level']))
             else:
                 log.warning(u"Failed PGScouting {}: {}".format(pokemon_name,
