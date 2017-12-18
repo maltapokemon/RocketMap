@@ -9,17 +9,17 @@ function processWeather(i, item) {
         return false
     }
 
-    var s2_cell_id = item.s2_cell_id
-    var itemOld = mapData.weather[s2_cell_id]
+    var s2CellId = item.s2_cell_id
+    var itemOld = mapData.weather[s2CellId]
 
     if (itemOld == null) { // add new marker to map and item to dict
-        safeDelMarker(item);
+        safeDelMarker(item)
         item.marker = setupWeatherMarker(item)
-        mapData.weather[s2_cell_id] = item
-    } else if (itemOld.gameplay_weather != item.gameplay_weather) { // if weather changed
+        mapData.weather[s2CellId] = item
+    } else if (itemOld.gameplay_weather !== item.gameplay_weather) { // if weather changed
         itemOld.marker.setMap(null)
         item.marker = setupWeatherMarker(item)
-        mapData.weather[s2_cell_id] = item
+        mapData.weather[s2CellId] = item
     }
 }
 
@@ -35,11 +35,11 @@ function processS2Cell(i, item) {
         return false
     }
 
-    var s2_cell_id = item.s2_cell_id
-    if (!(s2_cell_id in mapData.s2cells)) {
-        safeDelMarker(item);
+    var s2CellId = item.s2_cell_id
+    if (!(s2CellId in mapData.s2cells)) {
+        safeDelMarker(item)
         item.marker = setupS2CellPolygon(item)
-        mapData.s2cells[s2_cell_id] = item
+        mapData.s2cells[s2CellId] = item
     }
 }
 
@@ -61,22 +61,20 @@ function processWeatherAlerts(weatherAlerts) {
  * @returns {boolean}
  */
 function processWeatherAlert(i, item) {
-
     if (!Store.get('showWeatherAlerts') || item.severity == null) {
         return false
     }
 
-    var s2_cell_id = item.s2_cell_id
-
-    var itemOld = mapData.weatherAlerts[s2_cell_id]
+    var s2CellId = item.s2_cell_id
+    var itemOld = mapData.weatherAlerts[s2CellId]
     if (itemOld == null) {
         safeDelMarker(item)
         item.marker = createCellAlert(item)
-        mapData.weatherAlerts[s2_cell_id] = item
-    } else if (itemOld.severity != item.severity) {
+        mapData.weatherAlerts[s2CellId] = item
+    } else if (itemOld.severity !== item.severity) {
         itemOld.marker.setMap(null)
         item.marker = createCellAlert(item)
-        mapData.weatherAlerts[s2_cell_id] = item
+        mapData.weatherAlerts[s2CellId] = item
     }
 }
 
@@ -89,7 +87,7 @@ function deleteObsoleteWeatherAlerts(newAlerts) {
     var toRemove = []
     $.each(mapData.weatherAlerts, function (i, item) {
         if (!(item['s2_cell_id'] in newAlerts)) {
-            safeDelMarker(item);
+            safeDelMarker(item)
             toRemove.push(i)
         }
     })
@@ -117,14 +115,14 @@ function safeDelMarker(item) {
  */
 function setupWeatherMarker(item) {
     var image = {
-        url: "/static/images/weather/" + weatherImages[item.gameplay_weather],
+        url: '/static/images/weather/' + weatherImages[item.gameplay_weather],
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(32, 32)
-    };
+    }
     return new google.maps.Marker({
         position: item.center,
         icon: image
-    });
+    })
 }
 
 
@@ -136,12 +134,12 @@ function setupWeatherMarker(item) {
 function setupS2CellPolygon(item) {
     return new google.maps.Polygon({
         paths: item.vertices,
-        strokeColor: "#000000",
+        strokeColor: '#000000',
         strokeOpacity: 0.8,
         strokeWeight: 1,
         fillOpacity: 0,
         fillColor: '#00ff00'
-    });
+    })
 }
 
 
@@ -151,12 +149,12 @@ function setupS2CellPolygon(item) {
  * @returns {google.maps.Polygon}
  */
 function createCellAlert(item) {
-    var cell = setupS2CellPolygon(item);
+    var cell = setupS2CellPolygon(item)
     cell.fillOpacity = 0.1
     cell.strokeOpacity = 0
-    if (item.severity == 1) {
+    if (item.severity === 1) {
         cell.fillColor = '#ffff00'
-    } else if (item.severity == 2) {
+    } else if (item.severity === 2) {
         cell.fillColor = '#ff0000'
         console.log(cell.fillColor)
     }
@@ -171,10 +169,10 @@ function createCellAlert(item) {
  */
 function getS2CellBounds(s2Cell) {
     var bounds = new google.maps.LatLngBounds()
-    //iterate over the vertices
+    // iterate over the vertices
     $.each(s2Cell.vertices, function (i, latLng) {
-        //extend the bounds
-        bounds.extend(latLng);
+        // extend the bounds
+        bounds.extend(latLng)
     })
     return bounds
 }

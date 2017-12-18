@@ -1,4 +1,3 @@
-# from s2 import *
 import s2sphere
 
 from pogom.models import Weather
@@ -17,7 +16,10 @@ def get_weather_cels(db_weathers):
         cell_id = s2sphere.CellId(long(db_weathers[i]['s2_cell_id']))
         cell = s2sphere.Cell(cell_id)
         center = s2sphere.LatLng.from_point(cell.get_center())
-        db_weathers[i]['center'] = {'lat': center.lat().degrees, 'lng': center.lng().degrees}
+        db_weathers[i]['center'] = {
+            'lat': center.lat().degrees,
+            'lng': center.lng().degrees
+        }
         db_weathers[i]['vertices'] = get_vertices_from_s2cell(cell)
 
     return db_weathers
@@ -38,7 +40,10 @@ def get_s2_coverage(swLat, swLng, neLat, neLng):
         rect_bound = s2sphere.Cell(cell_id)
         center = s2sphere.LatLng.from_point(rect_bound.get_center())
         cell_to_render['s2_cell_id'] = str(cell_id.id())
-        cell_to_render['center'] = {'lat': center.lat().degrees, 'lng': center.lng().degrees}
+        cell_to_render['center'] = {
+            'lat': center.lat().degrees,
+            'lng': center.lng().degrees
+        }
         cell_to_render['vertices'] = get_vertices_from_s2cell(rect_bound)
 
         del rect_bound
@@ -46,10 +51,14 @@ def get_s2_coverage(swLat, swLng, neLat, neLng):
 
     return geoms
 
+
 # convert s2cell vertices to google map api format
 def get_vertices_from_s2cell(rect_bound):
     vertices = []
     for i in range(0, 4):
         vertex = s2sphere.LatLng.from_point(rect_bound.get_vertex(i))
-        vertices.append({'lat': vertex.lat().degrees, 'lng': vertex.lng().degrees})
+        vertices.append({
+            'lat': vertex.lat().degrees,
+            'lng': vertex.lng().degrees
+        })
     return vertices
