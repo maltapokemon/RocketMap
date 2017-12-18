@@ -20,6 +20,7 @@ from datetime import timedelta
 from collections import OrderedDict
 from bisect import bisect_left
 
+from pogom.weather import get_weather_cells, get_s2_coverage, get_weather_alerts
 from .models import (Geofence, Pokemon, LurePokemon, Gym, Pokestop, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint, Weather)
@@ -603,6 +604,15 @@ class Pogom(Flask):
                   args.status_page_password):
                 d['main_workers'] = MainWorker.get_all()
                 d['workers'] = WorkerStatus.get_all()
+
+        if request.args.get('weather', 'false') == 'true':
+            d['weather'] = get_weather_cells()
+
+        if request.args.get('s2cells', 'false') == 'true':
+            d['s2cells'] = get_s2_coverage(swLat, swLng, neLat, neLng)
+
+        if request.args.get('weatherAlerts', 'false') == 'true':
+            d['weatherAlerts'] = get_weather_alerts()
         return jsonify(d)
 
     def loc(self):

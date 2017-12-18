@@ -472,6 +472,9 @@ function initSidebar() {
     $('#medal-rattata-switch').prop('checked', Store.get('showMedalRattata'))
     $('#medal-magikarp-switch').prop('checked', Store.get('showMedalMagikarp'))
     $('#geofences-switch').prop('checked', Store.get('showGeofences'))
+    $('#weather-cells-switch').prop('checked', Store.get('showWeatherCells'))
+    $('#s2cells-switch').prop('checked', Store.get('showS2Cells'))
+    $('#weather-alerts-switch').prop('checked', Store.get('showWeatherAlerts'))
 
     // Only create the Autocomplete element if it's enabled in template.
     var elSearchBox = document.getElementById('next-location')
@@ -1926,7 +1929,11 @@ function showInBoundsMarkers(markers, type) {
                 if (map.getBounds().contains(marker.getPosition())) {
                     show = true
                 }
-            }
+            } else if(type == 's2cell'){
+                 if (map.getBounds().intersects(getS2CellBounds(item))) {
+                     show = true
+                 }
+             }
         }
 
         // Marker has an associated range.
@@ -1973,6 +1980,9 @@ function loadRawData() {
     var loadSpawnpoints = Store.get('showSpawnpoints')
     var loadLuredOnly = Boolean(Store.get('showLuredPokestopsOnly'))
     var loadGeofences = Store.get('showGeofences')
+    var loadWeather = Store.get('showWeatherCells')
+    var loadS2Cells = Store.get('showS2Cells')
+    var loadWeatherAlerts = Store.get('showWeatherAlerts')
 
     var bounds = map.getBounds()
     var swPoint = bounds.getSouthWest()
@@ -1999,6 +2009,9 @@ function loadRawData() {
             'lastslocs': lastslocs,
             'spawnpoints': loadSpawnpoints,
             'geofences': loadGeofences,
+            'weather': loadWeather,
+            's2cells': loadS2Cells,
+            'weatherAlerts': loadWeatherAlerts,
             'lastspawns': lastspawns,
             'swLat': swLat,
             'swLng': swLng,
@@ -2439,12 +2452,18 @@ function updateMap() {
         $.each(result.gyms, processGym)
         $.each(result.scanned, processScanned)
         $.each(result.spawnpoints, processSpawnpoint)
+        $.each(result.weather, processWeather)
+        $.each(result.s2cells, processS2Cell)
+        processWeatherAlerts(result.weatherAlerts)
         // showInBoundsMarkers(mapData.pokemons, 'pokemon')
         showInBoundsMarkers(mapData.lurePokemons, 'lurePokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')
         showInBoundsMarkers(mapData.pokestops, 'pokestop')
         showInBoundsMarkers(mapData.scanned, 'scanned')
         showInBoundsMarkers(mapData.spawnpoints, 'inbound')
+        showInBoundsMarkers(mapData.weather, 'weather')
+        showInBoundsMarkers(mapData.s2cells, 's2cell')
+        showInBoundsMarkers(mapData.weatherAlerts, 's2cell')
         clearStaleMarkers()
 
         // We're done processing. Redraw.
@@ -3474,6 +3493,19 @@ $(function () {
         buildSwitchChangeListener(mapData, ['spawnpoints'], 'showSpawnpoints').bind(this)()
     })
     $('#ranges-switch').change(buildSwitchChangeListener(mapData, ['gyms', 'pokemons', 'pokestops'], 'showRanges'))
+
+    $('#weather-cells-switch').change(function () {
+        buildSwitchChangeListener(mapData, ['weather'], 'showWeatherCells').bind(this)()
+    })
+
+    $('#s2cells-switch').change(function () {
+        buildSwitchChangeListener(mapData, ['s2cells'], 'showS2Cells').bind(this)()
+    })
+
+    $('#weather-alerts-switch').change(function () {
+        buildSwitchChangeListener(mapData, ['weatherAlerts'], 'showWeatherAlerts').bind(this)()
+    })
+
 
     $('#pokestops-switch').change(function () {
         var options = {
