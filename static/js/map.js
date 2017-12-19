@@ -594,7 +594,7 @@ function scout(encounterId) { // eslint-disable-line no-unused-vars
 
 function build_ditto(previous_id) {
   if (previous_id == 16) {
-    return `<span>(Pidgy)</span>`
+    return `<span>(Pidgey)</span>`
   }
   if (previous_id == 19) {
     return `<span>(Rattata)</span>`
