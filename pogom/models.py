@@ -3334,7 +3334,7 @@ def clean_db_loop(args):
             query = (Weather
                      .delete()
                      .where((Weather.last_updated <
-                             (datetime.utcnow() - timedelta(minutes=15)))))
+                             (datetime.utcnow() - timedelta(minutes=45)))))
             query.execute()
 
             if cycle % 10 != 0:
