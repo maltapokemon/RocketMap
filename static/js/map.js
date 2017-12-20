@@ -84,7 +84,9 @@ const weatherImages = {
     4: 'weather_cloudy.png',
     5: 'weather_windy.png',
     6: 'weather_snow.png',
-    7: 'weather_fog.png'
+    7: 'weather_fog.png',
+    11: 'weather_clear_night.png',
+    13: 'weather_partlycloudy_night.png'
 }
 
 /*
@@ -2470,6 +2472,7 @@ function updateMap() {
         $.each(result.weather, processWeather)
         $.each(result.s2cells, processS2Cell)
         processWeatherAlerts(result.weatherAlerts)
+        updateMainCellWeather()
         // showInBoundsMarkers(mapData.pokemons, 'pokemon')
         showInBoundsMarkers(mapData.lurePokemons, 'lurePokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')

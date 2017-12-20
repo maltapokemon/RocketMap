@@ -109,13 +109,35 @@ function safeDelMarker(item) {
 
 
 /**
+ * Creates path for weather icon based on gameplay_weather and world_time
+ * @param item
+ * @returns {*}
+ */
+function getWeatherImageUrl(item) {
+    var imageUrl
+    if (item.world_time === 2) { // night
+        if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
+            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+        } else { // clear and partly cloudy
+            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather + 10]
+        }
+    } else {
+        imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+    }
+    return imageUrl
+}
+
+
+/**
  * Creates marker with image
  * @param item
  * @returns {google.maps.Marker}
  */
 function setupWeatherMarker(item) {
+    var imageUrl = getWeatherImageUrl(item)
+
     var image = {
-        url: '/static/images/weather/' + weatherImages[item.gameplay_weather],
+        url: imageUrl,
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(32, 32)
     }
@@ -175,4 +197,85 @@ function getS2CellBounds(s2Cell) {
         bounds.extend(latLng)
     })
     return bounds
+}
+
+
+
+// Weather top icon.
+var $weatherInfo = document.querySelector('#weatherInfo')
+
+/**
+ * Update weather icon on top bar if there is single cell on the screen
+ */
+function updateMainCellWeather() {
+    // remove old weather icon
+    while ($weatherInfo.firstChild) {
+        $weatherInfo.removeChild($weatherInfo.firstChild)
+    }
+    var s2Cell = getMainS2Cell()
+    if (s2Cell != null) {
+        var imgUrl = getWeatherImageUrl(s2Cell)
+        var icon = document.createElement('img')
+        icon.setAttribute('src', imgUrl)
+        $weatherInfo.appendChild(icon)
+    }
+}
+
+
+/**
+ * Finds weather data for s2cell, that covers more than a half of the screen
+ * @returns {*}
+ */
+function getMainS2Cell() {
+    if (typeof window.orientation !== 'undefined' || isMobileDevice()) {
+        if (map.getZoom() < 12) { // viewport my contain many cells
+            return
+        }
+    } else {
+        if (map.getZoom() < 13) { // viewport my contain many cells
+            return
+        }
+    }
+
+    var geometryFactory = new jsts.geom.GeometryFactory()
+
+    var bounds = map.getBounds()
+    var viewportPath = [
+        {'lat': bounds.getNorthEast().lat(), 'lng': bounds.getNorthEast().lng()},
+        {'lat': bounds.getNorthEast().lat(), 'lng': bounds.getSouthWest().lng()},
+        {'lat': bounds.getSouthWest().lat(), 'lng': bounds.getSouthWest().lng()},
+        {'lat': bounds.getSouthWest().lat(), 'lng': bounds.getNorthEast().lng()}
+    ]
+    var jstsViewport = createJstsPolygon(geometryFactory, viewportPath)
+    var viewportArea = jstsViewport.getArea()
+    var maxCoverageData
+    $.each(mapData.weather, function (i, s2cell) {
+        var jstsS2cell = createJstsPolygon(geometryFactory, s2cell.vertices)
+        var area = jstsViewport.intersection(jstsS2cell).getArea()
+        if (
+            jstsS2cell.getArea() < area * 2 || // more than a half of the cell contains on the screen
+            viewportArea < area * 2 // more then a half of the screen covered by cell
+        ) {
+            maxCoverageData = s2cell
+        }
+    })
+    return maxCoverageData
+}
+
+
+/**
+ * Creates jsts polygon from coordinates array
+ * @param geometryFactory
+ * @param path
+ * @returns {*}
+ */
+function createJstsPolygon(geometryFactory, path) {
+    var coordinates = path.map(function name(coord) {
+        return new jsts.geom.Coordinate(coord.lat, coord.lng)
+    })
+    if (coordinates[0].compareTo(coordinates[coordinates.length - 1]) !== 0) {
+        coordinates.push(coordinates[0])
+    }
+    var shell = geometryFactory.createLinearRing(coordinates)
+    return geometryFactory.createPolygon(shell)
 }
