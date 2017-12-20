@@ -109,13 +109,35 @@ function safeDelMarker(item) {
 
 
 /**
+ * Creates path for weather icon based on gameplay_weather and world_time
+ * @param item
+ * @returns {*}
+ */
+function getWeatherImageUrl(item) {
+    var imageUrl
+    if (item.world_time === 2) { // night
+        if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
+            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+        } else { // clear and partly cloudy
+            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather + 10]
+        }
+    } else {
+        imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+    }
+    return imageUrl
+}
+
+
+/**
  * Creates marker with image
  * @param item
  * @returns {google.maps.Marker}
  */
 function setupWeatherMarker(item) {
+    var imageUrl = getWeatherImageUrl(item)
+
     var image = {
-        url: '/static/images/weather/' + weatherImages[item.gameplay_weather],
+        url: imageUrl,
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(32, 32)
     }
