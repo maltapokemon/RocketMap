@@ -2457,6 +2457,7 @@ function updateMap() {
         $.each(result.weather, processWeather)
         $.each(result.s2cells, processS2Cell)
         processWeatherAlerts(result.weatherAlerts)
+        updateMainCellWeather()
         // showInBoundsMarkers(mapData.pokemons, 'pokemon')
         showInBoundsMarkers(mapData.lurePokemons, 'lurePokemon')
         showInBoundsMarkers(mapData.gyms, 'gym')
