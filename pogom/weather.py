@@ -1,7 +1,9 @@
+import logging
 import s2sphere
 
 from pogom.models import Weather
 
+log = logging.getLogger(__name__)
 
 def get_weather_cells():
     return get_weather_cels(Weather.get_weathers())
@@ -13,16 +15,26 @@ def get_weather_alerts():
 
 def get_weather_cels(db_weathers):
     for i in range(0, len(db_weathers)):
-        cell_id = s2sphere.CellId(long(db_weathers[i]['s2_cell_id']))
-        cell = s2sphere.Cell(cell_id)
+        cell = get_cell_from_string(db_weathers[i]['s2_cell_id'])
         center = s2sphere.LatLng.from_point(cell.get_center())
         db_weathers[i]['center'] = {
             'lat': center.lat().degrees,
             'lng': center.lng().degrees
         }
         db_weathers[i]['vertices'] = get_vertices_from_s2cell(cell)
+        db_weathers[i]['s2_cell_id'] = str(cell.id().id())
 
     return db_weathers
+
+
+# workaround due a bug in POGOprotos
+def get_cell_from_string(str_id):
+    raw_id = long(str_id)
+    if raw_id < 0: # overflow
+        cell_id = s2sphere.CellId(raw_id)
+        return s2sphere.Cell.from_face_pos_level(cell_id.face(), cell_id.pos(), 10)
+    else:
+        return s2sphere.Cell(s2sphere.CellId(raw_id))
 
 
 def get_s2_coverage(swLat, swLng, neLat, neLng):
@@ -45,6 +57,8 @@ def get_s2_coverage(swLat, swLng, neLat, neLng):
             'lng': center.lng().degrees
         }
         cell_to_render['vertices'] = get_vertices_from_s2cell(rect_bound)
+
+        # log.info(rect_bound.approx_area())
 
         del rect_bound
         geoms.append(cell_to_render)
