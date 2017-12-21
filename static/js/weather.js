@@ -115,7 +115,11 @@ function safeDelMarker(item) {
  */
 function getWeatherImageUrl(item) {
     var imageUrl
-    if (item.world_time === 2) { // night
+    if (item.severity === 1) {
+      imageUrl = '/static/images/weather/' + weatherImages[15]
+    } else if (item.severity === 2) {
+        imageUrl = '/static/images/weather/' + weatherImages[16]
+    } else if (item.world_time === 2) { // night
         if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
             imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
         } else { // clear and partly cloudy

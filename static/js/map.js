@@ -86,7 +86,9 @@ const weatherImages = {
     6: 'weather_snow.png',
     7: 'weather_fog.png',
     11: 'weather_clear_night.png',
-    13: 'weather_partlycloudy_night.png'
+    13: 'weather_partlycloudy_night.png',
+    15: 'weather_moderate.png',
+    16: 'weather_extreme.png'
 }
 
 /*
