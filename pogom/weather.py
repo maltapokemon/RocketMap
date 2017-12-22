@@ -5,12 +5,12 @@ from pogom.models import Weather
 
 log = logging.getLogger(__name__)
 
-def get_weather_cells():
-    return get_weather_cels(Weather.get_weathers())
+def get_weather_cells(swLat, swLng, neLat, neLng):
+    return get_weather_cels(Weather.get_weather_by_location(swLat, swLng, neLat, neLng, False))
 
 
-def get_weather_alerts():
-    return get_weather_cels(Weather.get_weather_alerts())
+def get_weather_alerts(swLat, swLng, neLat, neLng):
+    return get_weather_cels(Weather.get_weather_by_location(swLat, swLng, neLat, neLng, True))
 
 
 def get_weather_cels(db_weathers):

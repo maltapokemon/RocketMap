@@ -2084,14 +2084,24 @@ class Weather(BaseModel):
         return weathers
 
     @staticmethod
-    def get_weather_alerts():
-        query = Weather.select().where(Weather.severity.is_null(False)).dicts()
-
+    def get_weather_by_location(swLat, swLng, neLat, neLng, alert):
+        if not alert:
+            query = Weather.select().where((Weather.latitude >= swLat) &
+                                       (Weather.longitude >= swLng) &
+                                       (Weather.latitude <= neLat) &
+                                       (Weather.longitude <= neLng)).dicts()
+        else:
+            query = Weather.select().where((Weather.latitude >= swLat) &
+                                           (Weather.longitude >= swLng) &
+                                           (Weather.latitude <= neLat) &
+                                           (Weather.longitude <= neLng) &
+                                           (Weather.severity.is_null(False))).dicts()
         weathers = []
         for w in query:
             weathers.append(w)
 
         return weathers
+
 
 class HashKeys(BaseModel):
     key = Utf8mb4CharField(primary_key=True, max_length=20)
