@@ -221,6 +221,7 @@ function updateMainCellWeather() {
         var imgUrl = getWeatherImageUrl(s2Cell, false)
         var icon = document.createElement('img')
         icon.setAttribute('src', imgUrl)
+        icon.setAttribute('style', 'height: 50px; vertical-align: middle;')
         $weatherInfo.appendChild(icon)
     }
 }
