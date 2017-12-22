@@ -111,9 +111,10 @@ function safeDelMarker(item) {
 /**
  * Creates path for weather icon based on gameplay_weather and world_time
  * @param item
+ * @param dark dark or light version of image, default is dark
  * @returns {*}
  */
-function getWeatherImageUrl(item) {
+function getWeatherImageUrl(item, dark = true) {
     var imageUrl
     if (item.world_time === 2) { // night
         if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
@@ -123,6 +124,9 @@ function getWeatherImageUrl(item) {
         }
     } else {
         imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+    }
+    if (!dark) {
+        imageUrl = imageUrl.replace('weather_', 'weather_light_')
     }
     return imageUrl
 }
@@ -214,7 +218,7 @@ function updateMainCellWeather() {
     }
     var s2Cell = getMainS2Cell()
     if (s2Cell != null) {
-        var imgUrl = getWeatherImageUrl(s2Cell)
+        var imgUrl = getWeatherImageUrl(s2Cell, false)
         var icon = document.createElement('img')
         icon.setAttribute('src', imgUrl)
         $weatherInfo.appendChild(icon)
