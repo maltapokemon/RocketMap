@@ -26,6 +26,7 @@ import time
 import timeit
 import threading
 import traceback
+import s2sphere
 
 from collections import deque
 from datetime import datetime, timedelta
@@ -48,10 +49,14 @@ from .account import (AccountSet,
                       setup_mrmime_account, get_account, account_failed, account_revive)
 from .captcha import captcha_overseer_thread, handle_captcha
 from .models import (parse_map, GymDetails, parse_gyms, PokestopDetails, parse_pokestop,
-                     MainWorker, WorkerStatus, HashKeys)
+                     MainWorker, WorkerStatus, HashKeys, Weather)
 from .proxy import get_new_proxy
 from .transform import get_new_coords
-from .utils import now, clear_dict_response, get_args, distance
+from .utils import now, clear_dict_response, get_args, distance, degrees_to_cardinal
+
+from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
+from pgoapi.protos.pogoprotos.map.weather.weather_alert_pb2 import *
+from pgoapi.protos.pogoprotos.networking.responses.get_map_objects_response_pb2 import *
 
 log = logging.getLogger(__name__)
 
@@ -98,6 +103,9 @@ def switch_status_printer(display_type, current_page, mainlog,
         elif command.lower() == 'h':
             mainlog.handlers[0].setLevel(logging.CRITICAL)
             display_type[0] = 'hashstatus'
+        elif command.lower() == 'w':
+            mainlog.handlers[0].setLevel(logging.CRITICAL)
+            display_type[0] = 'weatherstatus'
 
 
 # Thread to print out the status of each worker.
@@ -267,11 +275,48 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
                         key_instance['maximum'],
                         key_instance['peak']))
 
+        elif display_type[0] == 'weatherstatus':
+            status_text.append(
+                '----------------------------------------------------------')
+            status_text.append('Weather status:')
+            status_text.append(
+                '----------------------------------------------------------')
+
+            status = '{:22} | {:7} | {:6} | {:6} | {:6} | {:5} | {:7} | {:8} | {:8} | {:4} | {:5} | {:9}'
+            status_text.append(status.format('S2CellLoc', 'CloudLv', 'RainLv',
+                                             'WindLv', 'SnowLv', 'FogLv',
+                                             'WindDir', 'Gameplay',
+                                             'Severity', 'Warn', 'Time',
+                                             'LastUpdated'))
+
+            db_weathers = Weather.get_weathers()
+            if db_weathers is not None:
+                for weather in db_weathers:
+                    weather['location'] = "{:.6f}, {:.6f}".format(weather['latitude'], weather['longitude'])
+                    serverity = 0
+                    warn = 0
+                    if weather['severity']:
+                        serverity = weather['severity']
+                        warn = weather['warn_weather']
+                    status_text.append(status.format(
+                        weather['location'],
+                        weather['cloud_level'],
+                        weather['rain_level'],
+                        weather['wind_level'],
+                        weather['snow_level'],
+                        weather['fog_level'],
+                        degrees_to_cardinal(weather['wind_direction']),
+                        GameplayWeather.WeatherCondition.Name(weather['gameplay_weather']),
+                        WeatherAlert.Severity.Name(serverity),
+                        warn,
+                        GetMapObjectsResponse.TimeOfDay.Name(weather['world_time']),
+                        str(weather['last_updated'])))
+
         # Print the status_text for the current screen.
         status_text.append((
             'Page {}/{}. Page number to switch pages. F to show on hold ' +
-            'accounts. H to show hash status. A to show account stats. <ENTER> alone to switch ' +
-            'between status and log view').format(current_page[0],
+            'accounts. H to show hash status. A to show account stats. W to show weather status.' +
+            '<ENTER> alone to switch between status and log view').format(current_page[0],
                                                   total_pages))
         # Clear the screen.
         os.system('cls' if os.name == 'nt' else 'clear')

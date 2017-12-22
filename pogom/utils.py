@@ -504,7 +504,7 @@ def get_args():
     parser.add_argument('-fss', '--fake-search-script', default='',
                         help=('Get pokemon from script instead. See ' +
                               '"pogom\sample_fake_scripts" for more info'))
-    parser.add_argument('--api-version', default='0.85.1',
+    parser.add_argument('--api-version', default='0.87.5',
                         help=('API version currently in use.'))
     parser.add_argument('-sazl', '--show-all-zoom-level',
                         help=('Show all Pokemon, even excluded, at this map '
@@ -922,6 +922,13 @@ def cellid(loc):
 # Return approximate distance in meters.
 def distance(pos1, pos2):
     return haversine((tuple(pos1))[0:2], (tuple(pos2))[0:2])
+
+
+def degrees_to_cardinal(d):
+    dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+    ix = int((d + 11.25)/22.5 - 0.02)
+    return dirs[ix % 16]
 
 
 # Return True if distance between two locs is less than distance in meters.

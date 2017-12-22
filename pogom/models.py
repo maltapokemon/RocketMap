@@ -10,6 +10,8 @@ import sys
 import time
 import traceback
 import random
+import s2sphere
+
 from base64 import b64encode
 from datetime import datetime, timedelta
 from timeit import default_timer
@@ -51,7 +53,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 25
+db_schema_version = 26
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -2057,6 +2059,8 @@ class Token(flaskDb.Model):
 
 class Weather(BaseModel):
     s2_cell_id = Utf8mb4CharField(primary_key=True, max_length=50)
+    latitude = DoubleField()
+    longitude = DoubleField()
     cloud_level = SmallIntegerField(null=True, index=True)
     rain_level = SmallIntegerField(null=True, index=True)
     wind_level = SmallIntegerField(null=True, index=True)
@@ -2066,8 +2070,8 @@ class Weather(BaseModel):
     gameplay_weather = SmallIntegerField(null=True, index=True)
     severity = SmallIntegerField(null=True, index=True)
     warn_weather = SmallIntegerField(null=True, index=True)
-    last_updated = DateTimeField(default=datetime.utcnow, null=True, index=True)
     world_time = SmallIntegerField(null=True, index=True)
+    last_updated = DateTimeField(default=datetime.utcnow, null=True, index=True)
 
     @staticmethod
     def get_weathers():
@@ -2244,6 +2248,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         gameplay_weather = cell.gameplay_weather
         weather_alert = cell.alerts
 
+        # Convert Cell To Lat, Long
+        cell_id = s2sphere.CellId(long(s2_cell_id))
+        cell = s2sphere.Cell(cell_id)
+        center = s2sphere.LatLng.from_point(cell.get_center())
+        lat = center.lat().degrees
+        lng = center.lng().degrees
+
     now_secs = date_secs(now_date)
 
     del map_dict['GET_MAP_OBJECTS']
@@ -2253,7 +2264,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     warn = None
     if weather_alert:
         for w in weather_alert:
-            log.warning('Weather Alerts Active: %s, Severity Level: %s',
+            log.info('Weather Alerts Active: %s, Severity Level: %s',
                             w.warn_weather,
                             WeatherAlert.Severity.Name(w.severity))
             severity = w.severity
@@ -2265,6 +2276,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         # Weather Table Database Update
         weather[s2_cell_id] = {
             's2_cell_id': s2_cell_id,
+            'latitude': lat,
+            'longitude': lng,
             'cloud_level': display_weather.cloud_level,
             'rain_level': display_weather.rain_level,
             'wind_level': display_weather.wind_level,
@@ -4009,6 +4022,14 @@ def database_migrate(db, old_ver):
                                 SmallIntegerField(null=True)),
             migrator.add_column('lurepokemon', 'weather_id',
                                 SmallIntegerField(null=True))
+        )
+
+    if old_ver < 26:
+        migrate(
+            migrator.add_column('weather', 'latitude',
+                                DoubleField(null=True)),
+            migrator.add_column('weather', 'longitude',
+                                DoubleField(null=True))
         )
 
     # Always log that we're done.
