@@ -260,7 +260,7 @@ function getMainS2Cell() {
     $.each(mapData.weather, function (i, s2cell) {
         var jstsS2cell = createJstsPolygon(geometryFactory, s2cell.vertices)
         var area = jstsViewport.intersection(jstsS2cell).getArea()
-        if (jstsS2cell.getArea() < area * 2) { // more than a half of the cell contains on the screen
+        if (viewportArea < area * 2) {  // more then a half of the screen covered by cell
             maxCoverageData = s2cell
         }
     })
