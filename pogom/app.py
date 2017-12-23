@@ -24,7 +24,7 @@ from pogom.weather import get_weather_cells, get_s2_coverage, get_weather_alerts
 from .models import (Geofence, Pokemon, LurePokemon, Gym, Pokestop, ScannedLocation,
                      MainWorker, WorkerStatus, Token, HashKeys,
                      SpawnPoint, Weather)
-from .utils import now, dottedQuadToNum
+from .utils import now, dottedQuadToNum, degrees_to_cardinal
 from .blacklist import fingerprints, get_ip_blacklist
 
 from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
@@ -103,8 +103,8 @@ class Pogom(Flask):
         lines += "<meta http-equiv='Refresh' content='60'>"
         lines += "Pokemon Go Weather Status"
         lines += "<br><br>"
-        headers = ['#', 'Cell', 'CloudLevel', 'RainLevel', 'WindLevel', 'SnowLevel', 'FogLevel', 'WindDirection', 'GameplayWeather',
-                                          'Severity', 'WarnWeather', 'LastUpdated', 'WorldTime']
+        headers = ['#', 'S2CellLoc', 'CloudLv', 'RainLv', 'WindLv', 'SnowLv', 'FogLv', 'WindDir', 'Gameplay',
+                                          'Severity', 'Warn', 'LastUpdated', 'Time']
 
         lines += "<table><tr>"
         for h in headers:
@@ -120,16 +120,17 @@ class Pogom(Flask):
                 break
             lines += "<tr>"
             s = db_weathers[i]
+            cell = "{:.6f}, {:.6f}".format(s['latitude'], s['longitude'])
             #warn = s.get_state('warn')
             #warn_str = '' if warn is None else ('Yes' if warn else 'No')
             lines += td(i+1)
-            lines += td(s['s2_cell_id'])
+            lines += td(cell)
             lines += td(s['cloud_level'])
             lines += td(s['rain_level'])
             lines += td(s['wind_level'])
             lines += td(s['snow_level'])
             lines += td(s['fog_level'])
-            lines += td(s['wind_direction'])
+            lines += td(degrees_to_cardinal(s['wind_direction']))
             lines += td(GameplayWeather.WeatherCondition.Name(s['gameplay_weather']))
             if s['severity'] == None:
                 s['severity'] = 0
