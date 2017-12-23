@@ -5,6 +5,8 @@ import logging
 from string import join
 
 from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
+from pgoapi.protos.pogoprotos.map.weather.weather_alert_pb2 import *
+from pgoapi.protos.pogoprotos.networking.responses.get_map_objects_response_pb2 import *
 
 from pogom.utils import get_args
 
@@ -48,7 +50,11 @@ weather_images = {
     4: os.path.join(path_weather, 'weather_cloudy.png'),
     5: os.path.join(path_weather, 'weather_windy.png'),
     6: os.path.join(path_weather, 'weather_snow.png'),
-    7: os.path.join(path_weather, 'weather_fog.png')
+    7: os.path.join(path_weather, 'weather_fog.png'),
+    11: os.path.join(path_weather, 'weather_clear_night.png'),
+    13: os.path.join(path_weather, 'weather_partlycloudy_night.png'),
+    15: os.path.join(path_weather, 'weather_moderate.png'),
+    16: os.path.join(path_weather, 'weather_extreme.png')
 }
 
 def get_gym_icon(team, level, raidlevel, pkm, battle):
@@ -102,7 +108,7 @@ def get_gym_icon(team, level, raidlevel, pkm, battle):
         subprocess.call(cmd, shell=True)
     return out_filename
 
-def get_pokemon_icon(pkm, weather):
+def get_pokemon_icon(pkm, weather, time):
     init_image_dir()
     args = get_args()
 
@@ -126,13 +132,34 @@ def get_pokemon_icon(pkm, weather):
         )
 
     if weather:
-        weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
-        out_filename = os.path.join(path_generated, "pokemon_{}_{}.png".format(pkm, weather_name))
-        im_lines.append(
-            '-gravity northeast'
-            ' -fill "#FFFD" -stroke black -draw "circle 74,21 74,1"'
-            ' -draw "image over 1,1 42,42 \'{}\'"'.format(weather_images[weather])
-        )
+        if time == 2:
+            if not weather == 1 or weather == 3:
+                weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
+                time_name = GetMapObjectsResponse.TimeOfDay.Name(int(time))
+                out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
+                im_lines.append(
+                    '-gravity northeast'
+                    ' -fill "#FFFD" -stroke black -draw "circle 74,21 74,1"'
+                    ' -draw "image over 1,1 42,42 \'{}\'"'.format(weather_images[weather])
+                )
+            else:
+                weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
+                time_name = GameplayWeather.WeatherCondition.Name(int(time))
+                out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
+                im_lines.append(
+                    '-gravity northeast'
+                    ' -fill "#FFFD" -stroke black -draw "circle 74,21 74,1"'
+                    ' -draw "image over 1,1 42,42 \'{}\'"'.format(weather_images[weather + 10])
+                )
+        else:
+            weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
+            time_name = GameplayWeather.WeatherCondition.Name(int(time))
+            out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
+            im_lines.append(
+                '-gravity northeast'
+                ' -fill "#FFFD" -stroke black -draw "circle 74,21 74,1"'
+                ' -draw "image over 1,1 42,42 \'{}\'"'.format(weather_images[weather])
+            )
     else:
         out_filename = os.path.join(path_generated, "pokemon_{}.png".format(pkm))
 

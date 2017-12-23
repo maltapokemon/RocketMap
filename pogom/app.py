@@ -170,7 +170,8 @@ class Pogom(Flask):
     def pokemon_img(self):
         pkm = int(request.args.get('pkm'))
         weather = int(request.args.get('weather')) if 'weather' in request.args else 0
-        return send_file(get_pokemon_icon(pkm, weather), mimetype='image/png')
+        time = int(request.args.get('time')) if 'time' in request.args else 0
+        return send_file(get_pokemon_icon(pkm, weather, time), mimetype='image/png')
 
     def scout_pokemon(self):
         args = get_args()
@@ -614,6 +615,10 @@ class Pogom(Flask):
 
         if request.args.get('weatherAlerts', 'false') == 'true':
             d['weatherAlerts'] = get_weather_alerts(swLat, swLng, neLat, neLng)
+
+        if request.args.get('time', 'false') == 'true':
+            d['time'] = get_time(swLat, swLng, neLat, neLng)
+
         return jsonify(d)
 
     def loc(self):
