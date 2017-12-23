@@ -2073,6 +2073,7 @@ class Weather(BaseModel):
     world_time = SmallIntegerField(null=True, index=True)
     last_updated = DateTimeField(default=datetime.utcnow, null=True, index=True)
 
+
     @staticmethod
     def get_weathers():
         query = Weather.select().dicts()
@@ -2085,16 +2086,21 @@ class Weather(BaseModel):
 
     @staticmethod
     def get_weather_by_location(swLat, swLng, neLat, neLng, alert):
+        # We can filter by the center of a cell, this deltas can expand the viewport bounds
+        # So cells with center outside the viewport, but close to it can be rendered
+        # otherwise edges of cells that intersects with viewport won't be rendered
+        lat_delta = 0.15
+        lng_delta = 0.4
         if not alert:
-            query = Weather.select().where((Weather.latitude >= swLat) &
-                                       (Weather.longitude >= swLng) &
-                                       (Weather.latitude <= neLat) &
-                                       (Weather.longitude <= neLng)).dicts()
+            query = Weather.select().where((Weather.latitude >= float(swLat) - lat_delta) &
+                                           (Weather.longitude >= float(swLng) - lng_delta) &
+                                           (Weather.latitude <= float(neLat) + lat_delta) &
+                                           (Weather.longitude <= float(neLng) + lng_delta)).dicts()
         else:
-            query = Weather.select().where((Weather.latitude >= swLat) &
-                                           (Weather.longitude >= swLng) &
-                                           (Weather.latitude <= neLat) &
-                                           (Weather.longitude <= neLng) &
+            query = Weather.select().where((Weather.latitude >= float(swLat) - lat_delta) &
+                                           (Weather.longitude >= float(swLng) - lng_delta) &
+                                           (Weather.latitude <= float(neLat) + lat_delta) &
+                                           (Weather.longitude <= float(neLng) + lng_delta) &
                                            (Weather.severity.is_null(False))).dicts()
         weathers = []
         for w in query:
