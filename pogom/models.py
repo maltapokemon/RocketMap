@@ -53,7 +53,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 26
+db_schema_version = 27
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -210,6 +210,7 @@ class PokemonBaseModel(BaseModel):
     rating_defense = CharField(null=True, max_length=2)
     previous_id = SmallIntegerField(null=True)
     weather_id = SmallIntegerField(null=True)
+    time_id = SmallIntegerField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2486,7 +2487,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_attack': None,
                 'rating_defense': None,
                 'previous_id' : None,
-                'weather_id' : None
+                'weather_id' : None,
+                'time_id': worldtime
             }
             # Weather Pokemon Bonus
             weather_boosted_condition = p.pokemon_data.pokemon_display.weather_boosted_condition
@@ -4032,5 +4034,12 @@ def database_migrate(db, old_ver):
                                 DoubleField(null=True))
         )
 
+    if old_ver < 27:
+        migrate(
+            migrator.add_column('pokemon', 'time_id',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('lurepokemon', 'time_id',
+                                SmallIntegerField(null=True))
+        )
     # Always log that we're done.
     log.info('Schema upgrade complete.')
