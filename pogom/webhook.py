@@ -223,7 +223,12 @@ def __get_key_fields(whtype):
         'raid': [
             'spawn', 'start', 'end', 'pokemon_id', 'latitude', 'longitude',
             'move_1', 'move_2'
-        ]
+        ],
+        'weather': [
+            's2_cell_id', 'latitude', 'longitude', 'cloud_level', 'rain_level', 'wind_level',
+            'snow_level', 'fog_level', 'wind_direction', 'gameplay_weather', 'severity', 'warn_weather',
+            'world_time'
+        ],
     }
 
     return key_fields.get(whtype, [])
