@@ -2618,7 +2618,7 @@ function sendNotification(title, text, icon, lat, lon) {
     Push.create(title, notificationDetails).catch(function () {
         /* Push.js doesn't fall back automatically if the user denies the
          * Notifications permission. */
-        sendToastrPokemonNotification(title, text, icon, lat, lon)
+        //sendToastrPokemonNotification(title, text, icon, lat, lon)
     })
 }
 
@@ -3003,15 +3003,15 @@ $(function () {
      * notifications. */
     Push.config({
         serviceWorker: 'serviceWorker.min.js',
-        fallback: function (notification) {
-            sendToastrPokemonNotification(
-                notification.title,
-                notification.body,
-                notification.icon,
-                notification.data.lat,
-                notification.data.lon
-            )
-        }
+        //fallback: function (notification) {
+        //    sendToastrPokemonNotification(
+        //        notification.title,
+        //        notification.body,
+        //        notification.icon,
+        //        notification.data.lat,
+        //        notification.data.lon
+        //    )
+        //}
     })
 })
 
