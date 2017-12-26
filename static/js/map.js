@@ -635,30 +635,6 @@ function build_ditto(previous_id) {
   }
 }
 
-function build_weather(weather_id) {
-  if (weather_id == 1) {
-    return `<span>(CLEAR)</span>`
-  }
-  if (weather_id == 2) {
-    return `<span>(RAINY)</span>`
-  }
-  if (weather_id == 3) {
-    return `<span>(PARTLY CLOUDY)</span>`
-  }
-  if (weather_id == 4) {
-    return `<span>(OVERCAST)</span>`
-  }
-  if (weather_id == 5) {
-    return `<span>(WINDY)</span>`
-  }
-  if (weather_id == 6) {
-    return `<span>(SNOW)</span>`
-  }
-  if (weather_id == 7) {
-    return `<span>(FOG)</span>`
-  }
-}
-
 function sizeRatio(height, weight, baseHeight, baseWeight) {
     var heightRatio = height / baseHeight
     var weightRatio = weight / baseWeight
@@ -733,12 +709,6 @@ function pokemonLabel(pokemon) {
         dittoString += build_ditto(previous_id)
     }
 
-    var weatherString = ''
-
-    if (weather_id >= 1 && weather_id != null) {
-        weatherString += build_weather(weather_id)
-    }
-
     var medalString = ''
 
     var baseHeight = (pokemon.pokemon_id === 19) ? 0.30 : 0.90
@@ -768,13 +738,13 @@ function pokemonLabel(pokemon) {
 
     contentstring += `
     <div class='pokemon name'>
-      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay} ${weatherString}
+      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
     var weatherBoost = ''
     if (weather_id) {
-        weatherBoost = `<div class='pokemon big'>Boosted by:
-            <img src='static/images/weather/${weatherImages[weather_id]}' style="width: 24px; vertical-align: middle;">
+        weatherBoost = `<div class='pokemon big'>Weather Boost:
+            <img src='static/images/weather/${weatherImages[weather_id]}' style="width: 24px; vertical-align: middle;">${weatherTexts[weather_id]}
             </div>`
     }
 
@@ -879,6 +849,9 @@ function pokemonLabel(pokemon) {
             <div class='pokemon links'>
               ${removestring}
             </div>
+            <div class='pokemon links'>
+              <i class='fa fa-lg fa-fw fa-binoculars'></i> <a href='javascript:scout("${encounterId}")'>Scout</a>
+            </div>
           </div>
       </div>
       <div class='pokemon container content-right'>
@@ -888,7 +861,7 @@ function pokemonLabel(pokemon) {
           </div>
           ${weatherBoost}
           <div class='pokemon links'>
-            <i class='fa fa-2x fa-binoculars'></i>&nbsp; <a href='javascript:scout("${encounterId}")'>Scout for IV / CP / Moves</a>
+            <i class='fa fa-2x fa-binoculars'></i>&nbsp; <a href='javascript:scout("${encounterId}")'>Scout Pokemon</a>
           </div>
           <div class='pokemon'>
             <span class='pokemon navigate'><a href='javascript:void(0);' onclick='javascript:openMapDirections(${latitude},${longitude});' title='Open in Google Maps'>${latitude.toFixed(6)}, ${longitude.toFixed(7)}</a></span>
