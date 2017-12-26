@@ -16,7 +16,8 @@ function processWeather(i, item) {
         safeDelMarker(item)
         item.marker = setupWeatherMarker(item)
         mapData.weather[s2CellId] = item
-    } else if (itemOld.gameplay_weather !== item.gameplay_weather) { // if weather changed
+    } else if (itemOld.gameplay_weather !== item.gameplay_weather ||
+          itemOld.severity !== item.severity) { // if weather changed
         itemOld.marker.setMap(null)
         item.marker = setupWeatherMarker(item)
         mapData.weather[s2CellId] = item
@@ -233,7 +234,7 @@ function updateMainCellWeather() {
         }
         var weathertext = document.createElement('span')
         weathertext.textContent ? weathertext.textContent = weather : weathertext.innerText = weather
-        weathertext.setAttribute('style', 'font-size: 10px; position: relative; left: -3px;')
+        weathertext.setAttribute('style', 'font-size: 10px; position: relative; left: -2px;')
         // Weather Icon
         var weathericon = document.createElement('img')
         weathericon.setAttribute('src', imgUrl)
@@ -242,7 +243,7 @@ function updateMainCellWeather() {
         var winddirection = degreesToCardinal(s2Cell.wind_direction)
         var windtext = document.createElement('span')
         windtext.textContent ? windtext.textContent = winddirection : windtext.innerText = winddirection
-        windtext.setAttribute('style', 'font-size: 10px; position: relative; left: -3px;')
+        windtext.setAttribute('style', 'font-size: 10px; position: relative; left: -2px;')
         // Wind Icon
         var windIcon = document.createElement('img')
         windIcon.setAttribute('src', '/static/images/weather/wind_streaks.png')
