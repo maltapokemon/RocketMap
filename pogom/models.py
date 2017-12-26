@@ -2277,8 +2277,8 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
     del map_dict['GET_MAP_OBJECTS']
 
     # Severe Weather Alerts
-    severity = None
-    warn = None
+    severity = 0
+    warn = 0
     if weather_alert:
         for w in weather_alert:
             log.info('Weather Alerts Active: %s, Severity Level: %s',

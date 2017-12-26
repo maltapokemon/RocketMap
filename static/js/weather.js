@@ -180,11 +180,14 @@ function setupS2CellPolygon(item) {
  */
 function createCellAlert(item) {
     var cell = setupS2CellPolygon(item)
-    cell.fillOpacity = 0.2
     cell.strokeOpacity = 0
-    if (item.severity === 1) {
+    if (item.severity === 0) {
+        cell.fillOpacity = 0.0
+    } else if (item.severity === 1) {
+        cell.fillOpacity = 0.2
         cell.fillColor = '#ffff00'
     } else if (item.severity === 2) {
+        cell.fillOpacity = 0.2
         cell.fillColor = '#ff0000'
     }
     return cell
