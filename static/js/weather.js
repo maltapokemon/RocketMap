@@ -119,18 +119,18 @@ function getWeatherImageUrl(item, dark = true) {
     if (item.severity === 1) {
       imageUrl = '/static/images/weather/' + weatherImages[15]
     } else if (item.severity === 2) {
-        imageUrl = '/static/images/weather/' + weatherImages[16]
+      imageUrl = '/static/images/weather/' + weatherImages[16]
     } else if (item.world_time === 2) { // night
         if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
-            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+          imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
         } else { // clear and partly cloudy
-            imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather + 10]
+          imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather + 10]
         }
     } else {
-        imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
+      imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
     }
-    if (!dark && item.severity == null) {
-        imageUrl = imageUrl.replace('weather_', 'weather_light_')
+    if (!dark && item.severity == 0) {
+      imageUrl = imageUrl.replace('weather_', 'weather_light_')
     }
     return imageUrl
 }
@@ -210,7 +210,6 @@ function getS2CellBounds(s2Cell) {
 }
 
 
-
 // Weather top icon.
 var $weatherInfo = document.querySelector('#weatherInfo')
 
@@ -225,21 +224,34 @@ function updateMainCellWeather() {
     var s2Cell = getMainS2Cell()
     if (s2Cell != null) {
         var imgUrl = getWeatherImageUrl(s2Cell, false)
-        var icon = document.createElement('img')
-        icon.setAttribute('src', imgUrl)
-        icon.setAttribute('style', 'height: 50px; vertical-align: middle;')
-
-        var weatherDirection = degreesToCardinal(s2Cell.wind_direction)
-        var wind = document.createElement('span')
-        wind.textContent ? wind.textContent = weatherDirection : wind.innerText = weatherDirection
-        wind.setAttribute('style', 'font-size: 12px; position: relative; top: 10px; left: -10px;')
+        // Weather Text
+        var weather = ''
+        if (s2Cell.severity >= 1) {
+          weather = alertTexts[s2Cell.severity]
+        } else {
+          weather = weatherTexts[s2Cell.gameplay_weather]
+        }
+        var weathertext = document.createElement('span')
+        weathertext.textContent ? weathertext.textContent = weather : weathertext.innerText = weather
+        weathertext.setAttribute('style', 'font-size: 10px; position: relative; left: -3px;')
+        // Weather Icon
+        var weathericon = document.createElement('img')
+        weathericon.setAttribute('src', imgUrl)
+        weathericon.setAttribute('style', 'height: 25px; vertical-align: middle;')
+        // Wind Text
+        var winddirection = degreesToCardinal(s2Cell.wind_direction)
+        var windtext = document.createElement('span')
+        windtext.textContent ? windtext.textContent = winddirection : windtext.innerText = winddirection
+        windtext.setAttribute('style', 'font-size: 10px; position: relative; left: -3px;')
+        // Wind Icon
         var windIcon = document.createElement('img')
         windIcon.setAttribute('src', '/static/images/weather/wind_streaks.png')
-        windIcon.setAttribute('style', 'height: 45px; vertical-align: middle;')
-
+        windIcon.setAttribute('style', 'height: 25px; vertical-align: middle;')
+        // Make It Happen
+        $weatherInfo.appendChild(weathericon)
+        $weatherInfo.appendChild(weathertext)
         $weatherInfo.appendChild(windIcon)
-        $weatherInfo.appendChild(wind)
-        $weatherInfo.appendChild(icon)
+        $weatherInfo.appendChild(windtext)
     }
 }
 

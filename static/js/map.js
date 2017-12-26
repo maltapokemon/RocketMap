@@ -91,6 +91,21 @@ const weatherImages = {
     16: 'weather_extreme.png'
 }
 
+const weatherTexts = {
+    1: 'Sunny',
+    2: 'Rain',
+    3: 'Partly Cloudy',
+    4: 'Cloudy',
+    5: 'Windy',
+    6: 'Snow',
+    7: 'Fog',
+}
+
+const alertTexts = {
+    1: 'Moderate',
+    2: 'Extreme',
+}
+
 /*
  text place holders:
  <pkm> - pokemon name
