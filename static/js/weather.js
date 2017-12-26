@@ -129,7 +129,7 @@ function getWeatherImageUrl(item, dark = true) {
     } else {
         imageUrl = '/static/images/weather/' + weatherImages[item.gameplay_weather]
     }
-    if (!dark) {
+    if (!dark && item.severity == null) {
         imageUrl = imageUrl.replace('weather_', 'weather_light_')
     }
     return imageUrl
@@ -225,10 +225,28 @@ function updateMainCellWeather() {
         var icon = document.createElement('img')
         icon.setAttribute('src', imgUrl)
         icon.setAttribute('style', 'height: 50px; vertical-align: middle;')
+
+        var weatherDirection = degreesToCardinal(s2Cell.wind_direction)
+        var wind = document.createElement('span')
+        wind.textContent ? wind.textContent = weatherDirection : wind.innerText = weatherDirection
+        wind.setAttribute('style', 'font-size: 12px; position: relative; top: 10px; left: -10px;')
+        var windIcon = document.createElement('img')
+        windIcon.setAttribute('src', '/static/images/weather/wind_streaks.png')
+        windIcon.setAttribute('style', 'height: 45px; vertical-align: middle;')
+
+        $weatherInfo.appendChild(windIcon)
+        $weatherInfo.appendChild(wind)
         $weatherInfo.appendChild(icon)
     }
 }
 
+
+function degreesToCardinal(d) {
+    var dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
+    var ix = Math.floor((d + 11.25) / 22.5 - 0.02)
+    return dirs[ix % 16]
+}
 
 /**
  * Finds weather data for s2cell, that covers more than a half of the screen
