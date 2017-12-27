@@ -92,7 +92,7 @@ const weatherImages = {
 }
 
 const weatherTexts = {
-    1: 'Sunny',
+    1: 'Clear',
     2: 'Rain',
     3: 'Partly Cloudy',
     4: 'Cloudy',
@@ -686,6 +686,7 @@ function pokemonLabel(pokemon) {
     var ratingDefense = pokemon.rating_defense
     var previous_id = pokemon.previous_id
     var weather_id = pokemon.weather_id
+    var time_id = pokemon.time_id
     var spawnpoint_id = pokemon.spawnpoint_id
     var encounterIdLong = atob(encounterId)
 
@@ -742,9 +743,19 @@ function pokemonLabel(pokemon) {
     </div>`
 
     var weatherBoost = ''
+    var weatherIcon = ''
+    if (time_id === 2) {
+      if (weather_id !== 1 && weather_id !== 3) {
+        weatherIcon = weatherImages[weather_id]
+      } else {
+        weatherIcon = weatherImages[weather_id + 10]
+      }
+    } else {
+      weatherIcon = weatherImages[weather_id]
+    }
     if (weather_id) {
         weatherBoost = `<div class='pokemon big'>Weather Boost:
-            <img src='static/images/weather/${weatherImages[weather_id]}' style="width: 24px; vertical-align: middle;">${weatherTexts[weather_id]}
+            <img src='static/images/weather/${weatherIcon}' style="width: 24px; vertical-align: middle;">${weatherTexts[weather_id]}
             </div>`
     }
 
