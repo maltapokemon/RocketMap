@@ -144,7 +144,7 @@ def get_pokemon_icon(pkm, weather, time):
                 )
             else:
                 weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
-                time_name = GameplayWeather.WeatherCondition.Name(int(time))
+                time_name = GetMapObjectsResponse.TimeOfDay.Name(int(time))
                 out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
                 im_lines.append(
                     '-gravity northeast'
@@ -153,7 +153,7 @@ def get_pokemon_icon(pkm, weather, time):
                 )
         else:
             weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
-            time_name = GameplayWeather.WeatherCondition.Name(int(time))
+            time_name = GetMapObjectsResponse.TimeOfDay.Name(int(time))
             out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
             im_lines.append(
                 '-gravity northeast'
