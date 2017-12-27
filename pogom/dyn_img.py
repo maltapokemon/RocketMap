@@ -133,7 +133,7 @@ def get_pokemon_icon(pkm, weather, time):
 
     if weather:
         if time == 2:
-            if not weather == 1 and weather == 3:
+            if not weather == 1 or weather == 3:
                 weather_name = GameplayWeather.WeatherCondition.Name(int(weather))
                 time_name = GetMapObjectsResponse.TimeOfDay.Name(int(time))
                 out_filename = os.path.join(path_generated, "pokemon_{}_{}_{}.png".format(pkm, weather_name, time_name))
