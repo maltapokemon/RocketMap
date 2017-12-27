@@ -78,41 +78,47 @@ const genderType = ['L', '♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
 
 const dittoTexts = {
-    16: `<span>(Pidgey)</span>`,
-    19: `<span>(Rattata)</span>`,
-    41: `<span>(Zubat)</span>`,
-    161: `<span>(Sentret)</span>`,
-    163: `<span>(Hoothoot)</span>`,
-    193: `<span>(Yanma)</span>`,
+  16: `<span>(Pidgey)</span>`,
+  19: `<span>(Rattata)</span>`,
+  41: `<span>(Zubat)</span>`,
+  161: `<span>(Sentret)</span>`,
+  163: `<span>(Hoothoot)</span>`,
+  193: `<span>(Yanma)</span>`,
 }
 
+const costumeTexts = {
+  1: 'Christmass Hat',
+  2: 'Party Hat',
+  3: 'Ash Hat',
+  4: 'Witch Hat',
+}
 const weatherImages = {
-    1: 'weather_sunny.png',
-    2: 'weather_rain.png',
-    3: 'weather_partlycloudy_day.png',
-    4: 'weather_cloudy.png',
-    5: 'weather_windy.png',
-    6: 'weather_snow.png',
-    7: 'weather_fog.png',
-    11: 'weather_clear_night.png',
-    13: 'weather_partlycloudy_night.png',
-    15: 'weather_moderate.png',
-    16: 'weather_extreme.png'
+  1: 'weather_sunny.png',
+  2: 'weather_rain.png',
+  3: 'weather_partlycloudy_day.png',
+  4: 'weather_cloudy.png',
+  5: 'weather_windy.png',
+  6: 'weather_snow.png',
+  7: 'weather_fog.png',
+  11: 'weather_clear_night.png',
+  13: 'weather_partlycloudy_night.png',
+  15: 'weather_moderate.png',
+  16: 'weather_extreme.png'
 }
 
 const weatherTexts = {
-    1: 'Clear',
-    2: 'Rain',
-    3: 'Partly Cloudy',
-    4: 'Cloudy',
-    5: 'Windy',
-    6: 'Snow',
-    7: 'Fog',
+  1: 'Clear',
+  2: 'Rain',
+  3: 'Partly Cloudy',
+  4: 'Cloudy',
+  5: 'Windy',
+  6: 'Snow',
+  7: 'Fog',
 }
 
 const alertTexts = {
-    1: 'Moderate',
-    2: 'Extreme',
+  1: 'Moderate',
+  2: 'Extreme',
 }
 
 /*
@@ -672,6 +678,7 @@ function pokemonLabel(pokemon) {
     var previous_id = pokemon.previous_id
     var weather_id = pokemon.weather_id
     var time_id = pokemon.time_id
+    var costume_id = pokemon.costume_id
     var spawnpoint_id = pokemon.spawnpoint_id
     var encounterIdLong = atob(encounterId)
 
@@ -693,6 +700,12 @@ function pokemonLabel(pokemon) {
 
     if (id === 132 && previous_id != null) {
         dittoString += dittoTexts[previous_id]
+    }
+
+    var costumeString = ''
+
+    if (costume_id != null) {
+        costumeString += costumeTexts[costume_id]
     }
 
     var medalString = ''
@@ -724,7 +737,7 @@ function pokemonLabel(pokemon) {
 
     contentstring += `
     <div class='pokemon name'>
-      <b>${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
+      <b>${costumeString} ${dittoString} ${medalString} ${name}</b> <span class='pokemon name pokedex'><a href='http://pokemon.gameinfo.io/en/pokemon/${id}' target='_blank' title='View in Pokédex'>#${id}</a></span> ${formString} <span class='pokemon gender rarity'>${gender} ${rarityDisplay}</span> ${typesDisplay}
     </div>`
 
     var weatherBoost = ''

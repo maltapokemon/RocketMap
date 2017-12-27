@@ -53,7 +53,7 @@ args = get_args()
 flaskDb = FlaskDB()
 cache = TTLCache(maxsize=100, ttl=60 * 5)
 
-db_schema_version = 27
+db_schema_version = 28
 
 
 class MyRetryDB(RetryOperationalError, PooledMySQLDatabase):
@@ -211,6 +211,7 @@ class PokemonBaseModel(BaseModel):
     previous_id = SmallIntegerField(null=True)
     weather_id = SmallIntegerField(null=True)
     time_id = SmallIntegerField(null=True)
+    costume_id = SmallIntegerField(null=True)
     last_modified = DateTimeField(
         null=True, index=True, default=datetime.utcnow)
 
@@ -2508,12 +2509,17 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                 'rating_defense': None,
                 'previous_id' : None,
                 'weather_id' : None,
-                'time_id': worldtime
+                'time_id': worldtime,
+                'costume_id' : None,
             }
             # Weather Pokemon Bonus
             weather_boosted_condition = p.pokemon_data.pokemon_display.weather_boosted_condition
             if weather_boosted_condition:
                 pokemon[p.encounter_id]['weather_id'] = weather_boosted_condition
+            # Costume Pokemon
+            costume_pokemon =  p.pokemon_data.pokemon_display.costume
+            if costume_pokemon:
+                pokemon[p.encounter_id]['costume_id'] = costume_pokemon
             # Catch pokemon to check for Ditto if --gain-xp enabled
             # Original code by voxx!
             have_balls = pgacc.inventory_balls > 0
@@ -2534,10 +2540,6 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
             elif pokemon_id == 201:
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
-            #elif pokemon_id == 25:
-                #pokemon[p.encounter_id]['form'] = (p.pokemon_data
-                #                                    .pokemon_display.form)
-                #log.info('Pikachu Costume: %s', p.pokemon_data.pokemon_display.costume)
 
             #log.info('Pokemon %s Shiny: %s', pokemon_id, p.pokemon_data.pokemon_display.shiny)
 
@@ -2669,7 +2671,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
                             'rating_attack': None,
                             'rating_defense': None,
                             'previous_id': None,
-                            'weather_id' : None
+                            'weather_id' : None,
+                            'time_id' : worldtime,
+                            'costume_id' : None,
                         }
 
                 wh_pokestop = pokestops[f.id].copy()
@@ -4061,5 +4065,14 @@ def database_migrate(db, old_ver):
             migrator.add_column('lurepokemon', 'time_id',
                                 SmallIntegerField(null=True))
         )
+
+    if old_ver < 28:
+        migrate(
+            migrator.add_column('pokemon', 'costume_id',
+                                SmallIntegerField(null=True)),
+            migrator.add_column('lurepokemon', 'costume_id',
+                                SmallIntegerField(null=True))
+        )
+
     # Always log that we're done.
     log.info('Schema upgrade complete.')
