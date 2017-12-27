@@ -77,6 +77,15 @@ const cryFileTypes = ['wav', 'mp3', 'ogg']
 const genderType = ['L', '♂', '♀', '⚲']
 const unownForm = ['unset', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '!', '?']
 
+const dittoTexts = {
+    16: `<span>(Pidgey)</span>`,
+    19: `<span>(Rattata)</span>`,
+    41: `<span>(Zubat)</span>`,
+    161: `<span>(Sentret)</span>`,
+    163: `<span>(Hoothoot)</span>`,
+    193: `<span>(Yanma)</span>`,
+}
+
 const weatherImages = {
     1: 'weather_sunny.png',
     2: 'weather_rain.png',
@@ -611,30 +620,6 @@ function scout(encounterId) { // eslint-disable-line no-unused-vars
     })
 }
 
-function build_ditto(previous_id) {
-  if (previous_id == 16) {
-    return `<span>(Pidgey)</span>`
-  }
-  if (previous_id == 19) {
-    return `<span>(Rattata)</span>`
-  }
-  if (previous_id == 41) {
-    return `<span>(Zubat)</span>`
-  }
-  if (previous_id == 129) {
-    return `<span>(Magikarp)</span>`
-  }
-  if (previous_id == 161) {
-    return `<span>(Sentret)</span>`
-  }
-  if (previous_id == 163) {
-    return `<span>(Hoothoot)</span>`
-  }
-  if (previous_id == 193) {
-    return `<span>(Yanma)</span>`
-  }
-}
-
 function sizeRatio(height, weight, baseHeight, baseWeight) {
     var heightRatio = height / baseHeight
     var weightRatio = weight / baseWeight
@@ -707,7 +692,7 @@ function pokemonLabel(pokemon) {
     var dittoString = ''
 
     if (id === 132 && previous_id != null) {
-        dittoString += build_ditto(previous_id)
+        dittoString += dittoTexts[previous_id]
     }
 
     var medalString = ''
