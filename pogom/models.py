@@ -2273,6 +2273,13 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         lat = center.lat().degrees
         lng = center.lng().degrees
 
+        # Convert Cell To 4 Cell Corners
+        vertices = []
+        for i in range(0, 4):
+            vertex = s2sphere.LatLng.from_point(cell.get_vertex(i))
+            corners = vertex.lat().degrees, vertex.lng().degrees
+            vertices.append(corners)
+
     now_secs = date_secs(now_date)
 
     del map_dict['GET_MAP_OBJECTS']
@@ -2321,6 +2328,9 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
 
         if 'weather' in args.wh_types:
             wh_weather = weather[s2_cell_id].copy()
+            wh_weather.update({
+                'vertices': vertices
+            })
             wh_update_queue.put(('weather', wh_weather))
 
     log.debug(weather)
