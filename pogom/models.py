@@ -2277,7 +2277,7 @@ def parse_map(args, map_dict, step_location, db_update_queue, wh_update_queue,
         vertices = []
         for i in range(0, 4):
             vertex = s2sphere.LatLng.from_point(cell.get_vertex(i))
-            corners = vertex.lat().degrees, vertex.lng().degrees
+            corners = '{}, {}'.format(vertex.lat().degrees, vertex.lng().degrees)
             vertices.append(corners)
 
     now_secs = date_secs(now_date)
