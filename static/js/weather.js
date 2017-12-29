@@ -116,26 +116,36 @@ function safeDelMarker(item) {
  * @returns {*}
  */
 function getWeatherImageUrl(item, dark = true) {
-    var imageUrl
-    if (item.severity === 1) {
-      imageUrl = 'static/images/weather/' + weatherImages[15]
-    } else if (item.severity === 2) {
-      imageUrl = 'static/images/weather/' + weatherImages[16]
-    } else if (item.world_time === 2) { // night
+    var weatherimageUrl
+    if (item.world_time === 2) { // night
         if (![1, 3].includes(item.gameplay_weather)) { // common icons for day and night
-          imageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather]
+          weatherimageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather]
         } else { // clear and partly cloudy
-          imageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather + 10]
+          weatherimageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather + 10]
         }
     } else {
-      imageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather]
+      weatherimageUrl = 'static/images/weather/' + weatherImages[item.gameplay_weather]
     }
     if (!dark && item.severity == 0) {
-      imageUrl = imageUrl.replace('weather_', 'weather_light_')
+      weatherimageUrl = weatherimageUrl.replace('weather_', 'weather_light_')
     }
-    return imageUrl
+    return weatherimageUrl
 }
 
+/**
+ * Creates path for alert icon based on severity
+ * @param item
+ * @returns {*}
+ */
+function getalertImageUrl(item) {
+    var alertimageUrl
+    if (item.severity === 1) {
+      alertimageUrl = 'static/images/weather/' + weatherImages[15]
+    } else if (item.severity === 2) {
+      alertimageUrl = 'static/images/weather/' + weatherImages[16]
+    }
+    return alertimageUrl
+}
 
 /**
  * Creates marker with image
@@ -143,10 +153,10 @@ function getWeatherImageUrl(item, dark = true) {
  * @returns {google.maps.Marker}
  */
 function setupWeatherMarker(item) {
-    var imageUrl = getWeatherImageUrl(item)
+    var weatherimageUrl = getWeatherImageUrl(item)
 
     var image = {
-        url: imageUrl,
+        url: weatherimageUrl,
         origin: new google.maps.Point(0, 0),
         anchor: new google.maps.Point(32, 32)
     }
@@ -218,26 +228,38 @@ var $weatherInfo = document.querySelector('#weatherInfo')
  * Update weather icon on top bar if there is single cell on the screen
  */
 function updateMainCellWeather() {
+    if ($weatherInfo == null) {
+        return // updating the top bar is not required if it does not exist
+    }
     // remove old weather icon
     while ($weatherInfo.firstChild) {
         $weatherInfo.removeChild($weatherInfo.firstChild)
     }
     var s2Cell = getMainS2Cell()
     if (s2Cell != null) {
-        var imgUrl = getWeatherImageUrl(s2Cell, false)
-        // Weather Text
-        var weather = ''
+        var weatherimgUrl = getWeatherImageUrl(s2Cell, false)
+        var alertimgUrl = getalertImageUrl(s2Cell)
         if (s2Cell.severity >= 1) {
-          weather = alertTexts[s2Cell.severity]
-        } else {
-          weather = weatherTexts[s2Cell.gameplay_weather]
+          // Alert Text
+          var alert = alertTexts[s2Cell.severity]
+          var alerttext = document.createElement('span')
+          alerttext.textContent ? alerttext.textContent = weather : alerttext.innerText = alert
+          alerttext.setAttribute('style', 'font-size: 10px; position: relative; left: -2px;')
+          // Alert Icon
+          var alerticon = document.createElement('img')
+          alerticon.setAttribute('src', alertimgUrl)
+          alerticon.setAttribute('style', 'height: 25px; vertical-align: middle;')
+          $weatherInfo.appendChild(alerticon)
+          $weatherInfo.appendChild(alerttext)
         }
+        // Weather Text
+        var weather = weatherTexts[s2Cell.gameplay_weather]
         var weathertext = document.createElement('span')
         weathertext.textContent ? weathertext.textContent = weather : weathertext.innerText = weather
         weathertext.setAttribute('style', 'font-size: 10px; position: relative; left: -2px;')
         // Weather Icon
         var weathericon = document.createElement('img')
-        weathericon.setAttribute('src', imgUrl)
+        weathericon.setAttribute('src', weatherimgUrl)
         weathericon.setAttribute('style', 'height: 25px; vertical-align: middle;')
         // Wind Text
         var winddirection = degreesToCardinal(s2Cell.wind_direction)
