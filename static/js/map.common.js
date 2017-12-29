@@ -963,15 +963,15 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showWeatherCells': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'showS2Cells': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'showWeatherAlerts': {
-        default: false,
+        default: true,
         type: StoreTypes.Boolean
     },
     'showGeofences': {
