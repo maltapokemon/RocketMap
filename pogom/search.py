@@ -284,7 +284,7 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
             status_text.append(
                 '----------------------------------------------------------')
 
-            status = '{:22} | {:7} | {:6} | {:6} | {:6} | {:5} | {:7} | {:8} | {:8} | {:4} | {:5} | {:9}'
+            status = '{:22} | {:7} | {:6} | {:6} | {:6} | {:5} | {:7} | {:14} | {:8} | {:4} | {:5} | {:9}'
             status_text.append(status.format('S2CellLoc', 'CloudLv', 'RainLv',
                                              'WindLv', 'SnowLv', 'FogLv',
                                              'WindDir', 'Gameplay',
