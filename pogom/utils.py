@@ -1053,7 +1053,6 @@ def clear_dict_response(response):
     for item in responses:
         if item in response:
             del response[item]
-
     return response
 
 

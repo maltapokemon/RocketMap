@@ -305,8 +305,6 @@ def incubate_eggs(pgacc):
             else:
                 log.warning('Failed to put egg on incubator #%s.', incubator['id'])
 
-    return
-
 
 def fort_details_request(pgacc, fort):
     try:

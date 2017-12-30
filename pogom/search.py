@@ -45,14 +45,15 @@ from cachetools import TTLCache
 
 import schedulers
 import terminalsize
-from .account import (AccountSet,
-                      setup_mrmime_account, get_account, account_failed, account_revive)
-from .captcha import captcha_overseer_thread, handle_captcha
+
 from .models import (parse_map, GymDetails, parse_gyms, PokestopDetails, parse_pokestop,
                      MainWorker, WorkerStatus, HashKeys, ScannedLocation, Weather)
+from .utils import now, get_args, clear_dict_response, distance, degrees_to_cardinal
+from .account import AccountSet, setup_mrmime_account, get_account, account_failed, \
+                    account_revive
+from .captcha import captcha_overseer_thread, handle_captcha
 from .proxy import get_new_proxy
 from .transform import get_new_coords
-from .utils import now, clear_dict_response, get_args, distance, degrees_to_cardinal
 
 from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
 from pgoapi.protos.pogoprotos.map.weather.weather_alert_pb2 import *
@@ -142,6 +143,7 @@ def status_printer(threadStatus, account_queue, account_captchas, account_failur
 
         # Initialize to prevent UnboundLocalError
         total_pages = 1
+
         if display_type[0] == 'workers':
 
             # Get the terminal size.
@@ -351,16 +353,15 @@ def print_account_stats(rows, thread_status, account_queue,
         accounts.append(('failed', account))
 
     # Determine maximum username length.
-    userlen = 4
+    userlen = 8
     for status, acc in accounts:
         userlen = max(userlen, len(acc.get('username', '')))
 
     # Print table header.
-    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:11} | {:3} | {:2} | {:>8} | {:10} | {:6}' \
-                                            ' | {:8} | {:17} | {:5} | {:>10}'
-    rows.append(row_tmpl.format('Status', 'User', 'Warn', 'Blind', 'Lvl', 'TM', 'XP', 'Encounters',
-                                'Throws', 'Captures', 'Inventory', 'Spins',
-                                'Walked'))
+    row_tmpl = '{:7} | {:' + str(userlen) + '} | {:4} | {:5} | {:3} | {:2} | {:>8} | {:17} | {:14}' \
+                                            '| {:>10}'
+    rows.append(row_tmpl.format('Status', 'Username', 'Warn', 'Blind', 'Lvl', 'TM', 'XP', 'Enc/Thr/Cap/Spn',
+                                'Inventory', 'Walked'))
 
     # Pagination.
     start_line, end_line, total_pages = calc_pagination(len(accounts), 6,
@@ -386,14 +387,22 @@ def print_account_stats(rows, thread_status, account_queue,
         else:
             km_walked_str = ""
 
+        # Stats
+        stats_str = ''
+        if pgacc:
+            enc = pgacc.get_stats('pokemons_encountered', '?') if pgacc else '?'
+            thr = pgacc.get_stats('pokeballs_thrown', '?') if pgacc else '?'
+            cap = pgacc.get_stats('pokemons_captured', '?') if pgacc else '?'
+            spn = pgacc.get_stats('poke_stop_visits', '?') if pgacc else '?'
+            stats_str = '/'.join([str(enc), str(thr), str(cap), str(spn)])
+
         # Inventory
         inv_str = ''
         if pgacc and pgacc.inventory:
-            pokemons = len(pgacc.pokemon)
             balls = pgacc.inventory_balls
             lures = pgacc.inventory_lures
             total = pgacc.inventory_total
-            inv_str = '{}P-{}B/{}L/{}T'.format(pokemons, balls, lures, total)
+            inv_str = '{}B/{}L/{}T'.format(balls, lures, total)
 
         # Team
         team_str = ''
@@ -416,11 +425,11 @@ def print_account_stats(rows, thread_status, account_queue,
         if rareless_scans is None:
             blind = ''
         elif rareless_scans in range(0, maybe_threshold):
-            blind = 'No'
+            blind = 'N'
         elif rareless_scans in range(maybe_threshold, args.rareless_scans_threshold):
-            blind = 'Maybe'
+            blind = 'P'
         else:
-            blind = 'Yes'
+            blind = 'Y'
         if blind:
             if rareless_scans >= args.rareless_scans_threshold:
                 scans = '{}+'.format(args.rareless_scans_threshold)
@@ -436,11 +445,8 @@ def print_account_stats(rows, thread_status, account_queue,
             pgacc.get_stats('level', '') if pgacc else '',
             team_str,
             pgacc.get_stats('experience', '') if pgacc else '',
-            pgacc.get_stats('pokemons_encountered', '') if pgacc else '',
-            pgacc.get_stats('pokeballs_thrown', '') if pgacc else '',
-            pgacc.get_stats('pokemons_captured', '') if pgacc else '',
+            stats_str,
             inv_str,
-            pgacc.get_stats('poke_stop_visits', '') if pgacc else '',
             km_walked_str))
 
     return total_pages
@@ -1336,8 +1342,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                                     current_gym, len(gyms_to_update),
                                     step_location[0], step_location[1])
                             time.sleep(random.random() + 2)
-                            response = gym_request(pgacc, step_location,
-                                                   gym)
+                            response = gym_request(pgacc, step_location, gym)
 
                             # Make sure the gym was in range. (Sometimes the
                             # API gets cranky about gyms that are ALMOST 1km
@@ -1525,6 +1530,7 @@ def gym_request(pgacc, position, gym):
         log.exception('Exception while downloading gym details: %s.', repr(e))
         return False
 
+
 def pokestop_request(pgacc, position, pokestop):
     try:
         log.info('Getting details for pokestop @ %f/%f (%fkm away)',
@@ -1539,6 +1545,22 @@ def pokestop_request(pgacc, position, pokestop):
     except Exception as e:
         log.warning('Exception while downloading pokestop details: %s', repr(e))
         return False
+
+
+def calc_distance(pos1, pos2):
+    R = 6378.1  # KM radius of the earth.
+
+    dLat = math.radians(pos1[0] - pos2[0])
+    dLon = math.radians(pos1[1] - pos2[1])
+
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + \
+        math.cos(math.radians(pos1[0])) * math.cos(math.radians(pos2[0])) * \
+        math.sin(dLon / 2) * math.sin(dLon / 2)
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    d = R * c
+
+    return d
 
 
 # Delay each thread start time so that logins occur after delay.
