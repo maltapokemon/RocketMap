@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import random
 import time
+import random
 from threading import Lock
 from timeit import default_timer
 
 from mrmime.pogoaccount import POGOAccount
 
 from pogom.pgpool import pgpool_request_accounts, pgpool_release_account
-from .utils import (in_radius, distance,
-                    clear_dict_response, now, get_pokemon_name)
+from .utils import in_radius, distance, now, get_pokemon_name
 from .proxy import get_new_proxy
 
 log = logging.getLogger(__name__)
@@ -25,17 +24,8 @@ class LoginSequenceFail(Exception):
     pass
 
 
-class NullTimeException(Exception):
-
-    def __init__(self, type):
-        self.type = type
-        super(NullTimeException, self).__init__(NullTimeException.__name__)
-
-
 def get_account(args, account_queue, status):
-    if args.pgpool_url is None:
-        return account_queue.get()
-    else:
+    if args.pgpool_url:
         if args.pgpool_initial_accounts:
             account = args.pgpool_initial_accounts.pop()
             log.info("Picked account {} from initial PGPool account list.".format(account['username']))
@@ -48,6 +38,8 @@ def get_account(args, account_queue, status):
                     status['message'] = msg
                     log.warning(msg)
                     time.sleep(30)
+                else:
+                    account = accounts[0]
             log.info("Successfully requested account {} from PGPool.".format(account['username']))
         return {
             'username': account['username'],
@@ -55,22 +47,23 @@ def get_account(args, account_queue, status):
             'auth_service': account['auth_service'],
             'pgpool_account': account
         }
-
+    else:
+        return account_queue.get()
 
 def account_revive(args, account_queue, account):
-    if args.pgpool_url is None:
-        account_queue.put(account)
-    else:
+    if args.pgpool_url:
         pgpool_release_account(account, "Captcha solved")
+    else:
+        account_queue.put(account)
 
 
 def account_failed(args, account_failures, account, reason):
-    if args.pgpool_url is None:
+    if args.pgpool_url:
+        pgpool_release_account(account, reason)
+    else:
         account_failures.append({'account': account,
                                  'last_fail_time': now(),
                                  'reason': reason})
-    else:
-        pgpool_release_account(account, reason)
 
 
 # Create the MrMime POGOAccount object that'll be used to scan.
@@ -117,7 +110,16 @@ def setup_mrmime_account(args, status, account):
 
 def reset_account(account):
     account['start_time'] = time.time()
+    account['warning'] = None
+    account['tutorials'] = []
+    account['items'] = {}
+    account['pokemons'] = {}
+    account['incubators'] = []
+    account['eggs'] = []
+    account['level'] = 0
+    account['spins'] = 0
     account['session_spins'] = 0
+    account['walked'] = 0.0
     account['last_timestamp_ms'] = 0
 
 
@@ -199,6 +201,15 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
                 spin_result)
 
     return False
+
+
+def parse_get_player(account, api_response):
+    if 'GET_PLAYER' in api_response['responses']:
+        player_data = api_response['responses']['GET_PLAYER'].player_data
+
+        account['warning'] = api_response['responses']['GET_PLAYER'].warn
+        account['tutorials'] = player_data.tutorial_state
+        account['buddy'] = player_data.buddy_pokemon.id
 
 
 def clear_pokemon(pgacc):
@@ -332,8 +343,8 @@ def lure_pokestop_request(pgacc, modifier, fort, step_location):
 def encounter_pokemon_request(pgacc, encounter_id, spawnpoint_id,
                               scan_location):
     try:
-        return clear_dict_response(pgacc.req_encounter(encounter_id, spawnpoint_id,
-                                                       scan_location[0], scan_location[1]))
+        return pgacc.req_encounter(encounter_id, spawnpoint_id,
+                                                       scan_location[0], scan_location[1])
     except Exception as e:
         log.exception('Exception while encountering Pokémon: %s.', e)
         return False

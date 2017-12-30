@@ -429,7 +429,7 @@ def get_args():
         help=('Defines the type of messages to send to webhooks.'),
         choices=[
             'pokemon', 'gym', 'raid', 'egg', 'tth', 'gym-info',
-            'pokestop', 'lure', 'weather'
+            'pokestop', 'captcha', 'lure', 'weather'
         ],
         action='append',
         default=[])
@@ -540,13 +540,16 @@ def get_args():
     parser.add_argument('-rb', '--rotate-blind',
                         help='Rotate out blinded accounts.',
                         action='store_true', default=False)
-    parser.add_argument('-pgsu', '--pgscout-url', default=None,
-                        help='URL to query PGScout for Pokemon IV/CP.')
+    parser.add_argument('-pgpu', '--pgpool-url', default=None,
+                        help='URL of PGPool account manager.')
     parser.add_argument('-gxp', '--gain-xp',
                         help='Do various things to let map accounts gain XP.',
                         action='store_true', default=False)
-    parser.add_argument('-pgpu', '--pgpool-url', default=None,
-                        help='URL of PGPool account manager.')
+    parser.add_argument('-gen', '--generate-images',
+                        help='Use ImageMagick to generate gym images on demand.',
+                        action='store_true', default=False)
+    parser.add_argument('-pgsu', '--pgscout-url', default=None,
+                        help='URL to query PGScout for Pokemon IV/CP.')
     parser.add_argument('-au', '--assets-url', default=None,
                         help='Local or remote URL pointing to optional PogoAssets root directory.')
     parser.add_argument('-pi', '--pokestop-info',
@@ -569,9 +572,7 @@ def get_args():
                         help='Choose area for Pokestop luring')
     parser.add_argument('-nlf', '--nolureFence',
                         help='Choose area that CANNOT have Pokestop luring')
-    parser.add_argument('-gen', '--generate-images',
-                        help='Use ImageMagick to generate gym images on demand.',
-                        action='store_true', default=False)
+
     parser.set_defaults(DEBUG=False)
 
     args = parser.parse_args()
@@ -876,6 +877,10 @@ def get_args():
 
     args.locales_dir = 'static/dist/locales'
     args.data_dir = 'static/dist/data'
+
+    if args.assets_url and os.path.isdir(args.assets_url):
+        log.info("Using Assets URL at {}".format(args.assets_url))
+
     return args
 
 

@@ -78,9 +78,9 @@ class Pogom(Flask):
         self.route("/robots.txt", methods=['GET'])(self.render_robots_txt)
         self.route("/serviceWorker.min.js", methods=['GET'])(
             self.render_service_worker_js)
-        self.route("/scout", methods=['GET'])(self.scout_pokemon)
         self.route("/gym_img", methods=['GET'])(self.gym_img)
         self.route("/pkm_img", methods=['GET'])(self.pokemon_img)
+        self.route("/scout", methods=['GET'])(self.scout_pokemon)
         self.route("/<statusname>", methods=['GET'])(self.fullmap)
         # Weather Status Page (Temp?)
         self.route("/favicon.ico", methods=['GET'])(self.favicon)
@@ -183,7 +183,7 @@ class Pogom(Flask):
                 u"On demand PGScouting a {} at {}, {}.".format(pokemon_name,
                                                               p.latitude,
                                                               p.longitude))
-            scout_result = pgscout_encounter(p)
+            scout_result = pgscout_encounter(p, forced=1)
             if scout_result['success']:
                 self.update_scouted_pokemon(p, scout_result)
                 if scout_result['weather_id'] == None:

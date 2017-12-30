@@ -47,7 +47,6 @@ add it to __scheduler_classes
 import itertools
 import logging
 import math
-import geopy
 import json
 import time
 import sys
@@ -67,7 +66,6 @@ from .altitude import get_altitude
 from .geofence import Geofences
 
 log = logging.getLogger(__name__)
-
 
 # Simple base class that all other schedulers inherit from.
 # Most of these functions should be overridden in the actual scheduler classes.
@@ -942,7 +940,10 @@ class SpeedScan(HexSearch):
             ms = ((now_date - self.refresh_date).total_seconds() +
                   self.refresh_ms)
             best = {}
-            worker_loc = [status['latitude'], status['longitude']]
+            if not status['latitude']:
+                worker_loc = None
+            else:
+                worker_loc = [status['latitude'], status['longitude']]
             last_action = status['last_scan_date']
 
             # Logging.
@@ -1021,10 +1022,14 @@ class SpeedScan(HexSearch):
 
                 # If we are going to get there before it starts then ignore.
                 loc = item['loc']
-                meters = distance(loc, worker_loc)
-                secs_to_arrival = meters / self.args.kph * 3.6
-                secs_waited = (now_date - last_action).total_seconds()
-                secs_to_arrival = max(secs_to_arrival - secs_waited, 0)
+                if worker_loc:
+                    meters = distance(loc, worker_loc)
+                    secs_to_arrival = meters / self.args.kph * 3.6
+                    secs_waited = (now_date - last_action).total_seconds()
+                    secs_to_arrival = max(secs_to_arrival - secs_waited, 0)
+                else:
+                    meters = 0
+                    secs_to_arrival = 0
                 if ms + secs_to_arrival < item['start']:
                     count_early += 1
                     continue
@@ -1104,7 +1109,7 @@ class SpeedScan(HexSearch):
                                         + ' under the speed limit.')
                 return -1, 0, 0, 0, messages, 0
 
-            meters = distance(loc, worker_loc)
+            meters = distance(loc, worker_loc) if worker_loc else 0
             if (meters > (now_date - last_action).total_seconds() *
                     self.args.kph / 3.6):
                 # Flag item as "parked" by a specific thread, because

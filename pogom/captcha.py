@@ -15,14 +15,15 @@
 
 import logging
 import time
+import requests
+
 from datetime import datetime
 from threading import Thread
 
-import requests
 from mrmime.pogoaccount import POGOAccount
 
-from pogom.account import account_failed, account_revive
 from .models import Token
+from pogom.account import account_revive, account_failed
 from .proxy import get_new_proxy
 from .utils import now
 
@@ -128,32 +129,32 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
     pgacc.set_position(location[0], location[1], location[2])
     pgacc.check_login()
 
-    wh_message = {'status_name': args.status_name,
-                  'status': 'error',
-                  'mode': 'manual',
-                  'account': account['username'],
-                  'captcha': status['captcha'],
-                  'time': 0}
     if not token:
         token = token_request(args, status, captcha_url)
-        wh_message['mode'] = '2captcha'
 
     verified = pgacc.req_verify_challenge(token)
 
     last_active = account['last_active']
     hold_time = (datetime.utcnow() - last_active).total_seconds()
-    wh_message['time'] = int(hold_time)
 
     if verified:
         status['message'] = pgacc.last_msg + ", returning to active duty."
+        log.info(status['message'])
         account_revive(args, account_queue, account)
-        wh_message['status'] = 'success'
     else:
         status['message'] = pgacc.last_msg + ", putting back in captcha queue."
+        log.warning(status['message'])
         account_captchas.append((status, account, captcha_url))
-        wh_message['status'] = 'failure'
 
-    if args.webhooks:
+    if 'captcha' in args.wh_types:
+        wh_message = {
+            'status_name': args.status_name,
+            'mode': 'manual' if token else '2captcha',
+            'account': account['username'],
+            'captcha': status['captcha'],
+            'time': int(hold_time),
+            'status': 'success' if verified else 'failure'
+        }
         wh_queue.put(('captcha', wh_message))
     # Make sure status is updated
     time.sleep(1)
@@ -161,51 +162,52 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
 
 def handle_captcha(args, status, pgacc, account, account_failures,
                    account_captchas, whq, step_location):
-    try:
-        if pgacc.has_captcha():
-            status['captcha'] += 1
-            if not args.captcha_solving:
-                status['message'] = ('Account {} has encountered a captcha. ' +
-                                     'Putting account away.').format(
-                                        account['username'])
-                log.warning(status['message'])
-                account_failed(args, account_failures, account, 'captcha found')
-                if args.webhooks:
-                    wh_message = {'status_name': args.status_name,
-                                  'status': 'encounter',
-                                  'mode': 'disabled',
-                                  'account': account['username'],
-                                  'captcha': status['captcha'],
-                                  'time': 0}
-                    whq.put(('captcha', wh_message))
-                return False
+    if pgacc.has_captcha():
+        status['captcha'] += 1
+        if not args.captcha_solving:
+            status['message'] = (
+                'Account {} has encountered a captcha. ' +
+                'Putting account away.').format(account['username'])
+            log.warning(status['message'])
+            account_failed(args, account_failures, account, 'captcha found')
+            if 'captcha' in args.wh_types:
+                wh_message = {
+                    'status_name': args.status_name,
+                    'status': 'encounter',
+                    'mode': 'disabled',
+                    'account': account['username'],
+                    'captcha': status['captcha'],
+                    'time': 0
+                }
+                whq.put(('captcha', wh_message))
+            return False
 
-            if args.captcha_key and args.manual_captcha_timeout == 0:
-                if automatic_captcha_solve(args, status, pgacc, pgacc.captcha_url,
-                                           account, whq):
-                    return True
-                else:
-                    account_failed(args, account_failures, account, 'captcha failed to verify')
-                    return False
+        if args.captcha_key and args.manual_captcha_timeout == 0:
+            if automatic_captcha_solve(args, status, pgacc, pgacc.captcha_url,
+                                       whq):
+                return True
             else:
-                status['message'] = ('Account {} has encountered a captcha. ' +
-                                     'Waiting for token.').format(
-                                        account['username'])
-                log.warning(status['message'])
-                account['last_active'] = datetime.utcnow()
-                account['last_location'] = step_location
-                account_captchas.append((status, account, pgacc.captcha_url))
-                if args.webhooks:
-                    wh_message = {'status_name': args.status_name,
-                                  'status': 'encounter',
-                                  'mode': 'manual',
-                                  'account': account['username'],
-                                  'captcha': status['captcha'],
-                                  'time': args.manual_captcha_timeout}
-                    whq.put(('captcha', wh_message))
+                account_failed(args, account_failures, account, 'captcha failed to verify')
                 return False
-    except KeyError, e:
-        log.error('Unable to check captcha: {}'.format(e))
+        else:
+            status['message'] = (
+                'Account {} has encountered a captcha. ' +
+                'Waiting for token.').format(account['username'])
+            log.warning(status['message'])
+            account['last_active'] = datetime.utcnow()
+            account['last_location'] = step_location
+            account_captchas.append((status, account, pgacc.captcha_url))
+            if 'captcha' in args.wh_types:
+                wh_message = {
+                    'status_name': args.status_name,
+                    'status': 'encounter',
+                    'mode': 'manual',
+                    'account': account['username'],
+                    'captcha': status['captcha'],
+                    'time': args.manual_captcha_timeout
+                }
+                whq.put(('captcha', wh_message))
+            return False
 
     return None
 
@@ -217,7 +219,7 @@ def automatic_captcha_solve(args, status, pgacc, captcha_url, account, wh_queue)
         'sequence.').format(account['username'])
     log.warning(status['message'])
 
-    if args.webhooks:
+    if 'captcha' in args.wh_types:
         wh_message = {'status_name': args.status_name,
                       'status': 'encounter',
                       'mode': '2captcha',
@@ -233,7 +235,7 @@ def automatic_captcha_solve(args, status, pgacc, captcha_url, account, wh_queue)
     if 'ERROR' in captcha_token:
         log.warning('Unable to resolve captcha, please check your ' +
                     '2captcha API key and/or wallet balance.')
-        if args.webhooks:
+        if 'captcha' in args.wh_types:
             wh_message['status'] = 'error'
             wh_message['time'] = time_elapsed
             wh_queue.put(('captcha', wh_message))
@@ -249,20 +251,15 @@ def automatic_captcha_solve(args, status, pgacc, captcha_url, account, wh_queue)
         time_elapsed = now() - time_start
         if verify_succeeded:
             status['message'] = pgacc.last_msg
-            if args.webhooks:
-                wh_message['status'] = 'success'
-                wh_message['time'] = time_elapsed
-                wh_queue.put(('captcha', wh_message))
-
-            return True
         else:
             status['message'] = pgacc.last_msg + ', putting away account for now.'
-            if args.webhooks:
-                wh_message['status'] = 'failure'
-                wh_message['time'] = time_elapsed
-                wh_queue.put(('captcha', wh_message))
+        log.info(status['message'])
+        if 'captcha' in args.wh_types:
+            wh_message['status'] = 'success' if verify_succeeded else 'failure'
+            wh_message['time'] = time_elapsed
+            wh_queue.put(('captcha', wh_message))
 
-            return False
+        return verify_succeeded
 
 
 def token_request(args, status, url):

@@ -49,7 +49,7 @@ from .account import (AccountSet,
                       setup_mrmime_account, get_account, account_failed, account_revive)
 from .captcha import captcha_overseer_thread, handle_captcha
 from .models import (parse_map, GymDetails, parse_gyms, PokestopDetails, parse_pokestop,
-                     MainWorker, WorkerStatus, HashKeys, Weather)
+                     MainWorker, WorkerStatus, HashKeys, ScannedLocation, Weather)
 from .proxy import get_new_proxy
 from .transform import get_new_coords
 from .utils import now, clear_dict_response, get_args, distance, degrees_to_cardinal
@@ -1001,23 +1001,40 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
             log.info(status['message'])
 
             # Get an account.
+            stagger_thread(args)
             account = get_account(args, account_queue, status)
             # Reset account statistics tracked per loop.
-            status.update(WorkerStatus.get_worker(
-                account['username'], scheduler.scan_location))
-            status['message'] = 'Switching to account {}.'.format(
-                account['username'])
-            log.info(status['message'])
-
+            prevStatus = WorkerStatus.get_worker(account['username'])
+            if prevStatus:
+                status.update(prevStatus)
+            else:
+                status.update({
+                    'username': account['username'],
+                    'last_modified': datetime.utcnow(),
+                    'last_scan_date': datetime.utcnow(),
+                    'latitude': None,
+                    'longitude': None
+                })
             # New lease of life right here.
-            status['account'] = account
-            status['fail'] = 0
-            status['success'] = 0
-            status['noitems'] = 0
-            status['skip'] = 0
-            status['captcha'] = 0
-
-            stagger_thread(args)
+            status.update({
+                'account':
+                    account,
+                'fail':
+                    0,
+                'success':
+                    0,
+                'noitems':
+                    0,
+                'skip':
+                    0,
+                'captcha':
+                    0,
+                'active':
+                    True,
+                'message':
+                    'Switching to account {}.'.format(account['username'])
+            })
+            log.info(status['message'])
 
             # Sleep when consecutive_fails reaches max_failures, overall fails
             # for stat purposes.
@@ -1113,6 +1130,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 # Grab the next thing to search (when available).
                 step, step_location, appears, leaves, messages, wait = (
                     scheduler.next_item(status))
+
                 status['message'] = messages['wait']
                 # The next_item will return the value telling us how long
                 # to sleep. This way the status can be updated
@@ -1122,6 +1140,9 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                 if step == -1:
                     time.sleep(scheduler.delay(status['last_scan_date']))
                     continue
+
+                # get the ScannedLocation before jittering
+                scan_location = ScannedLocation.get_by_loc(step_location)
 
                 # Too soon?
                 # Adding a 10 second grace period.
@@ -1217,8 +1238,9 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                         break
 
                     parsed = parse_map(args, response_dict, step_location,
-                                       dbq, whq, key_scheduler, pgacc, status,
-                                       scan_date, account, account_sets)
+                                       scan_location, dbq, whq, key_scheduler,
+                                       pgacc, status, scan_date, account,
+                                       account_sets)
 
                     scheduler.task_done(status, parsed)
                     if parsed['count'] > 0:
