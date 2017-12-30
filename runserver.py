@@ -23,7 +23,7 @@ from colorlog import ColoredFormatter
 
 from pogom.app import Pogom
 from pogom.utils import (get_args, now, gmaps_reverse_geolocate,
-                         log_resource_usage_loop, post_init_args, get_debug_dump_link)
+                         log_resource_usage_loop, init_args, get_debug_dump_link)
 from pogom.altitude import get_gmaps_altitude
 
 from pogom.models import (init_database, create_tables, drop_tables,
@@ -247,7 +247,7 @@ def main():
 
     args = get_args()
     args.root_path = os.path.dirname(os.path.abspath(__file__))
-    post_init_args(args)
+    init_args(args)
 
     set_log_and_verbosity(log)
 

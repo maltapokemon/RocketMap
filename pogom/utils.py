@@ -884,7 +884,12 @@ def get_args():
     return args
 
 
-def post_init_args(args):
+def init_args(args):
+    """
+    Initialize commandline arguments after parsing. Some things need to happen after parsing.
+
+    :param args: The parsed commandline arguments
+    """
     # IV/CP scanning.
     if args.enc_whitelist_file:
         with open(args.enc_whitelist_file) as f:
