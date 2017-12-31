@@ -41,11 +41,11 @@ ITEM_NAMES = {
 }
 
 
-def gxp_spin_stops(forts, pgacc, step_location):
+def gxp_spin_stops(forts, pgacc, scan_coords):
     for f in forts:
-        if f.type == 1 and pokestop_spinnable(f, step_location):
+        if f.type == 1 and pokestop_spinnable(f, scan_coords):
             time.sleep(random.uniform(0.8, 1.8))
-            response = spin_pokestop_request(pgacc, f, step_location)
+            response = spin_pokestop_request(pgacc, f, scan_coords)
             time.sleep(random.uniform(2, 4))  # Don't let Niantic throttle.
 
             # Check for reCaptcha.
@@ -232,19 +232,19 @@ def drop_items(pgacc, item_id, drop_stats, drop_count=-1):
             log.warning(u"GXP: Failed dropping {} {}s.".format(drop_count, ITEM_NAMES[item_id]))
     return 0
 
-def lure_pokestop(args, pgacc, fort, step_location):
+def lure_pokestop(args, pgacc, fort, scan_coords):
     if len(fort.active_fort_modifier) == 0:
         lures = pgacc.inventory_lures
         lure_result = None
         modifier = 501
         if args.lureFence is not None:
-            allowed = lure_geofence(step_location, args.lureFence)
+            allowed = lure_geofence(scan_coords, args.lureFence)
             if allowed == []:
                 forbidden = True
             else:
                 forbidden = False
         if args.nolureFence is not None:
-            forbidden = lure_geofence(step_location, args.nolureFence, forbidden=True)
+            forbidden = lure_geofence(scan_coords, args.nolureFence, forbidden=True)
             if forbidden == []:
                 forbidden = False
             else:
@@ -252,7 +252,7 @@ def lure_pokestop(args, pgacc, fort, step_location):
         if lures == 0:
             forbidden = True
         while lure_result is None and lures > 0:
-            lure_response = lure_pokestop_request(pgacc, modifier, fort, step_location)
+            lure_response = lure_pokestop_request(pgacc, modifier, fort, scan_coords)
             # Check for Captcha
             if pgacc.has_captcha():
                 log.debug('Account encountered a reCaptcha.')

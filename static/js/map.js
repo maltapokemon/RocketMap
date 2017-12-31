@@ -43,7 +43,7 @@ var reincludedPokemon = []
 var reids = []
 
 var map
-var markerCluster
+var markerCluster = window.markerCluster = {}
 var rawDataIsLoading = false
 var locationMarker
 const rangeMarkers = ['pokemon', 'pokestop', 'gym']
@@ -472,7 +472,7 @@ function updateSearchStatus() {
 function initSidebar() {
     $('#gyms-switch').prop('checked', Store.get('showGyms'))
     $('#gym-sidebar-switch').prop('checked', Store.get('useGymSidebar'))
-    $('#gym-sidebar-wrapper').toggle(Store.get('showGyms'))
+    $('#gym-sidebar-wrapper').toggle(Store.get('showGyms') || Store.get('showRaids'))
     $('#gyms-filter-wrapper').toggle(Store.get('showGyms'))
     $('#trainer-gyms-only').val(Store.get('showTrainerGymsOnly'))
     $('#team-gyms-only-switch').val(Store.get('showTeamGymsOnly'))
@@ -3467,21 +3467,19 @@ $(function () {
             'duration': 500
         }
         resetGymFilter()
-        var wrapper = $('#gym-sidebar-wrapper')
+        var wrapperGyms = $('#gyms-filter-wrapper')
+        var switchRaids = $('#raids-switch')
+        var wrapperSidebar = $('#gym-sidebar-wrapper')
         if (this.checked) {
             lastgyms = false
-            wrapper.show(options)
+            wrapperGyms.show(options)
+            wrapperSidebar.show(options)
         } else {
             lastgyms = false
-            wrapper.hide(options)
-        }
-        var wrapper2 = $('#gyms-filter-wrapper')
-        if (this.checked) {
-            lastgyms = false
-            wrapper2.show(options)
-        } else {
-            lastgyms = false
-            wrapper2.hide(options)
+            wrapperGyms.hide(options)
+            if (!switchRaids.prop('checked')) {
+                wrapperSidebar.hide(options)
+            }
         }
         buildSwitchChangeListener(mapData, ['gyms'], 'showGyms').bind(this)()
     })
@@ -3489,13 +3487,19 @@ $(function () {
         var options = {
             'duration': 500
         }
-        var wrapper = $('#raids-filter-wrapper')
+        var wrapperRaids = $('#raids-filter-wrapper')
+        var switchGyms = $('#gyms-switch')
+        var wrapperSidebar = $('#gym-sidebar-wrapper')
         if (this.checked) {
             lastgyms = false
-            wrapper.show(options)
+            wrapperRaids.show(options)
+            wrapperSidebar.show(options)
         } else {
             lastgyms = false
-            wrapper.hide(options)
+            wrapperRaids.hide(options)
+            if (!switchGyms.prop('checked')) {
+                wrapperSidebar.hide(options)
+            }
         }
         buildSwitchChangeListener(mapData, ['gyms'], 'showRaids').bind(this)()
     })

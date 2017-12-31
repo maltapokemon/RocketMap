@@ -117,7 +117,7 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
         pgacc.hash_key = hash_key
 
     if args.proxy:
-        # Try to fetch a new proxy
+        # Try to fetch a new proxy.
         proxy_num, proxy_url = get_new_proxy(args)
 
         if proxy_url:
@@ -161,7 +161,7 @@ def captcha_solver_thread(args, account_queue, account_captchas, hash_key,
 
 
 def handle_captcha(args, status, pgacc, account, account_failures,
-                   account_captchas, whq, step_location):
+                   account_captchas, whq, scan_coords):
     if pgacc.has_captcha():
         status['captcha'] += 1
         if not args.captcha_solving:
@@ -195,7 +195,7 @@ def handle_captcha(args, status, pgacc, account, account_failures,
                 'Waiting for token.').format(account['username'])
             log.warning(status['message'])
             account['last_active'] = datetime.utcnow()
-            account['last_location'] = step_location
+            account['last_location'] = scan_coords
             account_captchas.append((status, account, pgacc.captcha_url))
             if 'captcha' in args.wh_types:
                 wh_message = {

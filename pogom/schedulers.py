@@ -121,21 +121,21 @@ class BaseScheduler(object):
 
     # Return the next item in the queue
     def next_item(self, search_items_queue):
-        step, step_location, appears, leaves = self.queues[0].get()
+        step, scan_coords, appears, leaves = self.queues[0].get()
         remain = appears - now() + 10
         messages = {
             'wait': 'Waiting for item from queue.',
             'early': 'Early for {:6f},{:6f}; waiting {}s...'.format(
-                step_location[0], step_location[1], remain),
+                scan_coords[0], scan_coords[1], remain),
             'late': 'Too late for location {:6f},{:6f}; skipping.'.format(
-                step_location[0], step_location[1]),
+                scan_coords[0], scan_coords[1]),
             'search': 'Searching at {:6f},{:6f},{:6f}.'.format(
-                step_location[0], step_location[1], step_location[2]),
+                scan_coords[0], scan_coords[1], scan_coords[2]),
             'invalid': ('Invalid response at {:6f},{:6f}, ' +
-                        'abandoning location.').format(step_location[0],
-                                                       step_location[1])
+                        'abandoning location.').format(scan_coords[0],
+                                                       scan_coords[1])
         }
-        return step, step_location, appears, leaves, messages, 0
+        return step, scan_coords, appears, leaves, messages, 0
 
     # How long to delay since last action
     def delay(self, *args):

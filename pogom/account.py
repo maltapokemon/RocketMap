@@ -147,19 +147,19 @@ def can_spin(account, max_h_spins):
 
 
 # Check if Pokestop is spinnable and not on cooldown.
-def pokestop_spinnable(fort, step_location):
+def pokestop_spinnable(fort, scan_coords):
     if not fort.enabled:
         return False
 
     spinning_radius = 38
     in_range = in_radius((fort.latitude, fort.longitude),
-                         step_location, spinning_radius)
+                         scan_coords, spinning_radius)
     now = time.time()
     pause_needed = fort.cooldown_complete_timestamp_ms / 1000 > now
     return in_range and not pause_needed
 
 
-def spin_pokestop(pgacc, account, args, fort, step_location):
+def spin_pokestop(pgacc, account, args, fort, scan_coords):
     if not can_spin(account, args.account_max_spins):
         log.warning('Account %s has reached its Pokestop spinning limits.',
                     account['username'])
@@ -167,7 +167,7 @@ def spin_pokestop(pgacc, account, args, fort, step_location):
     # Set 50% Chance to spin a Pokestop.
     if random.random() > 0.5 or pgacc.get_stats('level', 1) == 1:
         time.sleep(random.uniform(0.8, 1.8))
-        response = spin_pokestop_request(pgacc, fort, step_location)
+        response = spin_pokestop_request(pgacc, fort, scan_coords)
         if not response:
             return False
         time.sleep(random.uniform(2, 4))  # Don't let Niantic throttle.
@@ -317,23 +317,23 @@ def fort_details_request(pgacc, fort):
         return False
 
 
-def spin_pokestop_request(pgacc, fort, step_location):
+def spin_pokestop_request(pgacc, fort, scan_coords):
     try:
         return pgacc.seq_spin_pokestop(fort.id,
                                      fort.latitude,
                                      fort.longitude,
-                                     step_location[0],
-                                     step_location[1])
+                                     scan_coords[0],
+                                     scan_coords[1])
     except Exception as e:
         log.exception('Exception while spinning Pokestop: %s.', e)
         return False
 
-def lure_pokestop_request(pgacc, modifier, fort, step_location):
+def lure_pokestop_request(pgacc, modifier, fort, scan_coords):
     try:
         return pgacc.req_add_fort_modifier(modifier,
                                      fort.id,
-                                     step_location[0],
-                                     step_location[1])
+                                     scan_coords[0],
+                                     scan_coords[1])
     except Exception as e:
         log.error('Exception while lureing Pokestop: %s.', repr(e))
         return False

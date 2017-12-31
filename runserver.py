@@ -277,6 +277,8 @@ def main():
     mrmime_cfg = {
         # We don't want exceptions on captchas because we handle them differently.
         'exception_on_captcha': False,
+        # MrMime shouldn't jitter
+        'jitter_gmo': False,
         'pgpool_system_id': args.status_name
     }
     # Don't overwrite PGPool URL if it's only set in MrMime config JSON

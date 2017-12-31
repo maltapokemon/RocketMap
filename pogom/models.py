@@ -2199,7 +2199,7 @@ def perform_pgscout(p):
 
 
 # todo: this probably shouldn't _really_ be in "models" anymore, but w/e.
-def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
+def parse_map(args, map_dict, scan_coords, scan_location, db_update_queue,
               wh_update_queue, key_scheduler, pgacc, status, now_date, account,
               account_sets):
     pokemon = {}
@@ -2350,17 +2350,18 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
             # No wild or nearby Pokemon but there are forts.  It's probably
             # a speed violation.
             log.warning('No nearby or wild Pokemon but there are visible '
-                        'gyms or pokestops. Possible speed violation.')
+                        'gyms or pokestops. Possible speed violation '
+                        'blind account or Pokestop/Gym Scanning.')
             if (args.no_pokestops or args.no_gyms):
                 # If we're not going to parse the forts, then we'll just
                 # exit here.
                 abandon_loc = True
 
         if abandon_loc == True:
-            scan_location = ScannedLocation.get_by_loc(step_location)
+            scan_location = ScannedLocation.get_by_loc(scan_coords)
             scan_location['radius'] = (38 if args.no_pokemon and args.no_gyms
                 else 450 if args.no_pokemon and args.no_pokestops else 70)
-            ScannedLocation.update_band(scan_location)
+            ScannedLocation.update_band(scan_location, now_date)
             db_update_queue.put((ScannedLocation, {0: scan_location}))
 
             return {
@@ -2370,7 +2371,7 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
                 'bad_scan': True
             }
 
-    scan_location = ScannedLocation.get_by_loc(step_location)
+    scan_location = ScannedLocation.get_by_loc(scan_coords)
     scan_location['radius'] = (38 if args.no_pokemon and args.no_gyms
         else 450 if args.no_pokemon and args.no_pokestops else 70)
 
@@ -2472,6 +2473,7 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
                 timedelta(seconds=seconds_until_despawn)
 
             pokemon_id = p.pokemon_data.pokemon_id
+            previous_id = None
 
             # If this is an ignored pokemon, skip this whole section.
             # We want the stuff above or we will impact spawn detection
@@ -2487,16 +2489,8 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
             if args.gain_xp and not pgacc.get_stats(
                 'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
                 if is_ditto(args, pgacc, p):
-                    #log.info('++++++++++++++++++++++ %s', p)
-                    pokemon[p.encounter_id]['pokemon_id'] = 132
-                    pokemon[p.encounter_id]['previous_id'] = p.pokemon_data.pokemon_id
-                    pokemon[p.encounter_id]['rating_attack'] = 'A'
-                    pokemon[p.encounter_id]['rating_defense'] = 'A'
-                    pokemon[p.encounter_id]['gender'] = 3
-                    pokemon[p.encounter_id]['move_1'] = 242
-                    pokemon[p.encounter_id]['move_2'] = 133
                     pokemon_id = 132
-                    pokemon_info = None
+                    previous_id = p.pokemon_data.pokemon_id
 
             # Scan for IVs/CP and moves.
             pokemon_info = False
@@ -2532,7 +2526,7 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
                 'catch_prob_3': None,
                 'rating_attack': None,
                 'rating_defense': None,
-                'previous_id' : None,
+                'previous_id' : previous_id,
                 'weather_id' : None,
                 'time_id': worldtime,
                 'costume_id' : None,
@@ -2549,6 +2543,14 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
             if pokemon_id == 201:
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
+
+            if pokemon_id == 132:
+                pokemon[p.encounter_id]['rating_attack'] = 'A'
+                pokemon[p.encounter_id]['rating_defense'] = 'A'
+                pokemon[p.encounter_id]['gender'] = 3
+                pokemon[p.encounter_id]['move_1'] = 242
+                pokemon[p.encounter_id]['move_2'] = 133
+                pokemon_info = None
 
             #log.info('Pokemon %s Shiny: %s', pokemon_id, p.pokemon_data.pokemon_display.shiny)
             #printPokemon(pokemon_id, p.latitude, p.longitude,
@@ -2844,19 +2846,19 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
 
         # Let db do it's things while we try to spin.
         if args.gain_xp:
-            gxp_spin_stops(forts, pgacc, step_location)
+            gxp_spin_stops(forts, pgacc, scan_coords)
             incubate_eggs(pgacc)
         elif args.pokestop_spinning or pgacc.get_stats('level', 1) == 1:
             for f in forts:
                 # Spin Pokestop with 50% chance.
-                if f.type == 1 and pokestop_spinnable(f, step_location):
-                    if spin_pokestop(pgacc, account, args, f, step_location):
+                if f.type == 1 and pokestop_spinnable(f, scan_coords):
+                    if spin_pokestop(pgacc, account, args, f, scan_coords):
                         incubate_eggs(pgacc)
         # Lure Stops if in range, has lures, is enabled
         if args.lure_stop:
             for f in forts:
-                if f.type == 1 and pokestop_spinnable(f, step_location):
-                    lure_pokestop(args, pgacc, f, step_location)
+                if f.type == 1 and pokestop_spinnable(f, scan_coords):
+                    lure_pokestop(args, pgacc, f, scan_coords)
 
         # Helping out the GC.
         del forts
@@ -2876,7 +2878,7 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
     # Look for spawnpoints within scan_location that are not here to see if we
     # can narrow down tth window.
     for sp in ScannedLocation.linked_spawn_points(scan_location['cellid']):
-        if sp['missed_count'] > 20:
+        if sp['missed_count'] > 5:
                 continue
 
         if sp['id'] in sp_id_list:
