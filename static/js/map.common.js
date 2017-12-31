@@ -886,6 +886,10 @@ var StoreOptions = {
         default: '90',
         type: StoreTypes.Number
     },
+    'remember_text_level_notify': {
+        default: '',
+        type: StoreTypes.Number
+    },
     'showRaids': {
         default: true,
         type: StoreTypes.Boolean
@@ -976,6 +980,14 @@ var StoreOptions = {
     },
     'showGeofences': {
         default: false,
+        type: StoreTypes.Boolean
+    },
+    'hideNotNotified': {
+        default: false,
+        type: StoreTypes.Boolean
+    },
+    'showPopups': {
+        default: true,
         type: StoreTypes.Boolean
     },
     'playSound': {

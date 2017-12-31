@@ -6,6 +6,7 @@ var $selectExclude
 var $selectPokemonNotify
 var $selectRarityNotify
 var $textPerfectionNotify
+var $textLevelNotify
 var $selectStyle
 var $selectIconSize
 var $switchOpenGymsOnly
@@ -35,6 +36,7 @@ var excludedPokemon = []
 var notifiedPokemon = []
 var notifiedRarity = []
 var notifiedMinPerfection = null
+var notifiedMinLevel = null
 
 var buffer = []
 var reincludedPokemon = []
@@ -499,6 +501,9 @@ function initSidebar() {
     $('#scanned-switch').prop('checked', Store.get('showScanned'))
     $('#spawnpoints-switch').prop('checked', Store.get('showSpawnpoints'))
     $('#ranges-switch').prop('checked', Store.get('showRanges'))
+    $('#hideunnotified-switch').prop('checked', Store.get('hideNotNotified'))
+    $('#popups-switch').prop('checked', Store.get('showPopups'))
+    $('#bounce-switch').prop('checked', Store.get('isBounceDisabled'))
     $('#sound-switch').prop('checked', Store.get('playSound'))
     $('#pokemoncries').toggle(Store.get('playSound'))
     $('#cries-switch').prop('checked', Store.get('playCries'))
@@ -1460,13 +1465,19 @@ function playPokemonSound(pokemonID, cryFileTypes) {
 function isNotifyPoke(poke) {
     const isOnNotifyList = notifiedPokemon.indexOf(poke['pokemon_id']) > -1 || notifiedRarity.indexOf(poke['pokemon_rarity']) > -1
     var hasHighIV = false
+    var hasHighLevel = false
+    var hasHighAttributes = false
 
-    if (poke['individual_attack'] != null) {
+    if (poke['individual_attack'] != null && poke['cp_multiplier'] !== null) {
         const perfection = getIv(poke['individual_attack'], poke['individual_defense'], poke['individual_stamina'])
+        const level = getPokemonLevel(poke['cp_multiplier'])
         hasHighIV = notifiedMinPerfection > 0 && perfection >= notifiedMinPerfection
+        hasHighLevel = notifiedMinLevel > 0 && level >= notifiedMinLevel
+
+        hasHighAttributes = (hasHighIV && !(notifiedMinLevel > 0)) || (hasHighLevel && !(notifiedMinPerfection > 0)) || hasHighLevel && hasHighIV
     }
 
-    return isOnNotifyList || hasHighIV
+    return isOnNotifyList || hasHighAttributes
 }
 
 function customizePokemonMarker(marker, item, skipNotification) {
@@ -2140,7 +2151,8 @@ function processPokemon(item) {
     if (!(item['encounter_id'] in mapData.pokemons) &&
          !isExcludedPoke && isPokeAlive) {
         // Add marker to map and item to dict.
-        if (!item.hidden) {
+        const isNotifyPkmn = isNotifyPoke(item)
+        if (!item.hidden && (!Store.get('hideNotNotified') || isNotifyPkmn)) {
             const isBounceDisabled = Store.get('isBounceDisabled')
             const scaleByRarity = Store.get('scaleByRarity')
             const isNotifyPkmn = isNotifyPoke(item)
@@ -2149,7 +2161,7 @@ function processPokemon(item) {
                 updatePokemonMarker(item.marker, map, scaleByRarity, isNotifyPkmn)
             } else {
                 newMarker = setupPokemonMarker(item, map, isBounceDisabled, scaleByRarity, isNotifyPkmn)
-                customizePokemonMarker(newMarker, item)
+                customizePokemonMarker(newMarker, item, !Store.get('showPopups'))
                 item.marker = newMarker
             }
 
@@ -3260,6 +3272,7 @@ $(function () {
     $selectPokemonNotify = $('#notify-pokemon')
     $selectRarityNotify = $('#notify-rarity')
     $textPerfectionNotify = $('#notify-perfection')
+    $textLevelNotify = $('#notify-level')
     var numberOfPokemon = 493
 
     // Load pokemon names and populate lists
@@ -3335,11 +3348,24 @@ $(function () {
             Store.set('remember_text_perfection_notify', notifiedMinPerfection)
         })
 
+        $textLevelNotify.on('change', function (e) {
+            notifiedMinLevel = parseInt($textLevelNotify.val(), 10)
+            if (isNaN(notifiedMinLevel) || notifiedMinLevel <= 0) {
+                notifiedMinLevel = ''
+            }
+            if (notifiedMinLevel > 40) {
+                notifiedMinLevel = 40
+            }
+            $textLevelNotify.val(notifiedMinLevel)
+            Store.set('remember_text_level_notify', notifiedMinLevel)
+        })
+
         // recall saved lists
         $selectExclude.val(Store.get('remember_select_exclude')).trigger('change')
         $selectPokemonNotify.val(Store.get('remember_select_notify')).trigger('change')
         $selectRarityNotify.val(Store.get('remember_select_rarity_notify')).trigger('change')
         $textPerfectionNotify.val(Store.get('remember_text_perfection_notify')).trigger('change')
+        $textLevelNotify.val(Store.get('remember_text_level_notify')).trigger('change')
 
         if (isTouchDevice() && isMobileDevice()) {
             $('.select2-search input').prop('readonly', true)
@@ -3485,31 +3511,7 @@ $(function () {
         // Change and store the flag
         Store.set('scaleByRarity', this.checked)
         // Remove all Pokemon markers from map
-        var oldPokeMarkers = []
-        $.each(mapData['pokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        $.each(mapData['lurePokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        markerCluster.removeMarkers(oldPokeMarkers)
-        mapData['pokemons'] = {}
-        mapData['lurePokemons'] = {}
-        // Reload all Pokemon
-        lastpokemon = false
-        updateMap()
+        RedrawPokemon()
     })
     $('#scanned-switch').change(function () {
         buildSwitchChangeListener(mapData, ['scanned'], 'showScanned').bind(this)()
@@ -3560,6 +3562,24 @@ $(function () {
         }
     })
 
+    $('#bounce-switch').change(function () {
+        Store.set('isBounceDisabled', this.checked)
+        // Remove all Pokemon markers from map
+        RedrawPokemon()
+    })
+
+    $('#hideunnotified-switch').change(function () {
+        Store.set('hideNotNotified', this.checked)
+        // Remove all Pokemon markers from map
+        RedrawPokemon()
+    })
+
+    $('#popups-switch').change(function () {
+        Store.set('showPopups', this.checked)
+        // Remove all Pokemon markers from map
+        RedrawPokemon()
+    })
+
     $('#cries-switch').change(function () {
         Store.set('playCries', this.checked)
     })
@@ -3570,93 +3590,21 @@ $(function () {
         // Change and store the flag
         Store.set('showMedal', this.checked)
         // Remove all Pokemon markers from map
-        var oldPokeMarkers = []
-        $.each(mapData['pokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        $.each(mapData['lurePokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        markerCluster.removeMarkers(oldPokeMarkers)
-        mapData['pokemons'] = {}
-        mapData['lurePokemons'] = {}
-        // Reload all Pokemon
-        lastpokemon = false
-        updateMap()
+        RedrawPokemon()
     })
 
     $('#medal-rattata-switch').change(function () {
         // Change and store the flag
         Store.set('showMedalRattata', this.checked)
         // Remove all Pokemon markers from map
-        var oldPokeMarkers = []
-        $.each(mapData['pokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        $.each(mapData['lurePokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        markerCluster.removeMarkers(oldPokeMarkers)
-        mapData['pokemons'] = {}
-        mapData['lurePokemons'] = {}
-        // Reload all Pokemon
-        lastpokemon = false
-        updateMap()
+        RedrawPokemon()
     })
 
     $('#medal-magikarp-switch').change(function () {
         // Change and store the flag
         Store.set('showMedalMagikarp', this.checked)
         // Remove all Pokemon markers from map
-        var oldPokeMarkers = []
-        $.each(mapData['pokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        $.each(mapData['lurePokemons'], function (key, pkm) {
-            // for any marker you're turning off, you'll want to wipe off the range
-            if (pkm.marker.rangeCircle) {
-                pkm.marker.rangeCircle.setMap(null)
-                delete pkm.marker.rangeCircle
-            }
-            pkm.marker.setMap(null)
-            oldPokeMarkers.push(pkm.marker)
-        })
-        markerCluster.removeMarkers(oldPokeMarkers)
-        mapData['pokemons'] = {}
-        mapData['lurePokemons'] = {}
-        // Reload all Pokemon
-        lastpokemon = false
-        updateMap()
+        RedrawPokemon()
     })
 
     $('#geoloc-switch').change(function () {
@@ -3733,3 +3681,32 @@ $(function () {
         ]
     }).order([1, 'asc'])
 })
+
+function RedrawPokemon() {
+  // Remove all Pokemon markers from map
+  var oldPokeMarkers = []
+  $.each(mapData['pokemons'], function (key, pkm) {
+      // for any marker you're turning off, you'll want to wipe off the range
+      if (pkm.marker.rangeCircle) {
+          pkm.marker.rangeCircle.setMap(null)
+          delete pkm.marker.rangeCircle
+      }
+      pkm.marker.setMap(null)
+      oldPokeMarkers.push(pkm.marker)
+  })
+  $.each(mapData['lurePokemons'], function (key, pkm) {
+      // for any marker you're turning off, you'll want to wipe off the range
+      if (pkm.marker.rangeCircle) {
+          pkm.marker.rangeCircle.setMap(null)
+          delete pkm.marker.rangeCircle
+      }
+      pkm.marker.setMap(null)
+      oldPokeMarkers.push(pkm.marker)
+  })
+  markerCluster.removeMarkers(oldPokeMarkers)
+  mapData['pokemons'] = {}
+  mapData['lurePokemons'] = {}
+  // Reload all Pokemon
+  lastpokemon = false
+  updateMap()
+}
