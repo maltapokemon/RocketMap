@@ -164,8 +164,8 @@ class Pogom(Flask):
         level = request.args.get('level')
         raidlevel = request.args.get('raidlevel')
         pkm = request.args.get('pkm')
-        battle = request.args.get('battle')
-        return send_file(get_gym_icon(team, level, raidlevel, pkm, battle), mimetype='image/png')
+        is_in_battle = request.args.get('battle')
+        return send_file(get_gym_icon(team, level, raidlevel, pkm, is_in_battle), mimetype='image/png')
 
     def pokemon_img(self):
         pkm = int(request.args.get('pkm'))

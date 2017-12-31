@@ -57,7 +57,7 @@ weather_images = {
     16: os.path.join(path_weather, 'weather_extreme.png')
 }
 
-def get_gym_icon(team, level, raidlevel, pkm, battle):
+def get_gym_icon(team, level, raidlevel, pkm, is_in_battle):
     init_image_dir()
     level = int(level)
 
@@ -92,7 +92,7 @@ def get_gym_icon(team, level, raidlevel, pkm, battle):
         return os.path.join(path_gym, '{}.png'.format(team))
 
     # Battle Badge
-    if battle:
+    if is_in_battle:
         subject_lines.append('-gravity center ( {} -resize 90x90 ( +clone -background black -shadow 80x3+5+5 ) +swap -background none -layers merge +repage ) -geometry +0+0 -composite'.format(
             os.path.join(path_gym, 'battle.png')))
         out_filename = out_filename.replace('.png', '_B.png')
