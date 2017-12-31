@@ -2481,6 +2481,23 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
                 filtered += 1
                 continue
 
+            # Catch pokemon to check for Ditto if --gain-xp enabled
+            # Original code by voxx!
+            have_balls = pgacc.inventory_balls > 0
+            if args.gain_xp and not pgacc.get_stats(
+                'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
+                if is_ditto(args, pgacc, p):
+                    #log.info('++++++++++++++++++++++ %s', p)
+                    pokemon[p.encounter_id]['pokemon_id'] = 132
+                    pokemon[p.encounter_id]['previous_id'] = p.pokemon_data.pokemon_id
+                    pokemon[p.encounter_id]['rating_attack'] = 'A'
+                    pokemon[p.encounter_id]['rating_defense'] = 'A'
+                    pokemon[p.encounter_id]['gender'] = 3
+                    pokemon[p.encounter_id]['move_1'] = 242
+                    pokemon[p.encounter_id]['move_2'] = 133
+                    pokemon_id = 132
+                    pokemon_info = None
+
             # Scan for IVs/CP and moves.
             pokemon_info = False
             scout_result = False
@@ -2528,25 +2545,8 @@ def parse_map(args, map_dict, step_location, scan_location, db_update_queue,
             costume_pokemon =  p.pokemon_data.pokemon_display.costume
             if costume_pokemon:
                 pokemon[p.encounter_id]['costume_id'] = costume_pokemon
-            # Catch pokemon to check for Ditto if --gain-xp enabled
-            # Original code by voxx!
-            have_balls = pgacc.inventory_balls > 0
-            if args.gain_xp and not pgacc.get_stats(
-                'level') >= 30 and pokemon_id in DITTO_CANDIDATES_IDS and have_balls:
-                if is_ditto(args, pgacc, p):
-                    #log.info('++++++++++++++++++++++ %s', p)
-                    pokemon[p.encounter_id]['pokemon_id'] = 132
-                    pokemon[p.encounter_id]['previous_id'] = p.pokemon_data.pokemon_id
-                    pokemon[p.encounter_id]['rating_attack'] = 'A'
-                    pokemon[p.encounter_id]['rating_defense'] = 'A'
-                    pokemon[p.encounter_id]['gender'] = 3
-                    pokemon[p.encounter_id]['move_1'] = 242
-                    pokemon[p.encounter_id]['move_2'] = 133
-                    pokemon_id = 132
-                    pokemon_info = None
-
             # Check for Unown's alphabetic character.
-            elif pokemon_id == 201:
+            if pokemon_id == 201:
                 pokemon[p.encounter_id]['form'] = (p.pokemon_data
                                                     .pokemon_display.form)
 
