@@ -548,12 +548,12 @@ def get_args():
                         help='Do various things to let map accounts gain XP.',
                         action='store_true', default=False)
     parser.add_argument('-gen', '--generate-images',
-                        help='Use ImageMagick to generate gym images on demand.',
+                        help='Use ImageMagick to generate dynamic icons on demand.',
                         action='store_true', default=False)
     parser.add_argument('-pgsu', '--pgscout-url', default=None,
                         help='URL to query PGScout for Pokemon IV/CP.')
-    parser.add_argument('-au', '--assets-url', default=None,
-                        help='Local or remote URL pointing to optional PogoAssets root directory.')
+    parser.add_argument('-pa', '--pogo-assets', default=None,
+                        help='Directory or URL pointing to optional PogoAssets root directory.')
     parser.add_argument('-pi', '--pokestop-info',
                         help=('Get all details about pokestops '
                             '(name, image, description) '
@@ -880,8 +880,8 @@ def get_args():
     args.locales_dir = 'static/dist/locales'
     args.data_dir = 'static/dist/data'
 
-    if args.assets_url and os.path.isdir(args.assets_url):
-        log.info("Using Assets URL at {}".format(args.assets_url))
+    if args.pogo_assets and os.path.isdir(args.pogo_assets):
+        log.info("Using Assets URL at {}".format(args.pogo_assets))
 
     return args
 

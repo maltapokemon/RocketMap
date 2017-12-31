@@ -114,7 +114,7 @@ def get_pokemon_icon(pkm, weather, time):
 
     im_lines = []
     # Add Pokemon icon
-    if args.assets_url:
+    if args.pogo_assets:
         im_lines.append(
             '-fuzz 0.5% -trim +repage'
             ' -scale 133x133\> -unsharp 0x1'
@@ -164,8 +164,8 @@ def get_pokemon_icon(pkm, weather, time):
         out_filename = os.path.join(path_generated, "pokemon_{}.png".format(pkm))
 
     if not os.path.isfile(out_filename):
-        if args.assets_url:
-            pokemon_image = '{}/decrypted_assets/pokemon_icon_{:03d}_00.png'.format(args.assets_url, pkm)
+        if args.pogo_assets:
+            pokemon_image = '{}/decrypted_assets/pokemon_icon_{:03d}_00.png'.format(args.pogo_assets, pkm)
         else:
             pokemon_image = os.path.join(path_icons, '{}.png'.format(pkm))
         cmd = 'convert {} {} {}'.format(pokemon_image, join(im_lines), out_filename)
