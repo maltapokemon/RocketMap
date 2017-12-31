@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import urllib
+import urlparse
 from threading import Thread
 
 import configargparse
