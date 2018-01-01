@@ -702,8 +702,8 @@ def search_overseer_thread(args, new_location_queue, control_flags, heartb,
     # The real work starts here but will halt when any control flag is set.
     while True:
         if (args.hash_key is not None and
-                (hashkeys_last_upsert + hashkeys_upsert_min_delay)
-                <= timeit.default_timer()):
+            (hashkeys_last_upsert + hashkeys_upsert_min_delay) <=
+                timeit.default_timer()):
             upsertKeys(args.hash_key, key_scheduler, db_updates_queue)
             hashkeys_last_upsert = timeit.default_timer()
 
@@ -1312,6 +1312,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                             except GymDetails.DoesNotExist:
                                 gyms_to_update[gym['gym_id']] = gym
                                 continue
+                            GymDetails.database().close()
 
                             # If we have a record of this gym already, check if
                             # the gym has been updated since our last update.
@@ -1397,7 +1398,7 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
                         except PokestopDetails.DoesNotExist:
                             pokestops_to_update[pokestop['pokestop_id']] = pokestop
                             continue
-
+                        PokestopDetails.database().close()
                         if args.pokestop_info_expire and args.pokestop_info_expire > 0:
                             log.debug('[Pokestop Current] Time now: %s /Expire time: %s',
                                     datetime.utcnow(), (record.last_scanned +
@@ -1493,15 +1494,14 @@ def search_worker_thread(args, account_queue, account_sets, account_failures,
 
         # Catch any process exceptions, log them, and continue the thread.
         except Exception as e:
-            log.error((
-                'Exception in search_worker under account {} Exception ' +
-                'message: {}.').format(account['username'], repr(e)))
+            log.exception(
+                'Exception in search_worker under account %s.',
+                account['username'])
             status['active'] = False
             status['message'] = (
                 'Exception in search_worker using account {}. Restarting ' +
                 'with fresh account. See logs for details.').format(
                     account['username'])
-            traceback.print_exc(file=sys.stdout)
             account_failed(args, account_failures, account, repr(e))
             time.sleep(args.scan_delay)
 

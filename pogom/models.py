@@ -1791,9 +1791,10 @@ class SpawnpointDetectionData(BaseModel):
 
         # Get past sightings.
         with SpawnpointDetectionData.database().execution_context():
-            query = list(cls.select()
-                            .where(cls.spawnpoint_id == sp['id'])
-                            .order_by(cls.scan_time.asc()).dicts())
+            query = list(
+                cls.select()
+                .where(cls.spawnpoint_id == sp['id'])
+                .order_by(cls.scan_time.asc()).dicts())
 
         if sighting:
             query.append(sighting)
@@ -3464,7 +3465,7 @@ def clean_db_loop(args):
             log.exception('Exception in clean_db_loop: %s', repr(e))
 
 
-def db_clean_spawnpoints(step=50, days_age=30, missed=10):
+def db_clean_spawnpoints(step=50, days_age=30, missed=6):
     start = datetime.utcnow()
     sp_delete = set()
     sl_delete = set()
