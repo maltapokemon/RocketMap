@@ -47,6 +47,7 @@ add it to __scheduler_classes
 import itertools
 import logging
 import math
+import geopy
 import json
 import time
 import sys
