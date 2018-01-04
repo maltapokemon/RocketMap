@@ -169,9 +169,12 @@ class Pogom(Flask):
 
     def pokemon_img(self):
         pkm = int(request.args.get('pkm'))
+        gender = int(request.args.get('gender')) if 'gender' in request.args else None
+        form = int(request.args.get('form')) if 'form' in request.args else None
+        costume = int(request.args.get('costume')) if 'costume' in request.args else None
         weather = int(request.args.get('weather')) if 'weather' in request.args else 0
         time = int(request.args.get('time')) if 'time' in request.args else 0
-        return send_file(get_pokemon_icon(pkm, weather, time), mimetype='image/png')
+        return send_file(get_pokemon_icon(pkm, gender=gender, form=form, costume=costume, weather=weather, time=time), mimetype='image/png')
 
     def scout_pokemon(self):
         args = get_args()

@@ -89,10 +89,10 @@ const dittoTexts = {
 }
 
 const costumeTexts = {
-  1: 'Christmass Hat',
-  2: 'Party Hat',
-  3: 'Ash Hat',
-  4: 'Witch Hat',
+  1: '(Holiday Hat)',
+  2: '(Party Hat)',
+  3: '(Ash Hat)',
+  4: '(Witch Hat)',
 }
 const weatherImages = {
   1: 'weather_sunny.png',
@@ -691,10 +691,15 @@ function pokemonLabel(pokemon) {
         typesDisplay += getTypeSpan(type)
     })
 
+    var pkmIcon = ''
+    if (generateImages) {
+      pkmIcon = `<img class='pokemon sprite' src='${getPokemonIconImg(id, gender, form, costume_id, weather_id, time_id)}'>`
+    } else {
+      pkmIcon = `<img class='pokemon sprite' src='${pokemonIcon(id, form)}'>`
+    }
+
     var details = ''
-
     var contentstring = ''
-
     var formString = ''
 
     if (id === 201 && form !== null && form > 0) {
@@ -702,27 +707,22 @@ function pokemonLabel(pokemon) {
     }
 
     var dittoString = ''
-
     if (id === 132 && previous_id != null) {
         dittoString += dittoTexts[previous_id]
     }
 
     var costumeString = ''
-
     if (costume_id != null) {
         costumeString += costumeTexts[costume_id]
     }
 
     var medalString = ''
-
     var baseHeight = (pokemon.pokemon_id === 19) ? 0.30 : 0.90
     var baseWeight = (pokemon.pokemon_id === 129) ? 3.50 : 10.00
     var ratio = sizeRatio(pokemon.height, pokemon.weight, baseHeight, baseWeight)
-
     if (pokemon.pokemon_id == 19 && ratio < 1.5) {
       medalString += `<span>Tiny</span>`
     }
-
     if (pokemon.pokemon_id == 129 && ratio > 2.5 && pokemon.weight >= 13.13) {
       medalString += `<span>Big</span>`
     }
@@ -805,7 +805,7 @@ function pokemonLabel(pokemon) {
           <div class='pokemon container'>
             <div class='pokemon container content-left'>
               <div>
-                <img class='pokemon sprite' src='${pokemonIcon(id, form)}'>
+                ${pkmIcon}
                 <div class='pokemon cp big'>
                   CP: <span class='pokemon encounter big'>${cp}</span>
                 </div>
@@ -853,7 +853,7 @@ function pokemonLabel(pokemon) {
       <div class='pokemon container'>
         <div class='pokemon container content-left'>
           <div>
-            <img class='pokemon sprite' src='${pokemonIcon(id, form)}'>
+            ${pkmIcon}
             <div class='pokemon links'>
               <i class='fa fa-lg fa-fw fa-eye-slash'></i> <a href='javascript:excludePokemon(${id})'>Hide</a>
             </div>

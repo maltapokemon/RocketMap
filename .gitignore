@@ -21,6 +21,8 @@ static/*.ttf
 static/sprites/*.png
 static/images/appicons/*.png
 static/images/appicons/*.ico
+static/images/generated/gym/*.png
+static/images/generated/pokemon/*.png
 static/images/generated/*.png
 static/images/gym/*.png
 static/images/pokestop/*.png

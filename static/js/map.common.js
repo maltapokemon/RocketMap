@@ -1181,9 +1181,12 @@ function getPokemonIcon(item, sprite, displayHeight) {
     var scaledIconOffset = new google.maps.Point(0, 0)
     var scaledIconCenterOffset = new google.maps.Point(scale * sprite.iconWidth / 2, scale * sprite.iconHeight / 2)
 
+    let gender_param = item['gender'] ? `&gender=${item['gender']}` : ''
+    let form_param = item['form'] ? `&form=${item['form']}` : ''
+    let costume_param = item['costume_id'] ? `&costume=${item['costume_id']}` : ''
     let weather_param = item['weather_id'] ? `&weather=${item['weather_id']}` : ''
     let time_param = item['time_id'] ? `&time=${item['time_id']}` : ''
-    let icon_url = `pkm_img?pkm=${item['pokemon_id']}${time_param}${weather_param}`
+    let icon_url = `pkm_img?pkm=${item['pokemon_id']}${gender_param}${form_param}${costume_param}${weather_param}${time_param}`
 
     return {
         url: icon_url,
@@ -1212,6 +1215,17 @@ function getGoogleSprite(index, sprite, displayHeight) {
         origin: scaledIconOffset,
         anchor: scaledIconCenterOffset
     }
+}
+
+function getPokemonIconImg (id, gender, form, costume_id, weather_id, time_id) {
+    let gender_param = gender ? `&gender=${gender}` : ''
+    let form_param = form ? `&form=${form}` : ''
+    let costume_param = costume_id ? `&costume=${costume_id}` : ''
+    let weather_param = weather_id ? `&weather=${weather_id}` : ''
+    let time_param = time_id ? `&time=${time_id}` : ''
+    let icon_url = `pkm_img?pkm=${id}${gender_param}${form_param}${costume_param}${weather_param}${time_param}`
+
+    return icon_url
 }
 
 function pokemonIcon(pokemonId, pokemonForm = 0) {
