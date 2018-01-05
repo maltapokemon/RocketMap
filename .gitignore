@@ -18,6 +18,7 @@ _build
 _build_html
 beehive.*
 static/*.ttf
+static/PogoAssets/*
 static/sprites/*.png
 static/images/appicons/*.png
 static/images/appicons/*.ico
