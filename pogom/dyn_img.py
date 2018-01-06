@@ -8,6 +8,10 @@ from pgoapi.protos.pogoprotos.enums.form_pb2 import Form
 from pgoapi.protos.pogoprotos.enums.gender_pb2 import MALE, FEMALE, Gender, GENDERLESS, GENDER_UNSET
 from pgoapi.protos.pogoprotos.enums.weather_condition_pb2 import *
 
+from pgoapi.protos.pogoprotos.map.weather.gameplay_weather_pb2 import *
+from pgoapi.protos.pogoprotos.map.weather.weather_alert_pb2 import *
+from pgoapi.protos.pogoprotos.networking.responses.get_map_objects_response_pb2 import *
+
 log = logging.getLogger(__name__)
 
 # Will be set during config parsing
@@ -204,7 +208,7 @@ def get_pokemon_icon(pkm, gender=None, form=None, costume=None,  weather=None,  
 
     # Add Pokemon icon
     if pogo_assets:
-        source, target = pokemon_asset_path_shuffle(pkm, gender, form, costume, weather)
+        source, target = pokemon_asset_path_shuffle(pkm, gender, form, costume, weather, time)
         target_size = 96
         im_lines.append(
             #' -fuzz 0.5% -trim +repage'
@@ -223,7 +227,8 @@ def get_pokemon_icon(pkm, gender=None, form=None, costume=None,  weather=None,  
         # Extract pokemon icon from spritesheet
         source = path_pokemon_spritesheet
         weather_suffix = '_{}'.format(WeatherCondition.Name(weather)) if weather else ''
-        target = os.path.join(path_generated_pokemon, 'pokemon_{}{}.png'.format(pkm, weather_suffix))
+        time_suffix = '_{}'.format(GetMapObjectsResponse.TimeOfDay.Name(time)) if time else ''
+        target = os.path.join(path_generated_pokemon, 'pokemon_{}{}{}.png'.format(pkm, weather_suffix, time_suffix))
 
         target_size = pkm_sprites_size
         pkm_idx = pkm - 1
@@ -263,11 +268,12 @@ def get_pokemon_icon(pkm, gender=None, form=None, costume=None,  weather=None,  
     return run_imagemagick(source, im_lines, target)
 
 
-def pokemon_asset_path(pkm, gender=GENDER_UNSET, form=None, costume=None, weather=None):
+def pokemon_asset_path(pkm, gender=GENDER_UNSET, form=None, costume=None, weather=None, time=None):
     gender_suffix = gender_assets_suffix = ''
     form_suffix = form_assets_suffix  = ''
     costume_suffix = costume_assets_suffix = ''
     weather_suffix = '_{}'.format(WeatherCondition.Name(weather)) if weather else ''
+    time_suffix = time_assets_suffix = ''
 
     if gender in (MALE, FEMALE):
         gender_assets_suffix = '_{:02d}'.format(gender - 1)
@@ -288,13 +294,17 @@ def pokemon_asset_path(pkm, gender=GENDER_UNSET, form=None, costume=None, weathe
     if not gender_assets_suffix and not form_assets_suffix and not costume_assets_suffix:
         gender_assets_suffix = '_16' if pkm == 201 else '_00'
 
+    if time:
+        #time_assets_suffix = '_{:02d}'.format(time)
+        time_suffix = '_{}'.format(GetMapObjectsResponse.TimeOfDay.Name(time))
+
     assets_basedir = os.path.join(pogo_assets, 'decrypted_assets')
     assets_fullname = os.path.join(assets_basedir,
                                    'pokemon_icon_{:03d}{}{}{}.png'.format(pkm, gender_assets_suffix, form_assets_suffix,
                                                                     costume_assets_suffix))
     target_name = os.path.join(path_generated_pokemon,
-                               "pkm_{}{}{}{}{}.png".format(pkm, gender_suffix, form_suffix, costume_suffix,
-                                                               weather_suffix))
+                               "pkm_{}{}{}{}{}{}.png".format(pkm, gender_suffix, form_suffix, costume_suffix,
+                                                               weather_suffix, time_suffix))
     if os.path.isfile(assets_fullname):
         return assets_fullname, target_name
     else:
@@ -303,11 +313,12 @@ def pokemon_asset_path(pkm, gender=GENDER_UNSET, form=None, costume=None, weathe
         return pokemon_asset_path(pkm, MALE, form, costume, weather)
 
 
-def pokemon_asset_path_shuffle(pkm, gender=GENDER_UNSET, form=None, costume=None, weather=None):
+def pokemon_asset_path_shuffle(pkm, gender=GENDER_UNSET, form=None, costume=None, weather=None, time=None):
     gender_suffix = gender_assets_suffix = ''
     form_suffix = form_assets_suffix  = ''
     costume_suffix = costume_assets_suffix = ''
     weather_suffix = '_{}'.format(WeatherCondition.Name(weather)) if weather else ''
+    time_suffix = time_assets_suffix = ''
 
     if gender in (MALE, FEMALE):
         gender_assets_suffix = ''.format(gender - 1)
@@ -328,13 +339,17 @@ def pokemon_asset_path_shuffle(pkm, gender=GENDER_UNSET, form=None, costume=None
     if not gender_assets_suffix and not form_assets_suffix and not costume_assets_suffix:
         gender_assets_suffix = '_16' if pkm == 201 else ''
 
+    if time:
+        #time_assets_suffix = '_{:02d}'.format(time)
+        time_suffix = '_{}'.format(GetMapObjectsResponse.TimeOfDay.Name(time))
+
     assets_basedir = os.path.join(pogo_assets, 'sprites')
     assets_fullname = os.path.join(assets_basedir,
                                    '{}{}{}{}.png'.format(pkm, gender_assets_suffix, form_assets_suffix,
                                                                     costume_assets_suffix))
     target_name = os.path.join(path_generated_pokemon,
-                               "pkm_{}{}{}{}{}.png".format(pkm, gender_suffix, form_suffix, costume_suffix,
-                                                               weather_suffix))
+                               "pkm_{}{}{}{}{}{}.png".format(pkm, gender_suffix, form_suffix, costume_suffix,
+                                                               weather_suffix, time_suffix))
     if os.path.isfile(assets_fullname):
         return assets_fullname, target_name
     else:
