@@ -867,23 +867,23 @@ var StoreTypes = {
 // set the default parameters for you map here
 var StoreOptions = {
     'map_style': {
-        default: 'style_pgo_dynamic', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
+        default: 'roadmap', // roadmap, satellite, hybrid, nolabels_style, dark_style, style_light2, style_pgo, dark_style_nl, style_pgo_day, style_pgo_night, style_pgo_dynamic
         type: StoreTypes.String
     },
     'remember_select_exclude': {
-        default: [],
+        default: [10,11,13,14,16,17,18,19,20,21,22,23,27,29,30,32,33,35,37,39,41,42,43,44,46,48,50,52,54,56,58,60,63,66,67,69,72,74,77,81,84,86,90,92,93,96,97,98,99,100,104,109,116,118,119,120,122,124,155,161,162,163,165,167,168,169,170,177,178,183,185,187,188,190,194,198,207,209,213,216,220,221,225,227,228,263,265,273,296,300,307,309,312,315,316,325,336,353,361,363],
         type: StoreTypes.JSON
     },
     'remember_select_notify': {
-        default: [201],
+        default: [143,144,145,146,149,150,151,201,242,243,244,246,247,248,249,250,251,254,257,260,287,288,289],
         type: StoreTypes.JSON
     },
     'remember_select_rarity_notify': {
-        default: ['Very Rare', 'Ultra Rare'], // Common, Uncommon, Rare, Very Rare, Ultra Rare
+        default: [], // Common, Uncommon, Rare, Very Rare, Ultra Rare
         type: StoreTypes.JSON
     },
     'remember_text_perfection_notify': {
-        default: '90',
+        default: '99',
         type: StoreTypes.Number
     },
     'remember_text_level_notify': {
@@ -891,7 +891,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showRaids': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showActiveRaidsOnly': {
@@ -907,7 +907,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'showGyms': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'useGymSidebar': {
@@ -967,15 +967,15 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showWeatherCells': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showS2Cells': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showWeatherAlerts': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showGeofences': {
@@ -1035,7 +1035,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'scaleByRarity': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'upscalePokemon': {
@@ -1059,7 +1059,7 @@ var StoreOptions = {
         type: StoreTypes.Number
     },
     'maxClusterZoomLevel': {
-        default: 14,
+        default: 10,
         type: StoreTypes.Number
     },
     'clusterZoomOnClick': {
