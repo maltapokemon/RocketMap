@@ -943,11 +943,11 @@ var StoreOptions = {
         type: StoreTypes.Boolean
     },
     'showLurePokemon': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showPokestops': {
-        default: true,
+        default: false,
         type: StoreTypes.Boolean
     },
     'showLuredPokestopsOnly': {

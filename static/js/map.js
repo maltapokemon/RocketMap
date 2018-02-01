@@ -323,11 +323,12 @@ function initMap() { // eslint-disable-line no-unused-vars
         }, 500)
     })
 
-    searchMarker = createSearchMarker()
-    locationMarker = createLocationMarker()
-    createMyLocationButton()
+    //searchMarker = createSearchMarker()
+    //locationMarker = createLocationMarker()
+    //createMyLocationButton()
     initSidebar()
 
+	/*
     $('#scan-here').on('click', function () {
         var loc = map.getCenter()
         changeLocation(loc.lat(), loc.lng())
@@ -336,13 +337,14 @@ function initMap() { // eslint-disable-line no-unused-vars
             $('#search-switch').prop('checked', true)
             searchControl('on')
         }
-    })
+    })*/
 
     if (Push._agents.chrome.isSupported()) {
         createServiceWorkerReceiver()
     }
 }
 
+/*
 function updateLocationMarker(style) {
     if (style in searchMarkerStyles) {
         var url = searchMarkerStyles[style].icon
@@ -395,6 +397,7 @@ function createLocationMarker() {
 
     return locationMarker
 }
+
 
 function updateSearchMarker(style) {
     if (style in searchMarkerStyles) {
@@ -454,6 +457,7 @@ function createSearchMarker() {
 
     return searchMarker
 }
+*/
 
 var searchControlURI = 'search_control'
 
@@ -1985,7 +1989,38 @@ function showInBoundsMarkers(markers, type) {
     })
 }
 
+function isAuthenticated() {
+	
+	var acc_token = localStorage.getItem('access_token');
+	if (acc_token) {
+		// Check whether the current time is past the
+		// access token's expiry time
+		var expiresAt = JSON.parse(localStorage.getItem('expires_at'));
+		
+	    var btn_login = document.getElementById('btn-login');
+	    var btn_logout = document.getElementById('btn-logout');
+		if (new Date().getTime() < expiresAt) {
+		    btn_login.style.display = 'none';
+		    btn_logout.style.display = 'inline';
+			return true
+		} else {
+            console.log('Token expired: Remove tokens')
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('id_token');
+            localStorage.removeItem('expires_at');
+			btn_login.style.display = "inline";
+			btn_logout.style.display = "none";
+			window.location.href = "/";
+			return false
+		}
+	} else {
+		return false
+	}
+}
+
 function loadRawData() {
+
+	if (isAuthenticated()) {
     var loadPokemon = Store.get('showPokemon')
     var loadLurePokemon = Store.get('showLurePokemon')
     var loadGyms = (Store.get('showGyms') || Store.get('showRaids'))
@@ -2072,6 +2107,7 @@ function loadRawData() {
             rawDataIsLoading = false
         }
     })
+	}
 }
 
 function processPokemons(pokemon) {
@@ -2460,8 +2496,10 @@ function updateGeofences(geofences) {
         geofencesSet = true
     }
 }
-
 function updateMap() {
+    if (isAuthenticated()) {updateMap2();}
+}
+function updateMap2() {
     loadRawData().done(function (result) {
         var lurePokemons = {}
         $.each(result.lurePokemons, function (i, item) {
@@ -2686,14 +2724,14 @@ function createMyLocationButton() {
 function centerMapOnLocation() {
     var currentLocation = document.getElementById('current-location')
     var imgX = '0'
-    var animationInterval = setInterval(function () {
-        if (imgX === '-18') {
-            imgX = '0'
-        } else {
-            imgX = '-18'
-        }
-        currentLocation.style.backgroundPosition = imgX + 'px 0'
-    }, 500)
+    // var animationInterval = setInterval(function () {
+        // if (imgX === '-18') {
+            // imgX = '0'
+        // } else {
+            // imgX = '-18'
+        // }
+        // currentLocation.style.backgroundPosition = imgX + 'px 0'
+    // }, 500)
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function (position) {
             var latlng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude)
@@ -2703,11 +2741,11 @@ function centerMapOnLocation() {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude
             })
-            clearInterval(animationInterval)
+            //clearInterval(animationInterval)
             currentLocation.style.backgroundPosition = '-144px 0px'
         })
     } else {
-        clearInterval(animationInterval)
+        //clearInterval(animationInterval)
         currentLocation.style.backgroundPosition = '0px 0px'
     }
 }
@@ -2758,6 +2796,7 @@ function i8ln(word) {
     }
 }
 
+/*
 function updateGeoLocation() {
     if (navigator.geolocation && (Store.get('geoLocate') || Store.get('followMyLocation'))) {
         navigator.geolocation.getCurrentPosition(function (position) {
@@ -2787,6 +2826,7 @@ function updateGeoLocation() {
         })
     }
 }
+*/
 
 function createUpdateWorker() {
     try {
@@ -2806,7 +2846,7 @@ function createUpdateWorker() {
                 var data = e.data
                 if (document.hidden && data.name === 'backgroundUpdate' && Date.now() - lastUpdateTime > 2500) {
                     updateMap()
-                    updateGeoLocation()
+                    //updateGeoLocation()
                 }
             }
 
@@ -3205,9 +3245,10 @@ $(function () {
         updateMap()
     })
 
-    $selectSearchIconMarker = $('#iconmarker-style')
-    $selectLocationIconMarker = $('#locationmarker-style')
+    //$selectSearchIconMarker = $('#iconmarker-style')
+    //$selectLocationIconMarker = $('#locationmarker-style')
 
+	/*
     $.getJSON('static/dist/data/searchmarkerstyle.min.json').done(function (data) {
         searchMarkerStyles = data
         var searchMarkerStyleList = []
@@ -3218,7 +3259,7 @@ $(function () {
                 text: value.name
             })
         })
-
+		/*
         $selectSearchIconMarker.select2({
             placeholder: 'Select Icon Marker',
             data: searchMarkerStyleList,
@@ -3247,7 +3288,8 @@ $(function () {
         })
 
         $selectLocationIconMarker.val(Store.get('locationMarkerStyle')).trigger('change')
-    })
+		
+    })*/
 })
 
 $(function () {
@@ -3376,7 +3418,7 @@ $(function () {
     window.setInterval(updateLabelDiffTime, 1000)
     window.setInterval(updateLabelTime, 1000)
     window.setInterval(updateMap, 5000)
-    window.setInterval(updateGeoLocation, 1000)
+    //window.setInterval(updateGeoLocation, 1000)
 
     createUpdateWorker()
 
@@ -3639,6 +3681,7 @@ $(function () {
         Store.set('startAtUserLocation', this.checked)
     })
 
+	/*
     $('#follow-my-location-switch').change(function () {
         if (!navigator.geolocation) {
             this.checked = false
@@ -3656,7 +3699,8 @@ $(function () {
         $('#scan-here').toggle(this.checked)
         Store.set('scanHere', this.checked)
     })
-
+	*/
+	
     if ($('#nav-accordion').length) {
         $('#nav-accordion').accordion({
             active: 0,

@@ -9,6 +9,86 @@
     // Vars.
     var $body = document.querySelector('body')
 
+	window.addEventListener('load', function () {
+
+ //----
+		
+		  // buttons
+		  var btn_login = document.getElementById('btn-login');
+		  var btn_logout = document.getElementById('btn-logout');
+
+		btn_login.addEventListener('click', function(e) {
+            e.preventDefault();
+            webAuth.authorize({
+            connection: 'facebook'}
+            );
+          });
+
+		  btn_logout.addEventListener('click', function() {
+			 logout();
+			 window.location.href = "/";
+		  });
+          
+          function handleAuthentication() {
+			 console.log('Starting authentication...');
+            webAuth.parseHash(function(err, authResult) {
+               if (authResult && authResult.accessToken && authResult.idToken) {
+                        window.location.hash = '';
+                        setSession(authResult);
+                      } else if (err) {
+						  //alert(err);
+                        logout();
+                        console.log(err);
+                      }
+                    });
+          }
+
+          function setSession(authResult) {
+                       
+                // Set the time that the access token will expire at
+                var expiresAt = JSON.stringify(authResult.expiresIn * 1000 + new Date().getTime());
+                console.log('Saving tokens');
+                localStorage.setItem('access_token', authResult.accessToken);
+                localStorage.setItem('id_token', authResult.idToken);
+                localStorage.setItem('expires_at', expiresAt);
+                displayButtons();
+                //displayProfile();
+          }
+
+          function logout() {
+            // Remove tokens and expiry time from localStorage
+            console.log('! Remove tokens')
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('id_token');
+            localStorage.removeItem('expires_at');
+            displayButtons();
+          }
+
+          function isAuthenticated() {
+            // Check whether the current time is past the
+            // access token's expiry time
+            var expiresAt = JSON.parse(localStorage.getItem('expires_at'));
+            return new Date().getTime() < expiresAt;
+          }
+
+          function displayButtons() {
+             console.log('Display buttons');
+            if (isAuthenticated()) {
+                  btn_login.style.display = 'none';
+                  btn_logout.style.display = 'inline';
+            } else {
+                btn_login.style.display = "inline";
+                btn_logout.style.display = "none";
+            }
+          }
+
+		
+          handleAuthentication();
+ //-----
+
+    });
+	
+
     // Nav.
     var $nav = document.querySelector('#nav')
     var $navToggle = document.querySelector('a[href="#nav"]')
